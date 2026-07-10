@@ -1,0 +1,360 @@
+"use client";
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  ChevronDown,
+  Users,
+  AlertCircle,
+  Search,
+  Mail,
+  Calendar,
+  Shield,
+  UserPlus,
+} from "lucide-react";
+import { useUser } from "@/components/user-provider";
+import { AddUserForm } from "@/components/add-user-form";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+
+type Role = "admin" | "seller" | "viewer";
+
+type UserRow = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  role: Role;
+  created_at: string;
+};
+
+const ROLE_OPTIONS: Role[] = ["admin", "seller", "viewer"];
+
+export default function AdminUsersPage() {
+  const queryClient = useQueryClient();
+  const currentUser = useUser();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [addUserOpen, setAddUserOpen] = useState(false);
+
+  const {
+    data: users = [],
+    isLoading,
+    error,
+  } = useQuery<UserRow[]>({
+    queryKey: ["admin", "users"],
+    queryFn: async () => {
+      const res = await fetch("/api/admin/users");
+      if (!res.ok) throw new Error("Failed to fetch users");
+      return res.json();
+    },
+  });
+
+  const changeRoleMutation = useMutation({
+    mutationFn: async ({
+      userId,
+      role,
+    }: {
+      userId: string;
+      role: Role;
+    }) => {
+      const res = await fetch("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, role }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to update role");
+      }
+      return res.json();
+    },
+    onSuccess: (_, variables) => {
+      toast.success(`Role updated to ${variables.role}`);
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+    onError: (err: any) => {
+      toast.error(err.message);
+    },
+  });
+
+  const filteredUsers = users.filter(
+    (user) =>
+      user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4 text-center animate-in fade-in duration-500">
+        <AlertCircle className="size-12 text-destructive opacity-50" />
+        <div>
+          <h2 className="text-xl font-bold">Failed to load users</h2>
+          <p className="text-muted-foreground">{(error as Error).message}</p>
+        </div>
+        <Button
+          onClick={() =>
+            queryClient.invalidateQueries({ queryKey: ["admin", "users"] })
+          }
+        >
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full gap-6 animate-in fade-in duration-500 overflow-hidden">
+      <div className="flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="bg-primary/10 rounded-lg p-2.5">
+            <Users className="size-6 text-primary" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Users
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              Manage roles and permissions for all registered users.
+            </p>
+          </div>
+        </div>
+        <Button onClick={() => setAddUserOpen(true)} className="gap-1.5">
+          <UserPlus className="size-4" />
+          Add User
+        </Button>
+      </div>
+
+      <AddUserForm
+        open={addUserOpen}
+        onOpenChange={setAddUserOpen}
+        onSuccess={() =>
+          queryClient.invalidateQueries({ queryKey: ["admin", "users"] })
+        }
+      />
+
+      <Card className="py-0 flex-1 flex flex-col border shadow-sm overflow-hidden bg-background/50">
+        <CardHeader className="bg-zinc-50/50 dark:bg-zinc-900/50 border-b shrink-0 py-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name or email..."
+                className="pl-8 bg-background h-9"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="text-xs text-muted-foreground font-medium">
+              {filteredUsers.length} total users
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
+          <div className="flex-1 overflow-auto">
+            <Table>
+              <TableHeader className="sticky top-0 bg-background z-10 border-b">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    User
+                  </TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    Email
+                  </TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    Role
+                  </TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    Joined
+                  </TableHead>
+                  <TableHead className="text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    Actions
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  Array.from({ length: 8 }).map((_, i) => (
+                    <TableRow key={i} className="hover:bg-transparent h-[60px]">
+                      <TableCell className="pl-4">
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="h-9 w-9 rounded-full shrink-0" />
+                          <div className="space-y-1.5">
+                            <Skeleton className="h-3.5 w-28" />
+                            <Skeleton className="h-2.5 w-16" />
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell><Skeleton className="h-3.5 w-40" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-14 rounded-full" /></TableCell>
+                      <TableCell><Skeleton className="h-3.5 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-8 w-24 ml-auto rounded-md" /></TableCell>
+                    </TableRow>
+                  ))
+                ) : filteredUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={5}
+                      className="h-32 text-center text-muted-foreground"
+                    >
+                      No users found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredUsers.map((user) => (
+                    <TableRow
+                      key={user.id}
+                      className={cn(
+                        "group border-b transition-colors hover:bg-muted/40 h-[60px]",
+                        user.id === currentUser?.id &&
+                          "bg-primary/5 hover:bg-primary/10",
+                      )}
+                    >
+                      <TableCell className="pl-4">
+                        <div className="flex items-center gap-3">
+                          <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                            <span className="text-[11px] font-bold text-primary">
+                              {(user.full_name ?? user.email ?? "?")
+                                .split(" ")
+                                .map((w: string) => w[0])
+                                .join("")
+                                .slice(0, 2)
+                                .toUpperCase()}
+                            </span>
+                          </div>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-semibold text-sm flex items-center gap-2">
+                              {user.full_name ?? "—"}
+                              {user.id === currentUser?.id && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] h-4 px-1 font-bold bg-primary/10 text-primary border-primary/20"
+                                >
+                                  YOU
+                                </Badge>
+                              )}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground font-mono">
+                              {user.id.slice(0, 8)}
+                            </span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Mail className="size-3 opacity-50" />
+                          <span className="text-sm">{user.email ?? "—"}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          className={cn(
+                            "capitalize font-bold text-[10px] h-5",
+                            user.role === "admin"
+                              ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                              : user.role === "seller"
+                                ? "bg-primary/10 text-primary"
+                                : "bg-muted text-muted-foreground",
+                          )}
+                        >
+                          <Shield className="size-2.5 mr-1" />
+                          {user.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Calendar className="size-3 opacity-50" />
+                          <span className="text-sm">
+                            {new Date(user.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {user.id === currentUser?.id ? (
+                          <div className="text-[10px] font-bold text-primary uppercase tracking-tighter opacity-50 pr-4">
+                            Current Session
+                          </div>
+                        ) : (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                disabled={
+                                  changeRoleMutation.isPending &&
+                                  changeRoleMutation.variables?.userId ===
+                                    user.id
+                                }
+                                className="h-8 gap-1.5 text-xs"
+                              >
+                                {changeRoleMutation.isPending &&
+                                changeRoleMutation.variables?.userId ===
+                                  user.id ? (
+                                  <span className="flex items-center gap-1.5">
+                                    <div className="size-2 rounded-full bg-primary animate-pulse" />
+                                    Updating
+                                  </span>
+                                ) : (
+                                  <>
+                                    Manage Role
+                                    <ChevronDown className="size-3 opacity-50" />
+                                  </>
+                                )}
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-44">
+                              {ROLE_OPTIONS.filter(
+                                (role) => role !== user.role,
+                              ).map((role) => (
+                                <DropdownMenuItem
+                                  key={role}
+                                  className="text-xs font-medium capitalize"
+                                  onClick={() =>
+                                    changeRoleMutation.mutate({
+                                      userId: user.id,
+                                      role,
+                                    })
+                                  }
+                                >
+                                  <Shield className="size-3 mr-2" />
+                                  Set as {role}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

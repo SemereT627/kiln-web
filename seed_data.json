@@ -1,0 +1,970 @@
+[
+    {
+        "Product ID (CODE)": "057",
+        "Ceramic Name": "DUKEM",
+        "Size": "60*60 P",
+        "Initial (m2)": 14.76,
+        "Sold": 0.0,
+        "Current (m2)": 14.76
+    },
+    {
+        "Product ID (CODE)": "151",
+        "Ceramic Name": "DUKEM",
+        "Size": "60*60 P",
+        "Initial (m2)": 9.36,
+        "Sold": 5.04,
+        "Current (m2)": 4.32
+    },
+    {
+        "Product ID (CODE)": "159",
+        "Ceramic Name": "DUKEM",
+        "Size": "60*60 P",
+        "Initial (m2)": 15.48,
+        "Sold": 0.0,
+        "Current (m2)": 15.48
+    },
+    {
+        "Product ID (CODE)": "166",
+        "Ceramic Name": "DUKEM",
+        "Size": "60*60 P",
+        "Initial (m2)": 5.76,
+        "Sold": 0.0,
+        "Current (m2)": 5.76
+    },
+    {
+        "Product ID (CODE)": "170",
+        "Ceramic Name": "DUKEM",
+        "Size": "60*60 P",
+        "Initial (m2)": 25.92,
+        "Sold": 0.0,
+        "Current (m2)": 25.92
+    },
+    {
+        "Product ID (CODE)": "173",
+        "Ceramic Name": "DUKEM",
+        "Size": "60*60 P",
+        "Initial (m2)": 73.44,
+        "Sold": 24.84,
+        "Current (m2)": 48.6
+    },
+    {
+        "Product ID (CODE)": "176",
+        "Ceramic Name": "DUKEM",
+        "Size": "60*60 P",
+        "Initial (m2)": 16.2,
+        "Sold": 7.92,
+        "Current (m2)": 8.28
+    },
+    {
+        "Product ID (CODE)": "177",
+        "Ceramic Name": "DUKEM",
+        "Size": "60*60 P",
+        "Initial (m2)": 44.28,
+        "Sold": 4.32,
+        "Current (m2)": 39.96
+    },
+    {
+        "Product ID (CODE)": "A31",
+        "Ceramic Name": "DUKEM",
+        "Size": "60*60 N",
+        "Initial (m2)": 95.04,
+        "Sold": 0.0,
+        "Current (m2)": 95.04
+    },
+    {
+        "Product ID (CODE)": "A56",
+        "Ceramic Name": "DUKEM",
+        "Size": "60*60 N",
+        "Initial (m2)": 47.52,
+        "Sold": 0.0,
+        "Current (m2)": 47.52
+    },
+    {
+        "Product ID (CODE)": "M53",
+        "Ceramic Name": "DUKEM",
+        "Size": "60*60 N",
+        "Initial (m2)": 95.04,
+        "Sold": 1.44,
+        "Current (m2)": 93.6
+    },
+    {
+        "Product ID (CODE)": "M54",
+        "Ceramic Name": "DUKEM",
+        "Size": "60*60 N",
+        "Initial (m2)": 29.88,
+        "Sold": 1.44,
+        "Current (m2)": 28.44
+    },
+    {
+        "Product ID (CODE)": "M55",
+        "Ceramic Name": "DUKEM",
+        "Size": "60*60 N",
+        "Initial (m2)": 95.04,
+        "Sold": 0.0,
+        "Current (m2)": 95.04
+    },
+    {
+        "Product ID (CODE)": "M56",
+        "Ceramic Name": "DUKEM",
+        "Size": "60*60 N",
+        "Initial (m2)": 95.04,
+        "Sold": 0.0,
+        "Current (m2)": 95.04
+    },
+    {
+        "Product ID (CODE)": "W66",
+        "Ceramic Name": "DUKEM",
+        "Size": "60*60 N",
+        "Initial (m2)": 95.04,
+        "Sold": 0.0,
+        "Current (m2)": 95.04
+    },
+    {
+        "Product ID (CODE)": "201",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 P",
+        "Initial (m2)": 91.8,
+        "Sold": 14.76,
+        "Current (m2)": 77.04
+    },
+    {
+        "Product ID (CODE)": "202",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 P",
+        "Initial (m2)": 88.92,
+        "Sold": 1.44,
+        "Current (m2)": 87.48
+    },
+    {
+        "Product ID (CODE)": "203",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 P",
+        "Initial (m2)": 77.04,
+        "Sold": 83.52,
+        "Current (m2)": -6.48
+    },
+    {
+        "Product ID (CODE)": "204",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 P",
+        "Initial (m2)": 91.8,
+        "Sold": 18.36,
+        "Current (m2)": 73.44
+    },
+    {
+        "Product ID (CODE)": "205",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 P",
+        "Initial (m2)": 13.32,
+        "Sold": 9.36,
+        "Current (m2)": 3.96
+    },
+    {
+        "Product ID (CODE)": "213",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 P",
+        "Initial (m2)": 3.6,
+        "Sold": 0.0,
+        "Current (m2)": 3.6
+    },
+    {
+        "Product ID (CODE)": "214",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 P",
+        "Initial (m2)": 10.44,
+        "Sold": 0.0,
+        "Current (m2)": 10.44
+    },
+    {
+        "Product ID (CODE)": "217",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 P",
+        "Initial (m2)": 7.2,
+        "Sold": 0.0,
+        "Current (m2)": 7.2
+    },
+    {
+        "Product ID (CODE)": "218",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 P",
+        "Initial (m2)": 115.2,
+        "Sold": 54.72,
+        "Current (m2)": 60.48
+    },
+    {
+        "Product ID (CODE)": "227",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 P",
+        "Initial (m2)": 11.52,
+        "Sold": 5.04,
+        "Current (m2)": 6.48
+    },
+    {
+        "Product ID (CODE)": "229",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 P",
+        "Initial (m2)": 188.28,
+        "Sold": 109.08,
+        "Current (m2)": 79.2
+    },
+    {
+        "Product ID (CODE)": "232",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 P",
+        "Initial (m2)": 87.84,
+        "Sold": 0.0,
+        "Current (m2)": 87.84
+    },
+    {
+        "Product ID (CODE)": "250",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 P",
+        "Initial (m2)": 37.08,
+        "Sold": 37.08,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": "260",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 P",
+        "Initial (m2)": 65.88,
+        "Sold": 66.96,
+        "Current (m2)": -1.08
+    },
+    {
+        "Product ID (CODE)": "262",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 P",
+        "Initial (m2)": 150.84,
+        "Sold": 26.64,
+        "Current (m2)": 124.2
+    },
+    {
+        "Product ID (CODE)": "514",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 P",
+        "Initial (m2)": 230.4,
+        "Sold": 174.96,
+        "Current (m2)": 55.44
+    },
+    {
+        "Product ID (CODE)": "005",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 N",
+        "Initial (m2)": 92.16,
+        "Sold": 92.16,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": "007",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 N",
+        "Initial (m2)": 41.4,
+        "Sold": 7.2,
+        "Current (m2)": 34.2
+    },
+    {
+        "Product ID (CODE)": "011",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 N",
+        "Initial (m2)": 67.32,
+        "Sold": 52.2,
+        "Current (m2)": 15.12
+    },
+    {
+        "Product ID (CODE)": "015AF",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 N",
+        "Initial (m2)": 137.52,
+        "Sold": 43.92,
+        "Current (m2)": 93.6
+    },
+    {
+        "Product ID (CODE)": "016",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 N",
+        "Initial (m2)": 2.88,
+        "Sold": 0.0,
+        "Current (m2)": 2.88
+    },
+    {
+        "Product ID (CODE)": "026",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 N",
+        "Initial (m2)": 15.84,
+        "Sold": 0.0,
+        "Current (m2)": 15.84
+    },
+    {
+        "Product ID (CODE)": "029",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 N",
+        "Initial (m2)": 12.96,
+        "Sold": 11.52,
+        "Current (m2)": 1.44
+    },
+    {
+        "Product ID (CODE)": "030",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 N",
+        "Initial (m2)": 25.56,
+        "Sold": 0.0,
+        "Current (m2)": 25.56
+    },
+    {
+        "Product ID (CODE)": "033",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 N",
+        "Initial (m2)": 3.6,
+        "Sold": 0.0,
+        "Current (m2)": 3.6
+    },
+    {
+        "Product ID (CODE)": "036",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 N",
+        "Initial (m2)": 7.92,
+        "Sold": 7.2,
+        "Current (m2)": 0.72
+    },
+    {
+        "Product ID (CODE)": "041",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 N",
+        "Initial (m2)": 9.36,
+        "Sold": 0.0,
+        "Current (m2)": 9.36
+    },
+    {
+        "Product ID (CODE)": "045",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 N",
+        "Initial (m2)": 114.84,
+        "Sold": 52.2,
+        "Current (m2)": 62.64
+    },
+    {
+        "Product ID (CODE)": "047",
+        "Ceramic Name": "ARERTI",
+        "Size": "60*60 N",
+        "Initial (m2)": 2.88,
+        "Sold": 2.52,
+        "Current (m2)": 0.36
+    },
+    {
+        "Product ID (CODE)": "101",
+        "Ceramic Name": "DUKEM",
+        "Size": "40*40",
+        "Initial (m2)": 89.6,
+        "Sold": 26.96,
+        "Current (m2)": 62.64
+    },
+    {
+        "Product ID (CODE)": "A30",
+        "Ceramic Name": "DUKEM",
+        "Size": "40*40",
+        "Initial (m2)": 89.6,
+        "Sold": 14.88,
+        "Current (m2)": 74.72
+    },
+    {
+        "Product ID (CODE)": "A31",
+        "Ceramic Name": "DUKEM",
+        "Size": "40*40",
+        "Initial (m2)": 89.6,
+        "Sold": 0.0,
+        "Current (m2)": 89.6
+    },
+    {
+        "Product ID (CODE)": "A78",
+        "Ceramic Name": "DUKEM",
+        "Size": "40*40",
+        "Initial (m2)": 179.2,
+        "Sold": 12.0,
+        "Current (m2)": 167.2
+    },
+    {
+        "Product ID (CODE)": "A91",
+        "Ceramic Name": "DUKEM",
+        "Size": "40*40",
+        "Initial (m2)": 179.2,
+        "Sold": 24.16,
+        "Current (m2)": 155.04
+    },
+    {
+        "Product ID (CODE)": "B02",
+        "Ceramic Name": "DUKEM",
+        "Size": "40*40",
+        "Initial (m2)": 89.6,
+        "Sold": 8.0,
+        "Current (m2)": 81.6
+    },
+    {
+        "Product ID (CODE)": "B04",
+        "Ceramic Name": "DUKEM",
+        "Size": "40*40",
+        "Initial (m2)": 179.2,
+        "Sold": 15.2,
+        "Current (m2)": 164.0
+    },
+    {
+        "Product ID (CODE)": "B08",
+        "Ceramic Name": "DUKEM",
+        "Size": "40*40",
+        "Initial (m2)": 180.16,
+        "Sold": 42.88,
+        "Current (m2)": 137.28
+    },
+    {
+        "Product ID (CODE)": "E70",
+        "Ceramic Name": "DUKEM",
+        "Size": "40*40",
+        "Initial (m2)": 188.16,
+        "Sold": 39.68,
+        "Current (m2)": 148.48
+    },
+    {
+        "Product ID (CODE)": "603A",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*30",
+        "Initial (m2)": 100.53,
+        "Sold": 0.0,
+        "Current (m2)": 100.53
+    },
+    {
+        "Product ID (CODE)": "605AF",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*30",
+        "Initial (m2)": 103.59,
+        "Sold": 14.94,
+        "Current (m2)": 88.65
+    },
+    {
+        "Product ID (CODE)": "619AF",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*30",
+        "Initial (m2)": 103.68,
+        "Sold": 18.0,
+        "Current (m2)": 85.68
+    },
+    {
+        "Product ID (CODE)": "623",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*30",
+        "Initial (m2)": 13.23,
+        "Sold": 0.0,
+        "Current (m2)": 13.23
+    },
+    {
+        "Product ID (CODE)": "625",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*30",
+        "Initial (m2)": 99.99,
+        "Sold": 0.0,
+        "Current (m2)": 99.99
+    },
+    {
+        "Product ID (CODE)": "630",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*30",
+        "Initial (m2)": 5.04,
+        "Sold": 0.0,
+        "Current (m2)": 5.04
+    },
+    {
+        "Product ID (CODE)": "602",
+        "Ceramic Name": "DUKEM",
+        "Size": "30*30",
+        "Initial (m2)": 10.17,
+        "Sold": 0.0,
+        "Current (m2)": 10.17
+    },
+    {
+        "Product ID (CODE)": "914DF",
+        "Ceramic Name": "DUKEM",
+        "Size": "30*30",
+        "Initial (m2)": 70.56,
+        "Sold": 10.44,
+        "Current (m2)": 60.12
+    },
+    {
+        "Product ID (CODE)": "A01",
+        "Ceramic Name": "DUKEM",
+        "Size": "30*30",
+        "Initial (m2)": 18.0,
+        "Sold": 0.0,
+        "Current (m2)": 18.0
+    },
+    {
+        "Product ID (CODE)": "605AW",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*60 D",
+        "Initial (m2)": 247.86,
+        "Sold": 82.26,
+        "Current (m2)": 165.6
+    },
+    {
+        "Product ID (CODE)": "606",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*60 D",
+        "Initial (m2)": 141.84,
+        "Sold": 2.88,
+        "Current (m2)": 138.96
+    },
+    {
+        "Product ID (CODE)": "607",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*60 D",
+        "Initial (m2)": 206.82,
+        "Sold": 59.22,
+        "Current (m2)": 147.6
+    },
+    {
+        "Product ID (CODE)": "608",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*60 D",
+        "Initial (m2)": 69.3,
+        "Sold": 1.44,
+        "Current (m2)": 67.86
+    },
+    {
+        "Product ID (CODE)": "609",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*60 D",
+        "Initial (m2)": 83.52,
+        "Sold": 7.92,
+        "Current (m2)": 75.6
+    },
+    {
+        "Product ID (CODE)": "626",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*60 D",
+        "Initial (m2)": 128.88,
+        "Sold": 128.88,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": "630",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*60 D",
+        "Initial (m2)": 225.18,
+        "Sold": 0.0,
+        "Current (m2)": 225.18
+    },
+    {
+        "Product ID (CODE)": "650",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*60 D",
+        "Initial (m2)": 291.06,
+        "Sold": 9.0,
+        "Current (m2)": 282.06
+    },
+    {
+        "Product ID (CODE)": "653",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*60 D",
+        "Initial (m2)": 59.04,
+        "Sold": 0.0,
+        "Current (m2)": 59.04
+    },
+    {
+        "Product ID (CODE)": "656",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*60 D",
+        "Initial (m2)": 57.96,
+        "Sold": 0.0,
+        "Current (m2)": 57.96
+    },
+    {
+        "Product ID (CODE)": "657",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*60 D",
+        "Initial (m2)": 50.58,
+        "Sold": 2.88,
+        "Current (m2)": 47.7
+    },
+    {
+        "Product ID (CODE)": "662",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*60 D",
+        "Initial (m2)": 76.86,
+        "Sold": 18.54,
+        "Current (m2)": 58.32
+    },
+    {
+        "Product ID (CODE)": "663",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*60 D",
+        "Initial (m2)": 37.44,
+        "Sold": 2.52,
+        "Current (m2)": 34.92
+    },
+    {
+        "Product ID (CODE)": "667",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*60 D",
+        "Initial (m2)": 33.48,
+        "Sold": 0.0,
+        "Current (m2)": 33.48
+    },
+    {
+        "Product ID (CODE)": "601",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*60 N",
+        "Initial (m2)": 100.26,
+        "Sold": 7.2,
+        "Current (m2)": 93.06
+    },
+    {
+        "Product ID (CODE)": "603",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*60 N",
+        "Initial (m2)": 128.34,
+        "Sold": 0.0,
+        "Current (m2)": 128.34
+    },
+    {
+        "Product ID (CODE)": "603U",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*60 N",
+        "Initial (m2)": 96.48,
+        "Sold": 41.04,
+        "Current (m2)": 55.44
+    },
+    {
+        "Product ID (CODE)": "618",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*60 N",
+        "Initial (m2)": 195.3,
+        "Sold": 26.46,
+        "Current (m2)": 168.84
+    },
+    {
+        "Product ID (CODE)": "619AW",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*60 N",
+        "Initial (m2)": 234.9,
+        "Sold": 79.92,
+        "Current (m2)": 154.98
+    },
+    {
+        "Product ID (CODE)": "623",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*60 N",
+        "Initial (m2)": 5.04,
+        "Sold": 0.0,
+        "Current (m2)": 5.04
+    },
+    {
+        "Product ID (CODE)": "624",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*60 N",
+        "Initial (m2)": 61.56,
+        "Sold": 0.0,
+        "Current (m2)": 61.56
+    },
+    {
+        "Product ID (CODE)": "627",
+        "Ceramic Name": "ARERTI",
+        "Size": "30*60 N",
+        "Initial (m2)": 135.9,
+        "Sold": 15.66,
+        "Current (m2)": 120.24
+    },
+    {
+        "Product ID (CODE)": "903",
+        "Ceramic Name": "DUKEM",
+        "Size": "30*60 D",
+        "Initial (m2)": 19.98,
+        "Sold": 7.02,
+        "Current (m2)": 12.96
+    },
+    {
+        "Product ID (CODE)": "904",
+        "Ceramic Name": "DUKEM",
+        "Size": "30*60 D",
+        "Initial (m2)": 3.24,
+        "Sold": 0.9,
+        "Current (m2)": 2.34
+    },
+    {
+        "Product ID (CODE)": "907",
+        "Ceramic Name": "DUKEM",
+        "Size": "30*60 D",
+        "Initial (m2)": 15.48,
+        "Sold": 0.0,
+        "Current (m2)": 15.48
+    },
+    {
+        "Product ID (CODE)": "909",
+        "Ceramic Name": "DUKEM",
+        "Size": "30*60 D",
+        "Initial (m2)": 43.2,
+        "Sold": 0.0,
+        "Current (m2)": 43.2
+    },
+    {
+        "Product ID (CODE)": "914DW",
+        "Ceramic Name": "DUKEM",
+        "Size": "30*60 D",
+        "Initial (m2)": 4.32,
+        "Sold": 3.6,
+        "Current (m2)": 0.72
+    },
+    {
+        "Product ID (CODE)": "015DW",
+        "Ceramic Name": "DUKEM",
+        "Size": "30*60 N",
+        "Initial (m2)": 5.04,
+        "Sold": 1.8,
+        "Current (m2)": 3.24
+    },
+    {
+        "Product ID (CODE)": "102",
+        "Ceramic Name": "DUKEM",
+        "Size": "30*60 N",
+        "Initial (m2)": 25.2,
+        "Sold": 25.2,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": "604",
+        "Ceramic Name": "DUKEM",
+        "Size": "30*60 N",
+        "Initial (m2)": 18.0,
+        "Sold": 0.0,
+        "Current (m2)": 18.0
+    },
+    {
+        "Product ID (CODE)": "606B",
+        "Ceramic Name": "DUKEM",
+        "Size": "30*60 N",
+        "Initial (m2)": 19.26,
+        "Sold": 0.0,
+        "Current (m2)": 19.26
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": "Zekolo",
+        "Ceramic Name": "DUKEM",
+        "Size": "ZEKOLO",
+        "Initial (m2)": 5355.0,
+        "Sold": 933.6,
+        "Current (m2)": 4421.4
+    },
+    {
+        "Product ID (CODE)": "Polished Dark",
+        "Ceramic Name": null,
+        "Size": "60*60 P",
+        "Initial (m2)": 33.12,
+        "Sold": 1.08,
+        "Current (m2)": 32.04
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    },
+    {
+        "Product ID (CODE)": null,
+        "Ceramic Name": null,
+        "Size": null,
+        "Initial (m2)": null,
+        "Sold": 0.0,
+        "Current (m2)": 0.0
+    }
+]
