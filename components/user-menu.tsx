@@ -59,7 +59,7 @@ export function UserMenu({ isSidebar = false }: { isSidebar?: boolean }) {
               </SidebarMenuButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent
-              side="right"
+              side="top"
               align="end"
               className="w-56 mb-2"
               sideOffset={12}
