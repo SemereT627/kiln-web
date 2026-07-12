@@ -32,45 +32,35 @@ export async function GET(request: Request) {
     const status = searchParams.get("status");
 
     const supabase = await createClient();
-    
-    let query = supabase
-      .from("vw_ceramics_inventory")
-      .select("*", { count: "exact" });
 
-    if (search) {
-      query = query.or(`name.ilike.%${search}%,product_code.ilike.%${search}%`);
-    }
-
-    if (brandId) {
-      query = query.eq("brand_id", brandId);
-    }
-
+    // Resolve finish name once (view stores finish_name, not id)
+    let finishName: string | null = null;
     if (finishId) {
-      // Get the finish name for this ID since the view has finish_name
       const { data: finishData } = await supabase
         .from("finishes")
         .select("name")
         .eq("id", finishId)
         .single();
-      
-      if (finishData) {
-        query = query.eq("finish_name", finishData.name);
-      }
+      finishName = finishData?.name ?? null;
     }
 
-    if (size) {
-      query = query.eq("size", size);
-    }
-
-    if (status) {
-      if (status === "in") {
-        query = query.gt("current_stock", 5);
-      } else if (status === "low") {
-        query = query.gt("current_stock", 0).lte("current_stock", 5);
-      } else if (status === "out") {
-        query = query.lte("current_stock", 0);
+    // Apply the same set of filters to any query builder against the view
+    const applyFilters = (q: any) => {
+      if (search) {
+        q = q.or(`name.ilike.%${search}%,product_code.ilike.%${search}%`);
       }
-    }
+      if (brandId) q = q.eq("brand_id", brandId);
+      if (finishName) q = q.eq("finish_name", finishName);
+      if (size) q = q.eq("size", size);
+      if (status === "in") q = q.gt("current_stock", 5);
+      else if (status === "low") q = q.gt("current_stock", 0).lte("current_stock", 5);
+      else if (status === "out") q = q.lte("current_stock", 0);
+      return q;
+    };
+
+    let query = applyFilters(
+      supabase.from("vw_ceramics_inventory").select("*", { count: "exact" }),
+    );
 
     // Allow fetching all if limit is -1
     if (limit !== -1) {
@@ -81,6 +71,60 @@ export async function GET(request: Request) {
     const { data, error, count } = await query.order(sortBy, { ascending: order === "asc" });
 
     if (error) throw error;
+
+    // Summary across the ENTIRE filtered set (not just the current page)
+    const summaryQuery = applyFilters(
+      supabase
+        .from("vw_ceramics_inventory")
+        .select(
+          "type_id, brand_name, size, finish_name, measurement_unit, price_per_unit, initial_stock, sold_stock, current_stock",
+        )
+        .limit(100000),
+    );
+    const { data: summaryRows, error: summaryError } = await summaryQuery;
+    if (summaryError) throw summaryError;
+
+    const totals = { initialStock: 0, soldStock: 0, currentStock: 0 };
+    const byTypeMap = new Map<string, any>();
+    for (const row of summaryRows || []) {
+      const rowCurrent = Number(row.current_stock) || 0;
+      const rowInitial = Number(row.initial_stock) || 0;
+      const rowSold = Number(row.sold_stock) || 0;
+      totals.initialStock += rowInitial;
+      totals.soldStock += rowSold;
+      totals.currentStock += rowCurrent;
+
+      const key = row.type_id || "unknown";
+      const existing = byTypeMap.get(key);
+      if (existing) {
+        existing.initialStock += rowInitial;
+        existing.soldStock += rowSold;
+        existing.currentStock += rowCurrent;
+        existing.productCount += 1;
+      } else {
+        const label = [row.brand_name, row.size, row.finish_name]
+          .filter(Boolean)
+          .join(" · ") || "Unknown";
+        byTypeMap.set(key, {
+          typeId: key,
+          label,
+          brand: row.brand_name || "Unknown",
+          size: row.size || "Unknown",
+          finish: row.finish_name || "Normal",
+          measurementUnit: row.measurement_unit || "m²",
+          pricePerUnit: row.price_per_unit ?? null,
+          initialStock: rowInitial,
+          soldStock: rowSold,
+          currentStock: rowCurrent,
+          productCount: 1,
+        });
+      }
+    }
+    const byType = Array.from(byTypeMap.values()).sort((a, b) => {
+      const brandCmp = a.brand.localeCompare(b.brand);
+      if (brandCmp !== 0) return brandCmp;
+      return a.size.localeCompare(b.size, undefined, { numeric: true });
+    });
     
     const formattedData = (data || []).map((item: any) => ({
       _id: item.id,
@@ -107,7 +151,13 @@ export async function GET(request: Request) {
       data: formattedData,
       total: count || 0,
       page: limit === -1 ? 1 : page,
-      limit: limit === -1 ? count : limit
+      limit: limit === -1 ? count : limit,
+      summary: {
+        totalStock: totals.currentStock,
+        totalInitial: totals.initialStock,
+        totalSold: totals.soldStock,
+        byType,
+      },
     });
   } catch (error: any) {
     console.error("GET Ceramics Error:", error);

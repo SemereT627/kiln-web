@@ -78,6 +78,7 @@ export default function InventoryPage() {
   // Filter state
   const [selectedBrand, setSelectedBrand] = useState<string>("all");
   const [selectedFinish, setSelectedFinish] = useState<string>("all");
+  const [selectedSize, setSelectedSize] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
 
   // Sorting state
@@ -115,6 +116,20 @@ export default function InventoryPage() {
     },
   });
 
+  // Fetch distinct sizes for filter (derived from ceramic types)
+  const { data: sizes = [] } = useQuery({
+    queryKey: ["ceramic-types", "sizes"],
+    queryFn: async () => {
+      const res = await fetch("/api/ceramic-types?limit=-1");
+      if (!res.ok) throw new Error("Failed to fetch sizes");
+      const json = await res.json();
+      const all = (json.data || [])
+        .map((t: any) => t.size)
+        .filter(Boolean);
+      return Array.from(new Set(all)).sort() as string[];
+    },
+  });
+
   const { data: response, isLoading } = useQuery({
     queryKey: [
       "ceramics",
@@ -124,6 +139,7 @@ export default function InventoryPage() {
         sort: sortConfig,
         brand: selectedBrand,
         finish: selectedFinish,
+        size: selectedSize,
         status: selectedStatus,
       },
     ],
@@ -138,6 +154,7 @@ export default function InventoryPage() {
 
       if (selectedBrand !== "all") params.append("brandId", selectedBrand);
       if (selectedFinish !== "all") params.append("finishId", selectedFinish);
+      if (selectedSize !== "all") params.append("size", selectedSize);
       if (selectedStatus !== "all") params.append("status", selectedStatus);
 
       const res = await fetch(`/api/ceramics?${params.toString()}`);
@@ -160,6 +177,8 @@ export default function InventoryPage() {
   const data = response?.data || [];
   const totalItems = response?.total || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const summary = response?.summary;
+  const byType: any[] = summary?.byType || [];
 
   const handleEdit = (e: React.MouseEvent, product: any) => {
     e.stopPropagation();
@@ -195,6 +214,7 @@ export default function InventoryPage() {
   const clearFilters = () => {
     setSelectedBrand("all");
     setSelectedFinish("all");
+    setSelectedSize("all");
     setSelectedStatus("all");
     setCurrentPage(1);
   };
@@ -202,6 +222,7 @@ export default function InventoryPage() {
   const hasActiveFilters =
     selectedBrand !== "all" ||
     selectedFinish !== "all" ||
+    selectedSize !== "all" ||
     selectedStatus !== "all";
 
   const getSortIcon = (key: string) => {
@@ -234,6 +255,81 @@ export default function InventoryPage() {
           )}
         </div>
       </div>
+
+      {(isLoading || byType.length > 0) && (
+        <div className="shrink-0 -mb-2">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+              Stock by Ceramic Type
+            </h2>
+            {!isLoading && (
+              <span className="text-xs text-muted-foreground">
+                {byType.length} type{byType.length === 1 ? "" : "s"}
+              </span>
+            )}
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2">
+            {isLoading
+              ? Array.from({ length: 5 }).map((_, i) => (
+                  <Card
+                    key={i}
+                    className="shrink-0 w-52 py-0 border shadow-sm bg-background/50"
+                  >
+                    <CardContent className="p-3 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <Skeleton className="h-4 w-32" />
+                        <Skeleton className="h-4 w-6 rounded-full" />
+                      </div>
+                      <Skeleton className="h-6 w-20" />
+                      <div className="flex justify-between">
+                        <Skeleton className="h-3 w-16" />
+                        <Skeleton className="h-3 w-16" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              : byType.map((t: any) => (
+              <Card
+                key={t.typeId}
+                className="shrink-0 w-52 py-0 border shadow-sm bg-background/50"
+              >
+                <CardContent className="p-3 space-y-1.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="text-sm font-semibold leading-tight line-clamp-2">
+                      {t.label}
+                    </p>
+                    <Badge variant="secondary" className="shrink-0 text-[10px]">
+                      {t.productCount}
+                    </Badge>
+                  </div>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xl font-bold tabular-nums">
+                      {Number(t.currentStock).toFixed(2)}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground/60">
+                      {t.measurementUnit}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-[11px] text-muted-foreground">
+                    <span>
+                      Sold{" "}
+                      <span className="tabular-nums font-medium text-blue-600 dark:text-blue-400">
+                        {Number(t.soldStock).toFixed(2)}
+                      </span>
+                    </span>
+                    <span>
+                      Initial{" "}
+                      <span className="tabular-nums font-medium">
+                        {Number(t.initialStock).toFixed(2)}
+                      </span>
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+                ))}
+          </div>
+        </div>
+      )}
 
       <Card className="py-0 flex-1 flex flex-col border shadow-sm overflow-hidden bg-background/50">
         <CardHeader className="bg-zinc-50/50 dark:bg-zinc-900/50 border-b shrink-0 py-4">
@@ -269,9 +365,12 @@ export default function InventoryPage() {
                       className="ml-1 h-5 px-1.5 text-[10px] font-bold"
                     >
                       {
-                        [selectedBrand, selectedFinish, selectedStatus].filter(
-                          (v) => v !== "all",
-                        ).length
+                        [
+                          selectedBrand,
+                          selectedFinish,
+                          selectedSize,
+                          selectedStatus,
+                        ].filter((v) => v !== "all").length
                       }
                     </Badge>
                   )}
@@ -310,6 +409,23 @@ export default function InventoryPage() {
                   {finishes.map((finish: any) => (
                     <DropdownMenuRadioItem key={finish.id} value={finish.id}>
                       {finish.name}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuLabel>Size</DropdownMenuLabel>
+                <DropdownMenuRadioGroup
+                  value={selectedSize}
+                  onValueChange={setSelectedSize}
+                >
+                  <DropdownMenuRadioItem value="all">
+                    All Sizes
+                  </DropdownMenuRadioItem>
+                  {sizes.map((size: string) => (
+                    <DropdownMenuRadioItem key={size} value={size}>
+                      {size}
                     </DropdownMenuRadioItem>
                   ))}
                 </DropdownMenuRadioGroup>
@@ -360,6 +476,16 @@ export default function InventoryPage() {
                 Clear
               </Button>
             )}
+
+            <div className="ml-auto flex items-center gap-2 rounded-md border bg-background px-3 py-1.5">
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                Total Stock
+              </span>
+              <span className="text-sm font-bold tabular-nums">
+                {(summary?.totalStock ?? 0).toFixed(2)}
+              </span>
+              <span className="text-[10px] text-muted-foreground/60">m²</span>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
