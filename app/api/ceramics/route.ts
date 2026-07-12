@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { logAudit } from "@/lib/audit";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -175,6 +176,14 @@ export async function POST(request: Request) {
       createdAt: result.created_at,
       updatedAt: result.updated_at
     };
+
+    await logAudit({
+      actor: admin,
+      action: "ceramic.create",
+      targetTable: "ceramics",
+      targetId: ceramic.id,
+      after: formattedData,
+    });
 
     return NextResponse.json(formattedData, { status: 201 });
   } catch (error: any) {

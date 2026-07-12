@@ -42,8 +42,8 @@ export async function POST(request: Request) {
 
     // Fetch all ceramics once keyed by product_code (upper-cased for case-insensitive match)
     const { data: ceramics, error: ceramicsError } = await supabase
-      .from("ceramics")
-      .select("id, product_code");
+      .from("vw_ceramics_inventory")
+      .select("id, product_code, price_per_unit");
 
     if (ceramicsError) throw ceramicsError;
 
@@ -51,6 +51,12 @@ export async function POST(request: Request) {
       (ceramics || []).map((c: { id: string; product_code: string }) => [
         c.product_code.toUpperCase(),
         c.id,
+      ])
+    );
+    const priceMap = new Map<string, number>(
+      (ceramics || []).map((c: { id: string; price_per_unit: number | null }) => [
+        c.id,
+        c.price_per_unit ?? 0,
       ])
     );
 
@@ -87,7 +93,8 @@ export async function POST(request: Request) {
         {
           ceramic_id: ceramicId,
           quantity: qty,
-          created_at: gregorianDate.toISOString(),
+          price_at_sale: priceMap.get(ceramicId) ?? 0,
+          sold_at: gregorianDate.toISOString(),
         },
       ]);
 

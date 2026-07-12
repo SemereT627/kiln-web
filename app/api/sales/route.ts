@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { requireSeller } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 
 export async function GET(request: Request) {
   try {
@@ -109,6 +110,18 @@ export async function POST(request: Request) {
       .single();
 
     if (error) throw error;
+
+    await logAudit({
+      actor: seller,
+      action: "sale.create",
+      targetTable: "sales",
+      targetId: data.id,
+      after: {
+        ceramicId,
+        quantity,
+        priceAtSale,
+      },
+    });
 
     return NextResponse.json(data, { status: 201 });
   } catch (error: any) {

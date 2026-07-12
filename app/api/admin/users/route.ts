@@ -1,22 +1,10 @@
 import { NextResponse } from "next/server";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
+import { requireAdmin } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 
-async function requireAdmin() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  return profile?.role === "admin" ? user : null;
-}
-
-export async function GET() {
-  const admin = await requireAdmin();
+export async function GET(request: Request) {
+  const admin = await requireAdmin(request);
   if (!admin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -50,7 +38,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const admin = await requireAdmin();
+  const admin = await requireAdmin(request);
   if (!admin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -87,11 +75,19 @@ export async function POST(request: Request) {
     }
   }
 
+  await logAudit({
+    actor: admin,
+    action: "user.create",
+    targetTable: "user_profiles",
+    targetId: data.user.id,
+    after: { email, fullName: fullName || null, role },
+  });
+
   return NextResponse.json({ success: true, id: data.user.id });
 }
 
 export async function PATCH(request: Request) {
-  const admin = await requireAdmin();
+  const admin = await requireAdmin(request);
   if (!admin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -102,6 +98,13 @@ export async function PATCH(request: Request) {
   }
 
   const serviceSupabase = await createServiceClient();
+
+  const { data: before } = await serviceSupabase
+    .from("user_profiles")
+    .select("role")
+    .eq("id", userId)
+    .single();
+
   const { error } = await serviceSupabase
     .from("user_profiles")
     .update({ role })
@@ -110,6 +113,70 @@ export async function PATCH(request: Request) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  await logAudit({
+    actor: admin,
+    action: "user.role_change",
+    targetTable: "user_profiles",
+    targetId: userId,
+    before: { role: before?.role ?? null },
+    after: { role },
+  });
+
+  return NextResponse.json({ success: true });
+}
+
+export async function DELETE(request: Request) {
+  const admin = await requireAdmin(request);
+  if (!admin) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { userId } = await request.json();
+  if (!userId) {
+    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+  }
+
+  if (userId === admin.id) {
+    return NextResponse.json(
+      { error: "You can't delete your own account" },
+      { status: 400 },
+    );
+  }
+
+  const serviceSupabase = await createServiceClient();
+
+  const { data: profile } = await serviceSupabase
+    .from("user_profiles")
+    .select("full_name, role")
+    .eq("id", userId)
+    .single();
+
+  const { data: authUser } = await serviceSupabase.auth.admin.getUserById(userId);
+
+  // sales.sold_by has no ON DELETE action — detach this user's past sales
+  // records instead of leaving the delete blocked by the FK.
+  await serviceSupabase
+    .from("sales")
+    .update({ sold_by: null })
+    .eq("sold_by", userId);
+
+  const { error } = await serviceSupabase.auth.admin.deleteUser(userId);
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  await logAudit({
+    actor: admin,
+    action: "user.delete",
+    targetTable: "user_profiles",
+    targetId: userId,
+    before: {
+      email: authUser?.user?.email ?? null,
+      fullName: profile?.full_name ?? null,
+      role: profile?.role ?? null,
+    },
+  });
 
   return NextResponse.json({ success: true });
 }

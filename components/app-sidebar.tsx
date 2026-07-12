@@ -12,6 +12,7 @@ import {
   Palette,
   Layers3,
   ShieldCheck,
+  ScrollText,
 } from "lucide-react";
 import {
   Sidebar,
@@ -166,7 +167,10 @@ export function AppSidebar() {
           </SidebarGroup>
         ) : user?.role === "admin" ? (
           <NavGroup
-            items={[{ title: "Users", href: "/admin/users", icon: ShieldCheck }]}
+            items={[
+              { title: "Users", href: "/admin/users", icon: ShieldCheck },
+              { title: "Audit Log", href: "/admin/audit-logs", icon: ScrollText },
+            ]}
             isActive={isActive}
             className="animate-in fade-in duration-300 border-t border-border/60 mt-2 pt-3"
           />

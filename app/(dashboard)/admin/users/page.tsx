@@ -36,9 +36,11 @@ import {
   Calendar,
   Shield,
   UserPlus,
+  Trash2,
 } from "lucide-react";
 import { useUser } from "@/components/user-provider";
 import { AddUserForm } from "@/components/add-user-form";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -59,6 +61,7 @@ export default function AdminUsersPage() {
   const currentUser = useUser();
   const [searchTerm, setSearchTerm] = useState("");
   const [addUserOpen, setAddUserOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
 
   const {
     data: users = [],
@@ -95,6 +98,29 @@ export default function AdminUsersPage() {
     onSuccess: (_, variables) => {
       toast.success(`Role updated to ${variables.role}`);
       queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+    },
+    onError: (err: any) => {
+      toast.error(err.message);
+    },
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await fetch("/api/admin/users", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to delete user");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success("User deleted");
+      queryClient.invalidateQueries({ queryKey: ["admin", "users"] });
+      setDeleteTarget(null);
     },
     onError: (err: any) => {
       toast.error(err.message);
@@ -343,6 +369,13 @@ export default function AdminUsersPage() {
                                   Set as {role}
                                 </DropdownMenuItem>
                               ))}
+                              <DropdownMenuItem
+                                className="text-xs font-medium text-destructive focus:text-destructive"
+                                onClick={() => setDeleteTarget(user)}
+                              >
+                                <Trash2 className="size-3 mr-2" />
+                                Delete User
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         )}
@@ -355,6 +388,16 @@ export default function AdminUsersPage() {
           </div>
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Delete this user?"
+        description={`${deleteTarget?.full_name ?? deleteTarget?.email ?? "This user"} will lose access immediately. This can't be undone.`}
+        confirmLabel="Delete User"
+        destructive
+        onConfirm={() => deleteTarget && deleteUserMutation.mutate(deleteTarget.id)}
+      />
     </div>
   );
 }

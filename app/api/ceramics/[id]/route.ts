@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { logAudit } from "@/lib/audit";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -73,6 +74,12 @@ export async function PUT(
     const supabase = await createClient();
     const body = await request.json();
 
+    const { data: before } = await supabase
+      .from("vw_ceramics_inventory")
+      .select("*")
+      .eq("id", id)
+      .single();
+
     const updates: any = {};
     if (body.productId !== undefined) updates.product_code = body.productId;
     if (body.name !== undefined) updates.name = body.name;
@@ -137,6 +144,27 @@ export async function PUT(
       updatedAt: result.updated_at
     };
 
+    await logAudit({
+      actor: admin,
+      action: "ceramic.update",
+      targetTable: "ceramics",
+      targetId: id,
+      before: before
+        ? {
+            productId: before.product_code,
+            name: before.name,
+            imageUrl: before.image_url,
+            initialStock: before.initial_stock,
+          }
+        : null,
+      after: {
+        productId: formattedData.productId,
+        name: formattedData.name,
+        imageUrl: formattedData.imageUrl,
+        initialStock: formattedData.initialStock,
+      },
+    });
+
     return NextResponse.json(formattedData);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -155,12 +183,30 @@ export async function DELETE(
 
     const { id } = await params;
     const supabase = await createClient();
+
+    const { data: before } = await supabase
+      .from("vw_ceramics_inventory")
+      .select("*")
+      .eq("id", id)
+      .single();
+
     const { error } = await supabase
       .from("ceramics")
       .delete()
       .eq("id", id);
 
     if (error) throw error;
+
+    await logAudit({
+      actor: admin,
+      action: "ceramic.delete",
+      targetTable: "ceramics",
+      targetId: id,
+      before: before
+        ? { productId: before.product_code, name: before.name }
+        : null,
+    });
+
     return NextResponse.json({ message: "Deleted successfully" });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

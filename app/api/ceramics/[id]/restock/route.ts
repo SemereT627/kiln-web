@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { logAudit } from "@/lib/audit";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -109,6 +110,19 @@ export async function POST(
       .single();
 
     if (error) throw error;
+
+    await logAudit({
+      actor: admin,
+      action: "stock.entry_create",
+      targetTable: "stock_entries",
+      targetId: id,
+      after: {
+        quantity: data.quantity,
+        entryType: data.entry_type,
+        direction: data.direction,
+        reason: data.reason ?? null,
+      },
+    });
 
     return NextResponse.json(
       {
