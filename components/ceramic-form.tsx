@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -81,10 +81,12 @@ export function CeramicForm({
   });
 
   const watchedBrandId = watch("brandId");
+  const skipTypeResetRef = useRef(false);
 
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
+      skipTypeResetRef.current = true;
       reset({
         productId: initialData?.productId ?? "",
         name: initialData?.name ?? "",
@@ -110,15 +112,18 @@ export function CeramicForm({
 
   // Fetch types when brand changes
   useEffect(() => {
+    const skipReset = skipTypeResetRef.current;
+    skipTypeResetRef.current = false;
+
     if (!watchedBrandId) {
       setTypes([]);
-      setValue("typeId", "");
+      if (!skipReset) setValue("typeId", "");
       return;
     }
     fetch(`/api/ceramic-types?brandId=${watchedBrandId}&limit=-1`)
       .then((r) => r.json())
       .then((json) => setTypes(json.data || []));
-    setValue("typeId", "");
+    if (!skipReset) setValue("typeId", "");
   }, [watchedBrandId, setValue]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

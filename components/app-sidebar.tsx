@@ -169,7 +169,11 @@ export function AppSidebar() {
           <NavGroup
             items={[
               { title: "Users", href: "/admin/users", icon: ShieldCheck },
-              { title: "Audit Log", href: "/admin/audit-logs", icon: ScrollText },
+              {
+                title: "Audit Log",
+                href: "/admin/audit-logs",
+                icon: ScrollText,
+              },
             ]}
             isActive={isActive}
             className="animate-in fade-in duration-300 border-t border-border/60 mt-2 pt-3"
