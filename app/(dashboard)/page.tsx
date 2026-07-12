@@ -191,9 +191,7 @@ export default function Dashboard() {
         <AmbientCanvas />
         <div className="relative flex items-center justify-between gap-4">
           <div className="flex flex-col gap-1">
-            <h1 className="text-3xl font-bold tracking-tight">
-              Dashboard Overview
-            </h1>
+            <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           </div>
           <LiveClock />
         </div>
