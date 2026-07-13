@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ShoppingCart,
   CheckCircle2,
@@ -14,6 +15,7 @@ import {
   Plus,
   Minus,
   ShieldAlert,
+  X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -26,7 +28,12 @@ import {
 import { cn } from "@/lib/utils";
 import { ProductImage } from "@/components/product-image";
 import { EmptyState } from "@/components/empty-state";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from "@tanstack/react-query";
 import { useUser } from "@/components/user-provider";
 
 export default function SalesPage() {
@@ -48,7 +55,7 @@ export default function SalesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
 
-  const { data: response, isLoading } = useQuery({
+  const { data: response, isLoading, isFetching } = useQuery({
     queryKey: [
       "ceramics",
       { page: currentPage, search: searchTerm, type: "sales-catalog" },
@@ -60,6 +67,7 @@ export default function SalesPage() {
       if (!res.ok) throw new Error("Failed to fetch catalog");
       return res.json();
     },
+    placeholderData: keepPreviousData,
   });
 
   const saleMutation = useMutation({
@@ -98,20 +106,20 @@ export default function SalesPage() {
 
   if (userProfile && !isAdmin) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center space-y-4 animate-in fade-in duration-500">
-        <div className="bg-amber-100 dark:bg-amber-900/30 p-6 rounded-full">
-          <ShieldAlert className="h-12 w-12 text-amber-600 dark:text-amber-400" />
+      <div className="flex flex-col items-center justify-center h-full text-center gap-4 animate-in fade-in duration-500">
+        <div className="bg-amber-100 dark:bg-amber-900/30 p-5 rounded-full ring-8 ring-amber-500/5">
+          <ShieldAlert className="h-10 w-10 text-amber-600 dark:text-amber-400" />
         </div>
         <div className="max-w-md">
-          <h2 className="text-2xl font-bold tracking-tight">
+          <h2 className="text-xl font-bold tracking-tight">
             Access Restricted
           </h2>
-          <p className="text-muted-foreground mt-2">
+          <p className="text-muted-foreground text-sm mt-1.5">
             Only administrators are authorized to record sales transactions. If
             you need to log a sale, please contact the store owner.
           </p>
         </div>
-        <Button asChild variant="outline" className="mt-4">
+        <Button asChild variant="outline" size="sm" className="mt-2">
           <a href="/">Return to Dashboard</a>
         </Button>
       </div>
@@ -121,6 +129,9 @@ export default function SalesPage() {
   const data = response?.data || [];
   const totalItems = response?.total || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const skeletonCount = totalItems
+    ? Math.min(itemsPerPage, totalItems - (currentPage - 1) * itemsPerPage)
+    : itemsPerPage;
 
   const unit = selectedProduct?.measurementUnit || "m²";
   const price = selectedProduct?.pricePerUnit ?? null;
@@ -151,46 +162,69 @@ export default function SalesPage() {
     unit === "m²" ? [1, 5, 10, 20, 50, 100] : [1, 2, 5, 10, 20, 50];
 
   return (
-    <div className="flex flex-col h-full gap-6 animate-in fade-in duration-500 overflow-hidden">
+    <div className="flex flex-col h-full gap-6 pr-1 animate-in fade-in duration-500 overflow-hidden">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Sales</h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
+            Point of Sale
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mt-0.5">
+            Sales
+          </h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
             Select a product to record a new sale transaction.
           </p>
         </div>
 
         <div className="relative w-full md:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search by name, ID, or brand..."
-            className="pl-10 h-10 rounded-xl bg-card border shadow-sm focus-visible:ring-primary"
+            className="pl-10 h-10 rounded-xl"
             value={searchTerm}
             onChange={(e) => {
               setSearchTerm(e.target.value);
               setCurrentPage(1);
             }}
           />
+          {searchTerm && (
+            <button
+              type="button"
+              aria-label="Clear search"
+              onClick={() => {
+                setSearchTerm("");
+                setCurrentPage(1);
+              }}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
 
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-6 pb-2">
         {/* Product Catalog */}
         <div className="lg:col-span-8 flex flex-col min-h-0 gap-4">
-          <Card className="py-0 flex-1 flex flex-col bg-zinc-50/50 dark:bg-zinc-900/50 overflow-hidden">
-            <CardHeader className="py-4 px-6 shrink-0 border-b bg-card/50">
+          <Card className="py-0 gap-0 flex-1 flex flex-col overflow-hidden hover:shadow-xs shadow-xs">
+            <CardHeader className="py-3.5 px-5 shrink-0 border-b bg-muted/30 gap-0">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Product Catalog</CardTitle>
+                <CardTitle className="text-base">Product Catalog</CardTitle>
                 <Badge variant="outline" className="font-normal">
                   {totalItems} items
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent className="flex-1 overflow-auto p-4">
-              <div className="h-full grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 content-start">
+            <CardContent className="flex-1 overflow-auto p-4 flex flex-col">
+              <div
+                className={cn(
+                  "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 content-start transition-opacity duration-200",
+                  isFetching && !isLoading && "opacity-50 pointer-events-none",
+                )}
+              >
                 {isLoading ? (
-                  Array.from({ length: 15 }).map((_, i) => (
-                    <div key={i} className="rounded-xl bg-muted animate-pulse h-[88px]" />
+                  Array.from({ length: skeletonCount }).map((_, i) => (
+                    <Skeleton key={i} className="rounded-xl h-[88px]" />
                   ))
                 ) : data.length === 0 ? (
                   <div className="col-span-full">
@@ -222,13 +256,16 @@ export default function SalesPage() {
                             ? "opacity-40 cursor-not-allowed bg-muted border-transparent"
                             : isSelected
                               ? "bg-primary border-primary shadow-lg shadow-primary/20 ring-2 ring-primary/30 cursor-pointer"
-                              : "bg-card border-border hover:border-primary/40 hover:shadow-md shadow-sm cursor-pointer",
+                              : "bg-card border-border hover:border-primary/40 hover:shadow-md shadow-xs cursor-pointer active:scale-[0.98]",
                         )}
                       >
                         <ProductImage
                           src={item.imageUrl}
                           alt={item.name}
-                          className="h-12 w-12 shrink-0 rounded-lg"
+                          className={cn(
+                            "h-12 w-12 shrink-0 rounded-lg ring-1",
+                            isSelected ? "ring-primary-foreground/20" : "ring-border",
+                          )}
                           iconSize="sm"
                           sizes="48px"
                         />
@@ -299,36 +336,47 @@ export default function SalesPage() {
                   })
                 )}
               </div>
+
+              {!isLoading && data.length > 0 && (
+                <div className="mt-auto flex items-center justify-center gap-2 pt-8 pb-2 text-xs text-muted-foreground">
+                  <span className="h-px w-8 bg-border" />
+                  Showing {data.length} of {totalItems} products
+                  <span className="h-px w-8 bg-border" />
+                </div>
+              )}
             </CardContent>
           </Card>
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-2 shrink-0">
+            <div className="flex items-center justify-between px-1 shrink-0">
               <p className="text-xs text-muted-foreground">
-                Page {currentPage} of {totalPages}
+                Page <span className="font-medium text-foreground">{currentPage}</span> of{" "}
+                <span className="font-medium text-foreground">{totalPages}</span>
               </p>
-              <Pagination className="w-auto mx-0 scale-90 origin-right">
-                <PaginationContent>
+              <Pagination className="w-auto mx-0">
+                <PaginationContent className="gap-1.5">
                   <PaginationItem>
                     <PaginationPrevious
+                      size="sm"
                       onClick={() =>
                         setCurrentPage((prev) => Math.max(1, prev - 1))
                       }
                       className={
-                        currentPage === 1
-                          ? "pointer-events-none opacity-50"
+                        currentPage === 1 || isFetching
+                          ? "pointer-events-none opacity-40"
                           : "cursor-pointer"
                       }
                     />
                   </PaginationItem>
                   <PaginationItem>
                     <PaginationNext
+                      size="sm"
                       onClick={() =>
                         setCurrentPage((prev) => Math.min(totalPages, prev + 1))
                       }
                       className={
-                        currentPage === totalPages
-                          ? "pointer-events-none opacity-50"
+                        currentPage === totalPages || isFetching
+                          ? "pointer-events-none opacity-40"
                           : "cursor-pointer"
                       }
                     />
@@ -340,10 +388,12 @@ export default function SalesPage() {
         </div>
 
         {/* Transaction Panel */}
-        <Card className="py-0 lg:col-span-4 flex flex-col bg-card overflow-hidden h-full shadow-lg border-primary/10">
-          <CardHeader className="border-b bg-muted/30 shrink-0 py-4">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5" />
+        <Card className="py-0 gap-0 lg:col-span-4 flex flex-col bg-card overflow-hidden h-full shadow-md border-primary/10">
+          <CardHeader className="border-b bg-muted/30 shrink-0 py-3.5 gap-0">
+            <CardTitle className="text-base flex items-center gap-2.5">
+              <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10">
+                <ShoppingCart className="h-4 w-4 text-primary" />
+              </span>
               Transaction
             </CardTitle>
           </CardHeader>
@@ -352,11 +402,11 @@ export default function SalesPage() {
             {selectedProduct ? (
               <div className="flex-1 flex flex-col min-h-0 space-y-6">
                 {/* Selected product info */}
-                <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/50 shrink-0">
+                <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/40 border shrink-0 animate-in fade-in duration-200">
                   <ProductImage
                     src={selectedProduct.imageUrl}
                     alt={selectedProduct.name}
-                    className="h-16 w-16 shrink-0 rounded-lg"
+                    className="h-16 w-16 shrink-0 rounded-lg ring-1 ring-border"
                     iconSize="md"
                     sizes="64px"
                   />
@@ -394,7 +444,7 @@ export default function SalesPage() {
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-10 w-10 rounded-full border-2"
+                      className="h-10 w-10 rounded-full border-2 active:scale-95"
                       onClick={() => adjustAmount(-1)}
                     >
                       <Minus className="h-4 w-4" />
@@ -425,7 +475,7 @@ export default function SalesPage() {
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-10 w-10 rounded-full border-2"
+                      className="h-10 w-10 rounded-full border-2 active:scale-95"
                       onClick={() => adjustAmount(1)}
                     >
                       <Plus className="h-4 w-4" />
@@ -438,7 +488,7 @@ export default function SalesPage() {
                         key={val}
                         variant="secondary"
                         size="sm"
-                        className="rounded-lg h-9 font-bold text-xs"
+                        className="rounded-lg h-9 font-bold text-xs active:scale-95"
                         onClick={() => adjustAmount(val)}
                       >
                         +{val}
@@ -454,11 +504,11 @@ export default function SalesPage() {
 
                   {/* Total line */}
                   {total !== null && saleAmount > 0 && saleAmount <= selectedProduct.currentStock && (
-                    <div className="flex items-center justify-between px-1 py-2 rounded-lg bg-primary/5 border border-primary/10">
+                    <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-primary/5 border border-primary/10 animate-in fade-in duration-200">
                       <span className="text-xs text-muted-foreground font-medium">
                         Total
                       </span>
-                      <span className="font-bold text-primary">
+                      <span className="font-bold text-primary tabular-nums">
                         {total.toFixed(2)} ETB
                       </span>
                     </div>

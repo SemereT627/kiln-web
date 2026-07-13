@@ -11,14 +11,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollText, AlertCircle, Calendar, User } from "lucide-react";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import { EmptyState } from "@/components/empty-state";
+import { AlertCircle, Calendar, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type AuditLog = {
@@ -98,37 +101,37 @@ export default function AuditLogsPage() {
 
   return (
     <div className="flex flex-col h-full gap-6 animate-in fade-in duration-500 overflow-hidden">
-      <div className="flex items-center gap-3 shrink-0">
-        <div className="bg-primary/10 rounded-lg p-2.5">
-          <ScrollText className="size-6 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Audit Log</h1>
-          <p className="text-muted-foreground text-sm">
-            Who did what, and the before/after diff, across the system.
-          </p>
-        </div>
+      <div className="shrink-0">
+        <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
+          Administration
+        </p>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mt-0.5">
+          Audit Log
+        </h1>
+        <p className="text-muted-foreground text-sm mt-0.5">
+          Who did what, and the before/after diff, across the system.
+        </p>
       </div>
 
-      <Card className="py-0 flex-1 flex flex-col border shadow-sm overflow-hidden bg-background/50">
+      <Card className="py-0 gap-0 flex-1 flex flex-col overflow-hidden">
         <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden">
             <Table>
-              <TableHeader className="sticky top-0 bg-background z-10 border-b">
+              <TableHeader className="border-b">
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-background pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     When
                   </TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     Actor
                   </TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     Action
                   </TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     Target
                   </TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     Diff
                   </TableHead>
                 </TableRow>
@@ -145,14 +148,18 @@ export default function AuditLogsPage() {
                     </TableRow>
                   ))
                 ) : logs.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
-                      No audit events recorded yet.
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={5}>
+                      <EmptyState
+                        icon={AlertCircle}
+                        title="No audit events recorded yet"
+                        description="System activity will show up here as it happens."
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
                   logs.map((log) => (
-                    <TableRow key={log.id} className="border-b hover:bg-muted/40">
+                    <TableRow key={log.id} className="border-b transition-colors hover:bg-muted/40">
                       <TableCell className="pl-4">
                         <div className="flex items-center gap-2 text-muted-foreground text-sm">
                           <Calendar className="size-3 opacity-50" />
@@ -190,28 +197,41 @@ export default function AuditLogsPage() {
             </Table>
           </div>
         </CardContent>
-        <div className="flex items-center justify-between border-t px-4 py-3 shrink-0">
+        <div className="flex items-center justify-between border-t px-4 py-3 shrink-0 bg-muted/30">
           <span className="text-xs text-muted-foreground">
-            Page {page} of {totalPages} · {total} events
+            <span className="font-medium text-foreground">{total}</span> events
           </span>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-            >
-              Previous
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page >= totalPages}
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            >
-              Next
-            </Button>
-          </div>
+          <Pagination className="w-auto mx-0">
+            <PaginationContent className="gap-1.5">
+              <PaginationItem>
+                <PaginationPrevious
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  className={
+                    page <= 1
+                      ? "pointer-events-none opacity-40"
+                      : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+              <PaginationItem>
+                <span className="flex h-8 items-center rounded-lg border bg-background px-3 text-xs font-medium tabular-nums">
+                  {page} / {totalPages}
+                </span>
+              </PaginationItem>
+              <PaginationItem>
+                <PaginationNext
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  className={
+                    page >= totalPages
+                      ? "pointer-events-none opacity-40"
+                      : "cursor-pointer"
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </div>
       </Card>
     </div>

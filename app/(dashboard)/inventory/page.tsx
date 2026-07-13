@@ -235,21 +235,26 @@ export default function InventoryPage() {
 
   return (
     <div className="flex flex-col h-full gap-6 animate-in fade-in duration-500 overflow-hidden">
-      <div className="flex items-center justify-between shrink-0">
+      <div className="flex items-center justify-between shrink-0 gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Inventory</h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
+            Catalog
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mt-0.5">
+            Inventory
+          </h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
             Manage your ceramic stock and product catalog.
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 shrink-0">
           <Button variant="outline" size="sm">
-            <Download className="mr-2 h-4 w-4" />
+            <Download className="h-4 w-4" />
             Export
           </Button>
           {isAdmin && (
             <Button size="sm" onClick={handleAdd}>
-              <Plus className="mr-2 h-4 w-4" />
+              <Plus className="h-4 w-4" />
               Add Product
             </Button>
           )}
@@ -258,8 +263,8 @@ export default function InventoryPage() {
 
       {(isLoading || byType.length > 0) && (
         <div className="shrink-0 -mb-2">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+          <div className="flex items-center justify-between mb-2.5 px-0.5">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
               Stock by Ceramic Type
             </h2>
             {!isLoading && (
@@ -268,14 +273,11 @@ export default function InventoryPage() {
               </span>
             )}
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-2">
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-0.5 px-0.5">
             {isLoading
               ? Array.from({ length: 5 }).map((_, i) => (
-                  <Card
-                    key={i}
-                    className="shrink-0 w-52 py-0 border shadow-sm bg-background/50"
-                  >
-                    <CardContent className="p-3 space-y-2">
+                  <Card key={i} className="shrink-0 w-52 py-0">
+                    <CardContent className="p-4 space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <Skeleton className="h-4 w-32" />
                         <Skeleton className="h-4 w-6 rounded-full" />
@@ -291,9 +293,9 @@ export default function InventoryPage() {
               : byType.map((t: any) => (
               <Card
                 key={t.typeId}
-                className="shrink-0 w-52 py-0 border shadow-sm bg-background/50"
+                className="shrink-0 w-52 py-0 gap-0"
               >
-                <CardContent className="p-3 space-y-1.5">
+                <CardContent className="p-4 space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <p className="text-sm font-semibold leading-tight line-clamp-2">
                       {t.label}
@@ -303,23 +305,23 @@ export default function InventoryPage() {
                     </Badge>
                   </div>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-bold tabular-nums">
+                    <span className="text-xl font-bold tabular-nums tracking-tight">
                       {Number(t.currentStock).toFixed(2)}
                     </span>
                     <span className="text-[11px] text-muted-foreground/60">
                       {t.measurementUnit}
                     </span>
                   </div>
-                  <div className="flex justify-between text-[11px] text-muted-foreground">
-                    <span>
+                  <div className="flex justify-between text-[11px] text-muted-foreground pt-1 border-t border-dashed">
+                    <span className="pt-1.5">
                       Sold{" "}
                       <span className="tabular-nums font-medium text-blue-600 dark:text-blue-400">
                         {Number(t.soldStock).toFixed(2)}
                       </span>
                     </span>
-                    <span>
+                    <span className="pt-1.5">
                       Initial{" "}
-                      <span className="tabular-nums font-medium">
+                      <span className="tabular-nums font-medium text-foreground">
                         {Number(t.initialStock).toFixed(2)}
                       </span>
                     </span>
@@ -331,11 +333,11 @@ export default function InventoryPage() {
         </div>
       )}
 
-      <Card className="py-0 flex-1 flex flex-col border shadow-sm overflow-hidden bg-background/50">
-        <CardHeader className="bg-zinc-50/50 dark:bg-zinc-900/50 border-b shrink-0 py-4">
-          <div className="flex items-center gap-4">
+      <Card className="py-0 gap-0 flex-1 flex flex-col overflow-hidden hover:shadow-xs shadow-xs">
+        <CardHeader className="bg-muted/30 border-b shrink-0 py-3.5 gap-0">
+          <div className="flex items-center gap-3">
             <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search products..."
                 className="pl-8 bg-background h-9"
@@ -345,6 +347,19 @@ export default function InventoryPage() {
                   setCurrentPage(1); // Reset to first page on search
                 }}
               />
+              {searchTerm && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setCurrentPage(1);
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
 
             <DropdownMenu>
@@ -472,13 +487,13 @@ export default function InventoryPage() {
                 onClick={clearFilters}
                 className="h-9 px-2 text-muted-foreground"
               >
-                <X className="mr-2 h-4 w-4" />
+                <X className="h-4 w-4" />
                 Clear
               </Button>
             )}
 
-            <div className="ml-auto flex items-center gap-2 rounded-md border bg-background px-3 py-1.5">
-              <span className="text-[11px] uppercase tracking-wider text-muted-foreground">
+            <div className="ml-auto flex items-center gap-2 rounded-full border bg-background px-3.5 py-1.5 shadow-xs">
+              <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
                 Total Stock
               </span>
               <span className="text-sm font-bold tabular-nums">
@@ -489,12 +504,12 @@ export default function InventoryPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden">
             <Table>
-              <TableHeader className="sticky top-0 bg-background z-10 border-b">
+              <TableHeader className="border-b">
                 <TableRow className="hover:bg-transparent">
                   <TableHead
-                    className="pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    className="pl-4 sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("name")}
                   >
                     <div className="flex items-center gap-1">
@@ -502,7 +517,7 @@ export default function InventoryPage() {
                     </div>
                   </TableHead>
                   <TableHead
-                    className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("brand_name")}
                   >
                     <div className="flex items-center gap-1">
@@ -510,7 +525,7 @@ export default function InventoryPage() {
                     </div>
                   </TableHead>
                   <TableHead
-                    className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("size")}
                   >
                     <div className="flex items-center gap-1">
@@ -518,7 +533,7 @@ export default function InventoryPage() {
                     </div>
                   </TableHead>
                   <TableHead
-                    className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("finish_name")}
                   >
                     <div className="flex items-center gap-1">
@@ -526,7 +541,7 @@ export default function InventoryPage() {
                     </div>
                   </TableHead>
                   <TableHead
-                    className="text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    className="text-right sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("initial_stock")}
                   >
                     <div className="flex items-center justify-end gap-1">
@@ -534,7 +549,7 @@ export default function InventoryPage() {
                     </div>
                   </TableHead>
                   <TableHead
-                    className="text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    className="text-right sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("sold_stock")}
                   >
                     <div className="flex items-center justify-end gap-1">
@@ -542,17 +557,19 @@ export default function InventoryPage() {
                     </div>
                   </TableHead>
                   <TableHead
-                    className="text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    className="text-right sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("current_stock")}
                   >
                     <div className="flex items-center justify-end gap-1">
                       Stock {getSortIcon("current_stock")}
                     </div>
                   </TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     Status
                   </TableHead>
-                  {isAdmin && <TableHead className="w-12" />}
+                  {isAdmin && (
+                    <TableHead className="sticky top-0 z-10 w-12 bg-background" />
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -620,7 +637,7 @@ export default function InventoryPage() {
                             <ProductImage
                               src={item.imageUrl}
                               alt={item.name}
-                              className="h-10 w-10 rounded-lg shrink-0"
+                              className="h-10 w-10 rounded-lg shrink-0 ring-1 ring-border"
                               iconSize="sm"
                               sizes="40px"
                             />
@@ -766,34 +783,49 @@ export default function InventoryPage() {
       </Card>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-2 shrink-0">
+        <div className="flex items-center justify-between px-1 shrink-0">
           <p className="text-xs text-muted-foreground">
-            Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
-            {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems}{" "}
+            Showing{" "}
+            <span className="font-medium text-foreground">
+              {(currentPage - 1) * itemsPerPage + 1}
+            </span>{" "}
+            to{" "}
+            <span className="font-medium text-foreground">
+              {Math.min(currentPage * itemsPerPage, totalItems)}
+            </span>{" "}
+            of{" "}
+            <span className="font-medium text-foreground">{totalItems}</span>{" "}
             products
           </p>
-          <Pagination className="w-auto mx-0 scale-90 origin-right">
-            <PaginationContent>
+          <Pagination className="w-auto mx-0">
+            <PaginationContent className="gap-1.5">
               <PaginationItem>
                 <PaginationPrevious
+                  size="sm"
                   onClick={() =>
                     setCurrentPage((prev) => Math.max(1, prev - 1))
                   }
                   className={
                     currentPage === 1
-                      ? "pointer-events-none opacity-50"
+                      ? "pointer-events-none opacity-40"
                       : "cursor-pointer"
                   }
                 />
               </PaginationItem>
               <PaginationItem>
+                <span className="flex h-8 items-center rounded-lg border bg-background px-3 text-xs font-medium tabular-nums">
+                  {currentPage} / {totalPages}
+                </span>
+              </PaginationItem>
+              <PaginationItem>
                 <PaginationNext
+                  size="sm"
                   onClick={() =>
                     setCurrentPage((prev) => Math.min(totalPages, prev + 1))
                   }
                   className={
                     currentPage === totalPages
-                      ? "pointer-events-none opacity-50"
+                      ? "pointer-events-none opacity-40"
                       : "cursor-pointer"
                   }
                 />

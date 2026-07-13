@@ -34,9 +34,9 @@ export function StatCard({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+    <div className="rounded-2xl border bg-card p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
       <div className="flex items-start justify-between mb-4">
-        <div className={cn("rounded-lg p-2", STAT_ICON_STYLES[variant])}>
+        <div className={cn("rounded-xl p-2.5", STAT_ICON_STYLES[variant])}>
           <Icon className="h-4 w-4" strokeWidth={2} />
         </div>
         {action}

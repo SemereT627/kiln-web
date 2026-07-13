@@ -12,8 +12,8 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-      <div className="rounded-full bg-muted p-3 mb-1">
+    <div className="animate-fade-in-up flex flex-col items-center justify-center gap-2 py-16 text-center">
+      <div className="mb-1 rounded-full bg-muted p-3.5 ring-8 ring-muted/40">
         <Icon className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
       </div>
       <p className="text-sm font-medium text-foreground">{title}</p>

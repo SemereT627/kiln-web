@@ -37,6 +37,7 @@ import {
   Upload,
   AlertCircle,
   CheckCircle2,
+  ChevronRight,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatEthiopian } from "@/lib/ethiopian-calendar";
@@ -196,15 +197,21 @@ export default function SalesLogPage() {
     <div className="h-full flex flex-col gap-6 animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex items-start justify-between gap-4 shrink-0">
-        <div className="flex flex-col gap-1">
-          <h1 className="text-3xl font-bold tracking-tight">Sales Log</h1>
-          <p className="text-muted-foreground">
+        <div>
+          <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
+            History
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mt-0.5">
+            Sales Log
+          </h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
             Click a date to view that day&apos;s transactions.
           </p>
         </div>
         <Button
           variant="outline"
-          className="shrink-0 gap-2"
+          size="sm"
+          className="shrink-0"
           onClick={() => {
             setImportOpen(true);
             setImportResult(null);
@@ -254,31 +261,35 @@ export default function SalesLogPage() {
       <div className="flex-1 min-h-0 overflow-hidden">
         {error ? (
           <div className="h-full flex items-center justify-center">
-            <div className="text-center text-destructive bg-destructive/5 rounded-xl border border-destructive/20 p-8">
-              <p className="font-bold">Error Loading Sales Log</p>
-              <p className="text-sm opacity-80">{(error as Error).message}</p>
+            <div className="text-center max-w-sm">
+              <div className="mx-auto mb-3 flex size-10 items-center justify-center rounded-full bg-destructive/10">
+                <AlertCircle className="h-5 w-5 text-destructive" />
+              </div>
+              <p className="font-semibold text-sm">Error Loading Sales Log</p>
+              <p className="text-xs text-muted-foreground mt-1">{(error as Error).message}</p>
             </div>
           </div>
         ) : (
-          <Card className="p-0 h-full border shadow-sm flex flex-col overflow-hidden">
-            <Table className="h-full">
-              <TableHeader className="bg-background sticky top-0 z-10 border-b">
+          <Card className="p-0 gap-0 h-full flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden">
+              <Table>
+              <TableHeader className="border-b">
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-background pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     Date
                   </TableHead>
-                  <TableHead className="text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     Transactions
                   </TableHead>
-                  <TableHead className="text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     Total Sold
                   </TableHead>
-                  <TableHead className="text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     Revenue
                   </TableHead>
                 </TableRow>
               </TableHeader>
-              <TableBody className="flex-1">
+              <TableBody>
                 {isLoading ? (
                   Array.from({ length: 10 }).map((_, i) => (
                     <TableRow key={i} className="hover:bg-transparent h-[56px]">
@@ -300,12 +311,12 @@ export default function SalesLogPage() {
                   dateGroups.map((group) => (
                     <TableRow
                       key={group.date}
-                      className="cursor-pointer border-b transition-colors hover:bg-muted/40 h-[56px]"
+                      className="group cursor-pointer border-b transition-colors hover:bg-muted/40 h-[56px] active:bg-muted/60"
                       onClick={() => setSelectedDate(group)}
                     >
                       <TableCell className="pl-4">
                         <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+                          <div className="h-8 w-8 rounded-lg bg-blue-500/10 ring-1 ring-blue-500/10 flex items-center justify-center shrink-0">
                             <Calendar className="h-4 w-4 text-blue-500" />
                           </div>
                           <div className="flex flex-col">
@@ -330,10 +341,15 @@ export default function SalesLogPage() {
                           {group.total.toFixed(2)}
                         </span>
                       </TableCell>
-                      <TableCell className="text-right text-sm text-muted-foreground tabular-nums">
-                        {group.grossTotal !== null
-                          ? `${group.grossTotal.toFixed(2)} ETB`
-                          : "—"}
+                      <TableCell className="pr-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <span className="text-sm text-muted-foreground tabular-nums">
+                            {group.grossTotal !== null
+                              ? `${group.grossTotal.toFixed(2)} ETB`
+                              : "—"}
+                          </span>
+                          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))
@@ -349,7 +365,8 @@ export default function SalesLogPage() {
                   </TableRow>
                 )}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           </Card>
         )}
       </div>
@@ -358,8 +375,11 @@ export default function SalesLogPage() {
       <Dialog open={importOpen} onOpenChange={setImportOpen}>
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Upload className="h-4 w-4" /> Import Sales Log
+            <DialogTitle className="flex items-center gap-2.5">
+              <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10">
+                <Upload className="h-3.5 w-3.5 text-primary" />
+              </span>
+              Import Sales Log
             </DialogTitle>
             <DialogDescription>
               Paste tab-separated data (copied from Excel / Sheets). Dates must
@@ -370,7 +390,7 @@ export default function SalesLogPage() {
           </DialogHeader>
 
           <div className="space-y-3">
-            <div className="rounded-md bg-muted/60 px-3 py-2 text-[11px] font-mono text-muted-foreground whitespace-pre">
+            <div className="rounded-lg border bg-muted/40 px-3 py-2.5 text-[11px] font-mono text-muted-foreground whitespace-pre overflow-x-auto">
               Date{"\t"}Product ID (CODE){"\t"}Ceramic Name{"\t"}Size{"\t"}
               Quantity Sold (m2){"\n"}
               16/06/2018{"\t"}005{"\t"}ARERTI{"\t"}60*60 N{"\t"}1.44
@@ -387,9 +407,9 @@ export default function SalesLogPage() {
             />
 
             {importResult && (
-              <div className="rounded-md border p-3 space-y-2">
+              <div className="rounded-lg border p-3.5 space-y-2 animate-in fade-in duration-200">
                 <div className="flex items-center gap-2 text-sm font-medium">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
                   {importResult.inserted} rows imported
                   {importResult.skipped > 0 && (
                     <span className="text-destructive">
@@ -398,9 +418,9 @@ export default function SalesLogPage() {
                   )}
                 </div>
                 {importResult.skippedDetails.length > 0 && (
-                  <ul className="text-xs text-destructive space-y-0.5 max-h-32 overflow-auto">
+                  <ul className="text-xs text-destructive space-y-1 max-h-32 overflow-auto rounded-md bg-destructive/5 p-2">
                     {importResult.skippedDetails.map((s, i) => (
-                      <li key={i} className="flex items-start gap-1">
+                      <li key={i} className="flex items-start gap-1.5">
                         <AlertCircle className="h-3 w-3 mt-0.5 shrink-0" />
                         <span>
                           {s.row.date} / {s.row.productCode}: {s.reason}
@@ -473,24 +493,24 @@ export default function SalesLogPage() {
           <div className="flex-1 overflow-auto">
             <div className="w-175">
               <Table>
-                <TableHeader className="bg-background sticky top-0 z-10 border-b">
+                <TableHeader className="border-b">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    <TableHead className="sticky top-0 z-10 bg-background pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                       Product
                     </TableHead>
-                    <TableHead className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                       Brand
                     </TableHead>
-                    <TableHead className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                       Size / Finish
                     </TableHead>
-                    <TableHead className="text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                       Qty
                     </TableHead>
-                    <TableHead className="text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                       Unit Price
                     </TableHead>
-                    <TableHead className="text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                       Total
                     </TableHead>
                   </TableRow>

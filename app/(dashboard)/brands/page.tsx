@@ -1,25 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Plus, Trash2, Building2, Loader2, X, Search } from "lucide-react";
+import { Plus, Trash2, Building2, Loader2, Search } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -107,28 +93,33 @@ export default function BrandsPage() {
 
   return (
     <div className="h-full flex flex-col gap-6 animate-in fade-in duration-500 overflow-hidden">
-      <div className="flex items-center justify-between shrink-0">
+      <div className="flex items-center justify-between shrink-0 gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Brands</h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
+            Catalog
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mt-0.5">
+            Brands
+          </h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
             Manage product brands for your catalog.
           </p>
         </div>
         {isAdmin && (
-          <Button onClick={() => setIsModalOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
+          <Button size="sm" onClick={() => setIsModalOpen(true)}>
+            <Plus className="h-4 w-4" />
             Add Brand
           </Button>
         )}
       </div>
 
-      <Card className="py-0 flex-1 flex flex-col border shadow-sm overflow-hidden bg-background/50">
-        <CardHeader className="bg-zinc-50/50 dark:bg-zinc-900/50 border-b shrink-0 py-4">
+      <Card className="py-0 gap-0 flex-1 flex flex-col overflow-hidden">
+        <CardHeader className="py-3.5 px-5 border-b shrink-0 bg-muted/30 gap-0">
           <div className="relative max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search brands..."
-              className="pl-8 bg-background h-9"
+              className="pl-9 h-9"
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -137,126 +128,114 @@ export default function BrandsPage() {
             />
           </div>
         </CardHeader>
-        <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
-          <div className="flex-1 overflow-auto">
-            <Table>
-              <TableHeader className="sticky top-0 bg-background z-10 border-b">
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
-                    Name
-                  </TableHead>
-                  {isAdmin && <TableHead className="w-12" />}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  Array.from({ length: 5 }).map((_, i) => (
-                    <TableRow key={i} className="hover:bg-transparent h-[52px]">
-                      <TableCell className="pl-4">
-                        <div className="flex items-center gap-3">
-                          <Skeleton className="h-8 w-8 rounded-md shrink-0" />
-                          <Skeleton className="h-3.5 w-28" />
-                        </div>
-                      </TableCell>
-                      {isAdmin && <TableCell />}
-                    </TableRow>
-                  ))
-                ) : brands.length === 0 ? (
-                  <TableRow className="hover:bg-transparent">
-                    <TableCell colSpan={isAdmin ? 2 : 1}>
-                      <EmptyState
-                        icon={Building2}
-                        title="No brands found"
-                        description={
-                          searchTerm
-                            ? "Try a different search term."
-                            : "Add your first brand to get started."
-                        }
-                        action={
-                          isAdmin && !searchTerm ? (
-                            <Button size="sm" onClick={() => setIsModalOpen(true)}>
-                              <Plus className="mr-2 h-4 w-4" />
-                              Add Brand
-                            </Button>
-                          ) : undefined
-                        }
-                      />
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  brands.map((b: any) => {
-                    const initials = b.name
-                      .split(" ")
-                      .map((w: string) => w[0])
-                      .join("")
-                      .slice(0, 2)
-                      .toUpperCase();
-                    return (
-                      <TableRow
-                        key={b.id}
-                        className="group border-b transition-colors hover:bg-muted/40 h-[52px]"
+        <CardContent className="flex-1 overflow-y-auto overflow-x-hidden p-4">
+          {isLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <Skeleton key={i} className="h-16 rounded-xl" />
+              ))}
+            </div>
+          ) : brands.length === 0 ? (
+            <EmptyState
+              icon={Building2}
+              title="No brands found"
+              description={
+                searchTerm
+                  ? "Try a different search term."
+                  : "Add your first brand to get started."
+              }
+              action={
+                isAdmin && !searchTerm ? (
+                  <Button size="sm" onClick={() => setIsModalOpen(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Brand
+                  </Button>
+                ) : undefined
+              }
+            />
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {brands.map((b: any) => {
+                const initials = b.name
+                  .split(" ")
+                  .map((w: string) => w[0])
+                  .join("")
+                  .slice(0, 2)
+                  .toUpperCase();
+                return (
+                  <div
+                    key={b.id}
+                    className="group relative flex items-center gap-3 rounded-xl border bg-card p-3.5 shadow-xs transition-all hover:shadow-md hover:border-primary/30"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/10">
+                      <span className="text-xs font-bold text-primary">
+                        {initials}
+                      </span>
+                    </div>
+                    <span className="font-medium text-sm truncate">
+                      {b.name}
+                    </span>
+                    {isAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute top-1.5 right-1.5 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => setConfirmDeleteId(b.id)}
                       >
-                        <TableCell className="pl-4">
-                          <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
-                              <span className="text-[10px] font-bold text-primary">
-                                {initials}
-                              </span>
-                            </div>
-                            <span className="font-medium text-sm">{b.name}</span>
-                          </div>
-                        </TableCell>
-                        {isAdmin && (
-                          <TableCell>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => setConfirmDeleteId(b.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </TableCell>
-                        )}
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-2 shrink-0">
+        <div className="flex items-center justify-between px-1 shrink-0">
           <p className="text-xs text-muted-foreground">
-            Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
-            {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems}{" "}
+            Showing{" "}
+            <span className="font-medium text-foreground">
+              {(currentPage - 1) * itemsPerPage + 1}
+            </span>{" "}
+            to{" "}
+            <span className="font-medium text-foreground">
+              {Math.min(currentPage * itemsPerPage, totalItems)}
+            </span>{" "}
+            of <span className="font-medium text-foreground">{totalItems}</span>{" "}
             brands
           </p>
-          <Pagination className="w-auto mx-0 scale-90 origin-right">
-            <PaginationContent>
+          <Pagination className="w-auto mx-0">
+            <PaginationContent className="gap-1.5">
               <PaginationItem>
                 <PaginationPrevious
+                  size="sm"
                   onClick={() =>
                     setCurrentPage((prev) => Math.max(1, prev - 1))
                   }
                   className={
                     currentPage === 1
-                      ? "pointer-events-none opacity-50"
+                      ? "pointer-events-none opacity-40"
                       : "cursor-pointer"
                   }
                 />
               </PaginationItem>
               <PaginationItem>
+                <span className="flex h-8 items-center rounded-lg border bg-background px-3 text-xs font-medium tabular-nums">
+                  {currentPage} / {totalPages}
+                </span>
+              </PaginationItem>
+              <PaginationItem>
                 <PaginationNext
+                  size="sm"
                   onClick={() =>
                     setCurrentPage((prev) => Math.min(totalPages, prev + 1))
                   }
                   className={
                     currentPage === totalPages
-                      ? "pointer-events-none opacity-50"
+                      ? "pointer-events-none opacity-40"
                       : "cursor-pointer"
                   }
                 />

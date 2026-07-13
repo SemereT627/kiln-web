@@ -89,7 +89,7 @@ export function AddUserForm({ open, onOpenChange, onSuccess }: AddUserFormProps)
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[440px]">
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} autoComplete="off">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserPlus className="h-5 w-5 text-primary" />
@@ -111,10 +111,12 @@ export function AddUserForm({ open, onOpenChange, onSuccess }: AddUserFormProps)
               </Label>
               <Input
                 id="add-user-name"
+                name="new-user-name"
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="e.g. Abebe Bikila"
+                autoComplete="off"
               />
             </div>
 
@@ -124,10 +126,12 @@ export function AddUserForm({ open, onOpenChange, onSuccess }: AddUserFormProps)
               </Label>
               <Input
                 id="add-user-email"
+                name="new-user-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
+                autoComplete="off"
                 required
               />
             </div>
@@ -138,10 +142,12 @@ export function AddUserForm({ open, onOpenChange, onSuccess }: AddUserFormProps)
               </Label>
               <Input
                 id="add-user-password"
+                name="new-user-password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Minimum 6 characters"
+                autoComplete="new-password"
                 minLength={6}
                 required
               />

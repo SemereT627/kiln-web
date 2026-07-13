@@ -29,6 +29,21 @@ import { toast } from "sonner";
 
 const supabase = createClient();
 
+function toTitleCase(value: string): string {
+  return value.replace(
+    /\S+/g,
+    (word) => word.charAt(0).toUpperCase() + word.slice(1),
+  );
+}
+
+function slugifyProductCode(value: string): string {
+  return value
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 const ceramicSchema = z.object({
   productId: z.string().optional(),
   name: z.string().min(1, "Name is required"),
@@ -81,7 +96,15 @@ export function CeramicForm({
   });
 
   const watchedBrandId = watch("brandId");
+  const watchedName = watch("name");
   const skipTypeResetRef = useRef(false);
+
+  // Product code is derived from the name for new products; existing codes
+  // are preserved as-is when editing.
+  useEffect(() => {
+    if (isEditing) return;
+    setValue("productId", slugifyProductCode(watchedName || ""));
+  }, [watchedName, isEditing, setValue]);
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -202,10 +225,10 @@ export function CeramicForm({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-5 space-y-5">
+          <div className="py-5 space-y-6">
             {/* Image upload */}
-            <div className="flex items-center gap-4">
-              <div className="relative h-20 w-20 shrink-0 rounded-xl border-2 border-dashed border-muted-foreground/25 overflow-hidden bg-muted/50 flex items-center justify-center">
+            <div className="flex items-center gap-4 rounded-xl border bg-muted/20 p-3">
+              <div className="relative h-20 w-20 shrink-0 rounded-xl border-2 border-dashed border-muted-foreground/25 overflow-hidden bg-muted/50 flex items-center justify-center transition-colors">
                 {imagePreview ? (
                   <>
                     <Image src={imagePreview} alt="Preview" fill className="object-cover" />
@@ -213,7 +236,7 @@ export function CeramicForm({
                       type="button"
                       aria-label="Remove image"
                       onClick={() => { setImagePreview(null); setImageUrl(null); }}
-                      className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 shadow-sm"
+                      className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 shadow-sm transition-transform hover:scale-110"
                     >
                       <X className="h-2.5 w-2.5" />
                     </button>
@@ -227,12 +250,12 @@ export function CeramicForm({
                   </div>
                 )}
               </div>
-              <div className="flex-1 space-y-1">
+              <div className="flex-1 space-y-1.5">
                 <Label className="text-sm font-medium">Product Image</Label>
                 <p className="text-xs text-muted-foreground">JPG, PNG up to 5MB</p>
                 <Label
                   htmlFor="image-upload"
-                  className="cursor-pointer inline-flex items-center gap-1.5 bg-secondary text-secondary-foreground hover:bg-secondary/80 px-3 py-1.5 rounded-md text-xs font-medium"
+                  className="cursor-pointer inline-flex items-center gap-1.5 bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-[0.98] transition-all px-3 py-1.5 rounded-md text-xs font-medium"
                 >
                   <Upload className="h-3.5 w-3.5" />
                   {imageUrl ? "Change Image" : "Upload Image"}
@@ -255,8 +278,11 @@ export function CeramicForm({
                 <Label htmlFor="productId" className="text-sm">Product Code</Label>
                 <Input
                   id="productId"
-                  placeholder="Auto-generated"
-                  {...register("productId")}
+                  placeholder="Generated from name"
+                  disabled
+                  className="font-mono"
+                  value={watch("productId") || ""}
+                  readOnly
                 />
               </div>
               <div className="space-y-1.5">
@@ -267,6 +293,11 @@ export function CeramicForm({
                   id="name"
                   aria-invalid={!!errors.name}
                   {...register("name")}
+                  onChange={(e) =>
+                    setValue("name", toTitleCase(e.target.value), {
+                      shouldValidate: true,
+                    })
+                  }
                 />
                 {errors.name && (
                   <p className="text-xs text-destructive">{errors.name.message}</p>

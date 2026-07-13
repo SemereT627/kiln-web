@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ProductImageProps {
   src: string | null | undefined;
@@ -35,9 +36,7 @@ export function ProductImage({
 
   return (
     <div className={cn("relative overflow-hidden bg-muted", className)}>
-      {!loaded && (
-        <div className="absolute inset-0 bg-muted animate-pulse" />
-      )}
+      {!loaded && <Skeleton className="absolute inset-0 rounded-none" />}
       <Image
         src={src}
         alt={alt}

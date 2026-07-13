@@ -149,14 +149,16 @@ export function CeramicDetailsDrawer({
             {/* Key Stats */}
             <div className="grid grid-cols-2 gap-4">
               {/* Current Stock */}
-              <div className="rounded-xl bg-muted/50 p-4 border border-border/50">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <Package className="size-3.5" />
+              <div className="rounded-2xl bg-muted/40 p-4 border shadow-xs transition-shadow hover:shadow-sm">
+                <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                  <span className="flex size-6 items-center justify-center rounded-lg bg-slate-500/10">
+                    <Package className="size-3.5 text-slate-600 dark:text-slate-400" />
+                  </span>
                   <span className="text-[10px] uppercase font-bold tracking-wider">
                     Current Stock
                   </span>
                 </div>
-                <div className="text-2xl font-bold">
+                <div className="text-2xl font-bold tracking-tight">
                   {ceramic.currentStock.toFixed(2)}{" "}
                   <span className="text-sm font-medium text-muted-foreground">
                     {unit}
@@ -168,18 +170,20 @@ export function CeramicDetailsDrawer({
               <button
                 type="button"
                 onClick={() => setSoldHistoryOpen(true)}
-                className="group rounded-xl bg-primary/5 p-4 border border-primary/10 text-left transition-all hover:bg-primary/10 hover:border-primary/30 hover:shadow-sm cursor-pointer w-full"
+                className="group rounded-2xl bg-primary/5 p-4 border border-primary/10 text-left shadow-xs transition-all hover:bg-primary/10 hover:border-primary/30 hover:shadow-sm hover:-translate-y-0.5 cursor-pointer w-full"
               >
-                <div className="flex items-center justify-between mb-1">
+                <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2 text-primary/70">
-                    <ShoppingCart className="size-3.5" />
+                    <span className="flex size-6 items-center justify-center rounded-lg bg-primary/10">
+                      <ShoppingCart className="size-3.5" />
+                    </span>
                     <span className="text-[10px] uppercase font-bold tracking-wider">
                       Total Sold
                     </span>
                   </div>
-                  <ChevronRight className="size-3.5 text-primary/40 group-hover:text-primary/70 transition-colors" />
+                  <ChevronRight className="size-3.5 text-primary/40 group-hover:text-primary/70 group-hover:translate-x-0.5 transition-all" />
                 </div>
-                <div className="text-2xl font-bold text-primary">
+                <div className="text-2xl font-bold text-primary tracking-tight">
                   {ceramic.soldStock.toFixed(2)}{" "}
                   <span className="text-sm font-medium opacity-70">{unit}</span>
                 </div>

@@ -24,7 +24,6 @@ import {
   Trash2,
   Layers,
   Loader2,
-  X,
   Pencil,
   ArrowUpDown,
   ArrowUp,
@@ -240,28 +239,33 @@ export default function CeramicTypesPage() {
 
   return (
     <div className="h-full flex flex-col gap-6 animate-in fade-in duration-500 overflow-hidden">
-      <div className="flex items-center justify-between shrink-0">
+      <div className="flex items-center justify-between shrink-0 gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Ceramic Types</h1>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
+            Catalog
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mt-0.5">
+            Ceramic Types
+          </h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
             Define brand, size, and finish combinations.
           </p>
         </div>
         {isAdmin && (
-          <Button onClick={handleAddClick}>
-            <Plus className="mr-2 h-4 w-4" />
+          <Button size="sm" onClick={handleAddClick}>
+            <Plus className="h-4 w-4" />
             Add Type
           </Button>
         )}
       </div>
 
-      <Card className="py-0 flex-1 flex flex-col border shadow-sm overflow-hidden bg-background/50">
-        <CardHeader className="bg-zinc-50/50 dark:bg-zinc-900/50 border-b shrink-0 py-4">
+      <Card className="py-0 gap-0 flex-1 flex flex-col overflow-hidden">
+        <CardHeader className="py-3.5 px-5 border-b shrink-0 bg-muted/30 gap-0">
           <div className="relative max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search types by size..."
-              className="pl-8 bg-background h-9"
+              className="pl-9 h-9"
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -271,36 +275,38 @@ export default function CeramicTypesPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden">
             <Table>
-              <TableHeader className="sticky top-0 bg-background z-10 border-b">
+              <TableHeader className="border-b">
                 <TableRow className="hover:bg-transparent">
                   <TableHead
-                    className="pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    className="sticky top-0 z-10 bg-background pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("size")}
                   >
                     <div className="flex items-center gap-1">
                       Size {getSortIcon("size")}
                     </div>
                   </TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     Brand
                   </TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     Finish
                   </TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     Unit
                   </TableHead>
                   <TableHead
-                    className="text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("price_per_unit")}
                   >
                     <div className="flex items-center justify-end gap-1">
                       Price {getSortIcon("price_per_unit")}
                     </div>
                   </TableHead>
-                  {isAdmin && <TableHead className="w-20" />}
+                  {isAdmin && (
+                    <TableHead className="sticky top-0 z-10 w-20 bg-background" />
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -407,34 +413,48 @@ export default function CeramicTypesPage() {
       </Card>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-2 shrink-0">
+        <div className="flex items-center justify-between px-1 shrink-0">
           <p className="text-xs text-muted-foreground">
-            Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
-            {Math.min(currentPage * itemsPerPage, totalItems)} of {totalItems}{" "}
+            Showing{" "}
+            <span className="font-medium text-foreground">
+              {(currentPage - 1) * itemsPerPage + 1}
+            </span>{" "}
+            to{" "}
+            <span className="font-medium text-foreground">
+              {Math.min(currentPage * itemsPerPage, totalItems)}
+            </span>{" "}
+            of <span className="font-medium text-foreground">{totalItems}</span>{" "}
             ceramic types
           </p>
-          <Pagination className="w-auto mx-0 scale-90 origin-right">
-            <PaginationContent>
+          <Pagination className="w-auto mx-0">
+            <PaginationContent className="gap-1.5">
               <PaginationItem>
                 <PaginationPrevious
+                  size="sm"
                   onClick={() =>
                     setCurrentPage((prev) => Math.max(1, prev - 1))
                   }
                   className={
                     currentPage === 1
-                      ? "pointer-events-none opacity-50"
+                      ? "pointer-events-none opacity-40"
                       : "cursor-pointer"
                   }
                 />
               </PaginationItem>
               <PaginationItem>
+                <span className="flex h-8 items-center rounded-lg border bg-background px-3 text-xs font-medium tabular-nums">
+                  {currentPage} / {totalPages}
+                </span>
+              </PaginationItem>
+              <PaginationItem>
                 <PaginationNext
+                  size="sm"
                   onClick={() =>
                     setCurrentPage((prev) => Math.min(totalPages, prev + 1))
                   }
                   className={
                     currentPage === totalPages
-                      ? "pointer-events-none opacity-50"
+                      ? "pointer-events-none opacity-40"
                       : "cursor-pointer"
                   }
                 />

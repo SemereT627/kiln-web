@@ -29,7 +29,6 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChevronDown,
-  Users,
   AlertCircle,
   Search,
   Mail,
@@ -39,6 +38,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useUser } from "@/components/user-provider";
+import { EmptyState } from "@/components/empty-state";
 import { AddUserForm } from "@/components/add-user-form";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { toast } from "sonner";
@@ -154,21 +154,19 @@ export default function AdminUsersPage() {
 
   return (
     <div className="flex flex-col h-full gap-6 animate-in fade-in duration-500 overflow-hidden">
-      <div className="flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="bg-primary/10 rounded-lg p-2.5">
-            <Users className="size-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">
-              Users
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              Manage roles and permissions for all registered users.
-            </p>
-          </div>
+      <div className="flex items-center justify-between shrink-0 gap-4">
+        <div>
+          <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
+            Administration
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mt-0.5">
+            Users
+          </h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            Manage roles and permissions for all registered users.
+          </p>
         </div>
-        <Button onClick={() => setAddUserOpen(true)} className="gap-1.5">
+        <Button size="sm" onClick={() => setAddUserOpen(true)}>
           <UserPlus className="size-4" />
           Add User
         </Button>
@@ -182,14 +180,14 @@ export default function AdminUsersPage() {
         }
       />
 
-      <Card className="py-0 flex-1 flex flex-col border shadow-sm overflow-hidden bg-background/50">
-        <CardHeader className="bg-zinc-50/50 dark:bg-zinc-900/50 border-b shrink-0 py-4">
+      <Card className="py-0 gap-0 flex-1 flex flex-col overflow-hidden">
+        <CardHeader className="py-3.5 px-5 border-b shrink-0 bg-muted/30 gap-0">
           <div className="flex items-center justify-between gap-4">
             <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name or email..."
-                className="pl-8 bg-background h-9"
+                className="pl-9 h-9"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -200,23 +198,23 @@ export default function AdminUsersPage() {
           </div>
         </CardHeader>
         <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden">
             <Table>
-              <TableHeader className="sticky top-0 bg-background z-10 border-b">
+              <TableHeader className="border-b">
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-background pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     User
                   </TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     Email
                   </TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     Role
                   </TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     Joined
                   </TableHead>
-                  <TableHead className="text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     Actions
                   </TableHead>
                 </TableRow>
@@ -241,12 +239,17 @@ export default function AdminUsersPage() {
                     </TableRow>
                   ))
                 ) : filteredUsers.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={5}
-                      className="h-32 text-center text-muted-foreground"
-                    >
-                      No users found.
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={5}>
+                      <EmptyState
+                        icon={UserPlus}
+                        title="No users found"
+                        description={
+                          searchTerm
+                            ? "Try a different search term."
+                            : "Add your first user to get started."
+                        }
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
