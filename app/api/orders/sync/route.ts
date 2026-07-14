@@ -74,6 +74,7 @@ export async function POST(request: Request) {
         results.push({ clientId: order.clientId, status: "synced" });
         continue;
       }
+      console.error("orders/sync insert order failed", order.clientId, orderError);
       results.push({ clientId: order.clientId, status: "rejected", reason: "unknown_error" });
       continue;
     }
@@ -88,6 +89,7 @@ export async function POST(request: Request) {
     );
 
     if (itemsError) {
+      console.error("orders/sync insert order_items failed", order.clientId, itemsError);
       results.push({ clientId: order.clientId, status: "rejected", reason: "unknown_error" });
       continue;
     }

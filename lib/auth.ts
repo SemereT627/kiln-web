@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import type { User } from "@supabase/supabase-js";
 
 /**
@@ -19,12 +19,14 @@ async function getRequestUser(request?: Request): Promise<User | null> {
 
   const {
     data: { user: tokenUser },
+    error,
   } = await supabase.auth.getUser(token);
+  if (error) console.error("getRequestUser: token auth failed", error);
   return tokenUser;
 }
 
 async function getRole(userId: string): Promise<string | null> {
-  const supabase = await createClient();
+  const supabase = await createServiceClient();
   const { data: profile } = await supabase
     .from("user_profiles")
     .select("role")
@@ -44,7 +46,14 @@ export async function requireAdmin(request?: Request): Promise<User | null> {
 /** Sales-recording routes: admins and sales reps (mobile app + web). */
 export async function requireSeller(request?: Request): Promise<User | null> {
   const user = await getRequestUser(request);
-  if (!user) return null;
+  if (!user) {
+    console.error("requireSeller: no user resolved from request");
+    return null;
+  }
   const role = await getRole(user.id);
-  return role === "admin" || role === "seller" ? user : null;
+  if (role !== "admin" && role !== "seller") {
+    console.error("requireSeller: wrong role", user.id, role);
+    return null;
+  }
+  return user;
 }
