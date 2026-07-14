@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { logAudit } from "@/lib/audit";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -82,5 +83,14 @@ export async function POST(request: Request) {
   }
   const { data, error } = await supabase.from("ceramic_types").insert([payload]).select().single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  await logAudit({
+    actor: admin,
+    action: "ceramic_type.create",
+    targetTable: "ceramic_types",
+    targetId: data.id,
+    after: data,
+  });
+
   return NextResponse.json(data);
 }

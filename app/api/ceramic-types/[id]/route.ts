@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { logAudit } from "@/lib/audit";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -29,8 +30,14 @@ export async function PUT(
     const supabase = await createClient();
     const body = await request.json();
 
+    const { data: before } = await supabase
+      .from("ceramic_types")
+      .select("*")
+      .eq("id", id)
+      .single();
+
     const { brand_id, size, finish_id, measurement_unit, price_per_unit } = body;
-    
+
     const updates: any = {};
     if (brand_id !== undefined) updates.brand_id = brand_id;
     if (size !== undefined) updates.size = size;
@@ -48,6 +55,15 @@ export async function PUT(
       .single();
 
     if (error) throw error;
+
+    await logAudit({
+      actor: admin,
+      action: "ceramic_type.update",
+      targetTable: "ceramic_types",
+      targetId: id,
+      before,
+      after: data,
+    });
 
     return NextResponse.json(data);
   } catch (error: any) {
@@ -68,9 +84,25 @@ export async function DELETE(
 
     const { id } = await params;
     const supabase = await createClient();
+
+    const { data: before } = await supabase
+      .from("ceramic_types")
+      .select("*")
+      .eq("id", id)
+      .single();
+
     const { error } = await supabase.from("ceramic_types").delete().eq("id", id);
 
     if (error) throw error;
+
+    await logAudit({
+      actor: admin,
+      action: "ceramic_type.delete",
+      targetTable: "ceramic_types",
+      targetId: id,
+      before,
+    });
+
     return NextResponse.json({ message: "Deleted successfully" });
   } catch (error: any) {
     console.error("DELETE Ceramic Type Error:", error);

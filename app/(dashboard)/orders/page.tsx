@@ -1,0 +1,387 @@
+"use client";
+
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { EmptyState } from "@/components/empty-state";
+import {
+  ClipboardCheck,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Banknote,
+  Landmark,
+  HandCoins,
+  ChevronRight,
+  ShieldAlert,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useOrdersRealtime } from "@/hooks/use-orders-realtime";
+import { useOrderMutations } from "@/hooks/use-order-mutations";
+import { useUser } from "@/components/user-provider";
+
+type OrderStatus = "pending" | "approved" | "rejected";
+
+interface OrderItem {
+  id: string;
+  ceramicId: string;
+  productName: string;
+  productCode: string;
+  quantity: number;
+  priceAtSale: number;
+  measurementUnit: string;
+}
+
+interface Order {
+  id: string;
+  status: OrderStatus;
+  paymentMethod: "cash" | "bank_transfer" | "credit";
+  bankAccount: string | null;
+  paymentStatus: "paid" | "unpaid";
+  notes: string | null;
+  sellerName: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+  items: OrderItem[];
+  total: number;
+}
+
+const STATUS_TABS: { label: string; value: OrderStatus }[] = [
+  { label: "Pending", value: "pending" },
+  { label: "Approved", value: "approved" },
+  { label: "Rejected", value: "rejected" },
+];
+
+const PAYMENT_LABEL: Record<Order["paymentMethod"], string> = {
+  cash: "Cash",
+  bank_transfer: "Bank Transfer",
+  credit: "Pending / Credit",
+};
+
+const PAYMENT_ICON: Record<Order["paymentMethod"], React.ElementType> = {
+  cash: Banknote,
+  bank_transfer: Landmark,
+  credit: HandCoins,
+};
+
+export default function OrdersPage() {
+  const userProfile = useUser();
+  const isAdmin = userProfile?.role === "admin";
+  useOrdersRealtime(isAdmin);
+  const [status, setStatus] = useState<OrderStatus>("pending");
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+
+  const { data: response, isLoading } = useQuery({
+    queryKey: ["orders", status],
+    queryFn: async () => {
+      const res = await fetch(`/api/orders?status=${status}&limit=50`);
+      if (!res.ok) throw new Error("Failed to fetch orders");
+      return res.json();
+    },
+  });
+
+  const { approveMutation, rejectMutation } = useOrderMutations();
+
+  const orders: Order[] = response?.data || [];
+
+  if (userProfile && !isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center gap-4 animate-in fade-in duration-500">
+        <div className="bg-amber-100 dark:bg-amber-900/30 p-5 rounded-full ring-8 ring-amber-500/5">
+          <ShieldAlert className="h-10 w-10 text-amber-600 dark:text-amber-400" />
+        </div>
+        <div className="max-w-md">
+          <h2 className="text-xl font-bold tracking-tight">Access Restricted</h2>
+          <p className="text-muted-foreground text-sm mt-1.5">
+            Only administrators can review and approve orders.
+          </p>
+        </div>
+        <Button asChild variant="outline" size="sm" className="mt-2">
+          <a href="/">Return to Dashboard</a>
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-6 animate-in fade-in duration-500">
+      <div>
+        <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
+          Order Management
+        </p>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mt-0.5">
+          Order Approvals
+        </h1>
+        <p className="text-muted-foreground text-sm mt-0.5">
+          Review orders submitted by sellers before stock is deducted and a sale is recorded.
+        </p>
+      </div>
+
+      <div className="flex gap-2">
+        {STATUS_TABS.map((tab) => (
+          <Button
+            key={tab.value}
+            variant={status === tab.value ? "default" : "outline"}
+            size="sm"
+            className="rounded-full"
+            onClick={() => setStatus(tab.value)}
+          >
+            {tab.label}
+          </Button>
+        ))}
+      </div>
+
+      <Card className="py-0 gap-0">
+        <CardHeader className="py-3.5 px-5 border-b bg-muted/30 gap-0">
+          <CardTitle className="text-base">
+            {STATUS_TABS.find((t) => t.value === status)?.label} Orders
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4">
+          {isLoading ? (
+            <div className="flex flex-col gap-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-20 rounded-xl" />
+              ))}
+            </div>
+          ) : orders.length === 0 ? (
+            <EmptyState
+              icon={ClipboardCheck}
+              title="No orders here"
+              description={`There are no ${status} orders right now.`}
+            />
+          ) : (
+            <div className="flex flex-col gap-3">
+              {orders.map((order) => {
+                const PaymentIcon = PAYMENT_ICON[order.paymentMethod];
+                return (
+                  <button
+                    key={order.id}
+                    onClick={() => setSelectedOrder(order)}
+                    className="flex items-center gap-4 rounded-xl border p-4 text-left transition-colors hover:border-primary/40 hover:bg-muted/30"
+                  >
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                      <PaymentIcon className="h-5 w-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold truncate">
+                          {order.sellerName || "Unknown seller"}
+                        </p>
+                        <Badge variant="outline" className="text-[10px]">
+                          {order.items.length} item{order.items.length !== 1 ? "s" : ""}
+                        </Badge>
+                        {order.paymentMethod === "credit" && order.paymentStatus === "unpaid" && (
+                          <Badge className="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 hover:bg-amber-100">
+                            Payment not yet received
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {PAYMENT_LABEL[order.paymentMethod]}
+                        {order.bankAccount ? ` · ${order.bankAccount}` : ""} ·{" "}
+                        {new Date(order.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="font-bold tabular-nums">{order.total.toFixed(2)} ETB</p>
+                      {order.status === "rejected" && (
+                        <p className="text-[10px] text-destructive mt-0.5">Rejected</p>
+                      )}
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Sheet open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
+        <SheetContent className="sm:max-w-md overflow-y-auto">
+          {selectedOrder && (
+            <>
+              <SheetHeader>
+                <SheetTitle>Order from {selectedOrder.sellerName || "Unknown seller"}</SheetTitle>
+                <SheetDescription>
+                  Submitted {new Date(selectedOrder.createdAt).toLocaleString()}
+                </SheetDescription>
+              </SheetHeader>
+
+              <div className="px-4 flex flex-col gap-4">
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline">{PAYMENT_LABEL[selectedOrder.paymentMethod]}</Badge>
+                  {selectedOrder.bankAccount && (
+                    <Badge variant="outline">{selectedOrder.bankAccount}</Badge>
+                  )}
+                  {selectedOrder.paymentMethod === "credit" && (
+                    <Badge
+                      className={cn(
+                        "text-[10px]",
+                        selectedOrder.paymentStatus === "unpaid"
+                          ? "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 hover:bg-amber-100"
+                          : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400 hover:bg-emerald-100",
+                      )}
+                    >
+                      {selectedOrder.paymentStatus === "unpaid" ? "Payment not yet received" : "Paid"}
+                    </Badge>
+                  )}
+                </div>
+
+                {selectedOrder.notes && (
+                  <p className="text-sm text-muted-foreground rounded-lg bg-muted/40 p-3">
+                    {selectedOrder.notes}
+                  </p>
+                )}
+
+                <div className="flex flex-col gap-2">
+                  {selectedOrder.items.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between rounded-lg border p-3 text-sm"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{item.productName}</p>
+                        <p className="text-xs text-muted-foreground">{item.productCode}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-semibold tabular-nums">
+                          {item.quantity} {item.measurementUnit}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {(item.quantity * item.priceAtSale).toFixed(2)} ETB
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="flex items-center justify-between border-t pt-3">
+                  <span className="text-sm font-medium text-muted-foreground">Total</span>
+                  <span className="font-bold text-lg tabular-nums">
+                    {selectedOrder.total.toFixed(2)} ETB
+                  </span>
+                </div>
+
+                {selectedOrder.status === "rejected" && selectedOrder.rejectionReason && (
+                  <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                    <XCircle className="h-4 w-4 shrink-0 mt-0.5" />
+                    {selectedOrder.rejectionReason}
+                  </div>
+                )}
+
+                {selectedOrder.status === "approved" && (
+                  <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 p-3 text-sm text-emerald-600">
+                    <CheckCircle2 className="h-4 w-4 shrink-0" />
+                    Approved — stock deducted and sale recorded.
+                  </div>
+                )}
+
+                {selectedOrder.status === "pending" && (
+                  <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 p-3 text-sm text-amber-600">
+                    <Clock className="h-4 w-4 shrink-0" />
+                    Awaiting your review.
+                  </div>
+                )}
+              </div>
+
+              {selectedOrder.status === "pending" && (
+                <SheetFooter className="flex-row gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1 text-destructive hover:text-destructive"
+                    onClick={() => setRejectOpen(true)}
+                    disabled={approveMutation.isPending || rejectMutation.isPending}
+                  >
+                    Reject
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    onClick={() =>
+                      approveMutation.mutate(selectedOrder.id, {
+                        onSuccess: () => setSelectedOrder(null),
+                      })
+                    }
+                    disabled={approveMutation.isPending || rejectMutation.isPending}
+                  >
+                    {approveMutation.isPending ? "Approving..." : "Approve"}
+                  </Button>
+                </SheetFooter>
+              )}
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      <Dialog
+        open={rejectOpen}
+        onOpenChange={(open) => {
+          setRejectOpen(open);
+          if (!open) setRejectReason("");
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject this order?</DialogTitle>
+            <DialogDescription>
+              No stock will be deducted and no sale will be recorded. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            placeholder="Reason for rejecting (required)..."
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            rows={3}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!rejectReason.trim() || rejectMutation.isPending}
+              onClick={() => {
+                if (!selectedOrder || !rejectReason.trim()) return;
+                rejectMutation.mutate(
+                  { orderId: selectedOrder.id, reason: rejectReason.trim() },
+                  {
+                    onSuccess: () => {
+                      setSelectedOrder(null);
+                      setRejectOpen(false);
+                      setRejectReason("");
+                    },
+                  },
+                );
+              }}
+            >
+              {rejectMutation.isPending ? "Rejecting..." : "Reject Order"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

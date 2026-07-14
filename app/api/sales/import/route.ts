@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { parseEthiopianDate } from "@/lib/ethiopian-calendar";
+import { logAudit } from "@/lib/audit";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -104,6 +105,13 @@ export async function POST(request: Request) {
         inserted.push(i);
       }
     }
+
+    await logAudit({
+      actor: admin,
+      action: "sales.import",
+      targetTable: "sales",
+      after: { inserted: inserted.length, skipped: skipped.length },
+    });
 
     return NextResponse.json({
       inserted: inserted.length,

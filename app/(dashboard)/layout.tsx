@@ -6,7 +6,7 @@ import {
 import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LocaleSelector } from "@/components/locale-selector";
-import { UserMenu } from "@/components/user-menu";
+import { NotificationsBell } from "@/components/notifications-bell";
 import { Suspense } from "react";
 
 export default function DashboardLayout({
@@ -26,7 +26,7 @@ export default function DashboardLayout({
             <div className="flex-1" />
             <ThemeToggle />
             <LocaleSelector />
-            <UserMenu />
+            <NotificationsBell />
           </header>
           <main className="flex-1 relative">
             <div className="absolute inset-0 p-6 md:p-8 overflow-y-auto overflow-x-hidden">

@@ -48,7 +48,8 @@ function actionColor(action: string) {
 }
 
 function DiffCell({ before, after }: { before: unknown; after: unknown }) {
-  if (!before && !after) return <span className="text-muted-foreground">—</span>;
+  if (!before && !after)
+    return <span className="text-muted-foreground">—</span>;
   return (
     <div className="flex flex-col gap-1 text-xs font-mono max-w-[360px]">
       {before ? (
@@ -106,7 +107,7 @@ export default function AuditLogsPage() {
           Administration
         </p>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mt-0.5">
-          Audit Log
+          Audit Logs
         </h1>
         <p className="text-muted-foreground text-sm mt-0.5">
           Who did what, and the before/after diff, across the system.
@@ -140,11 +141,21 @@ export default function AuditLogsPage() {
                 {isLoading ? (
                   Array.from({ length: 8 }).map((_, i) => (
                     <TableRow key={i} className="hover:bg-transparent h-[52px]">
-                      <TableCell className="pl-4"><Skeleton className="h-3.5 w-28" /></TableCell>
-                      <TableCell><Skeleton className="h-3.5 w-32" /></TableCell>
-                      <TableCell><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
-                      <TableCell><Skeleton className="h-3.5 w-24" /></TableCell>
-                      <TableCell><Skeleton className="h-3.5 w-40" /></TableCell>
+                      <TableCell className="pl-4">
+                        <Skeleton className="h-3.5 w-28" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-3.5 w-32" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-5 w-20 rounded-full" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-3.5 w-24" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-3.5 w-40" />
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : logs.length === 0 ? (
@@ -159,7 +170,10 @@ export default function AuditLogsPage() {
                   </TableRow>
                 ) : (
                   logs.map((log) => (
-                    <TableRow key={log.id} className="border-b transition-colors hover:bg-muted/40">
+                    <TableRow
+                      key={log.id}
+                      className="border-b transition-colors hover:bg-muted/40"
+                    >
                       <TableCell className="pl-4">
                         <div className="flex items-center gap-2 text-muted-foreground text-sm">
                           <Calendar className="size-3 opacity-50" />
@@ -173,13 +187,20 @@ export default function AuditLogsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge className={cn("font-bold text-[10px] h-5", actionColor(log.action))}>
+                        <Badge
+                          className={cn(
+                            "font-bold text-[10px] h-5",
+                            actionColor(log.action),
+                          )}
+                        >
                           {log.action}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="text-sm font-medium">{log.targetTable}</span>
+                          <span className="text-sm font-medium">
+                            {log.targetTable}
+                          </span>
                           {log.targetId && (
                             <span className="text-[10px] text-muted-foreground font-mono">
                               {log.targetId.slice(0, 8)}
