@@ -2,6 +2,8 @@
 -- 'pending' (no stock/sales impact) until an admin approves or rejects.
 -- Run manually in the Supabase SQL editor against the live DB.
 
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS sold_by UUID REFERENCES user_profiles(id);
+
 CREATE TABLE orders (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   seller_id         UUID NOT NULL REFERENCES user_profiles(id),
