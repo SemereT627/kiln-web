@@ -48,7 +48,7 @@ CREATE TABLE stock_entries (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   ceramic_id UUID REFERENCES ceramics(id) ON DELETE CASCADE,
   quantity   NUMERIC NOT NULL CHECK (quantity > 0),
-  entry_type TEXT NOT NULL CHECK (entry_type IN ('Restock', 'Adjustment')),
+  entry_type TEXT NOT NULL CHECK (entry_type IN ('Restock', 'Adjustment', 'Return')),
   direction  TEXT NOT NULL DEFAULT 'add' CHECK (direction IN ('add', 'remove')),
   reason     TEXT CHECK (reason IN ('damaged', 'lost', 'miscount', 'other')),
   supplier   TEXT,
@@ -56,6 +56,8 @@ CREATE TABLE stock_entries (
   created_at TIMESTAMPTZ DEFAULT now(),
   CHECK (
     (entry_type = 'Restock'    AND direction = 'add' AND reason IS NULL)
+    OR
+    (entry_type = 'Return'     AND direction = 'add' AND reason IS NULL)
     OR
     (entry_type = 'Adjustment' AND reason IS NOT NULL)
   )
@@ -98,6 +100,7 @@ LEFT JOIN (
     SUM(
       CASE
         WHEN entry_type = 'Restock' THEN quantity
+        WHEN entry_type = 'Return' THEN quantity
         WHEN entry_type = 'Adjustment' AND direction = 'add' THEN quantity
         WHEN entry_type = 'Adjustment' AND direction = 'remove' THEN -quantity
         ELSE 0
@@ -173,6 +176,8 @@ CREATE TABLE orders (
   reviewed_by       UUID REFERENCES user_profiles(id),
   reviewed_at       TIMESTAMPTZ,
   rejection_reason  TEXT,
+  paid_by           UUID REFERENCES user_profiles(id),
+  paid_at           TIMESTAMPTZ,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   CHECK (payment_method <> 'bank_transfer' OR bank_account IS NOT NULL)
@@ -187,9 +192,32 @@ CREATE TABLE order_items (
   sale_id       UUID REFERENCES sales(id)
 );
 
+-- Returns — partial, per-line-item returns against an already-approved
+-- order. Admin-recorded directly on web (no seller-request/approval cycle).
+-- A stock_entries 'Return' row restores stock without touching the
+-- original sales row, so the sale history stays accurate.
+CREATE TABLE returns (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id   UUID NOT NULL REFERENCES orders(id),
+  created_by UUID NOT NULL REFERENCES user_profiles(id),
+  notes      TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE return_items (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  return_id      UUID NOT NULL REFERENCES returns(id) ON DELETE CASCADE,
+  order_item_id  UUID NOT NULL REFERENCES order_items(id),
+  quantity       NUMERIC NOT NULL CHECK (quantity > 0),
+  stock_entry_id UUID REFERENCES stock_entries(id)
+);
+
 CREATE INDEX idx_orders_status_created_at ON orders (status, created_at DESC);
 CREATE INDEX idx_orders_seller_id ON orders (seller_id);
 CREATE INDEX idx_order_items_order_id ON order_items (order_id);
+CREATE INDEX idx_returns_order_id ON returns (order_id);
+CREATE INDEX idx_return_items_return_id ON return_items (return_id);
+CREATE INDEX idx_return_items_order_item_id ON return_items (order_item_id);
 
 CREATE OR REPLACE FUNCTION public.touch_order_updated_at()
 RETURNS TRIGGER AS $$
@@ -239,6 +267,90 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Block over-returning: a line item can never have more returned against it
+-- (across all return events) than was originally ordered.
+CREATE OR REPLACE FUNCTION public.check_return_quantity()
+RETURNS TRIGGER AS $$
+DECLARE
+  ordered   NUMERIC;
+  returned  NUMERIC;
+BEGIN
+  SELECT quantity INTO ordered FROM order_items WHERE id = NEW.order_item_id;
+  SELECT COALESCE(SUM(quantity), 0) INTO returned
+  FROM return_items WHERE order_item_id = NEW.order_item_id;
+
+  IF NEW.quantity > (ordered - returned) THEN
+    RAISE EXCEPTION 'Return quantity (%) exceeds remaining returnable quantity (%)',
+      NEW.quantity, (ordered - returned);
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_check_return_quantity
+  BEFORE INSERT ON return_items
+  FOR EACH ROW EXECUTE PROCEDURE check_return_quantity();
+
+-- Atomically record a return: for each {order_item_id, quantity}, add a
+-- 'Return' stock_entries row (stock goes back up) and a return_items row
+-- (trg_check_return_quantity caps it). Only approved orders are eligible —
+-- a return only makes sense once a sale actually happened.
+CREATE OR REPLACE FUNCTION public.record_return(
+  p_order_id  UUID,
+  p_admin_id  UUID,
+  p_items     JSONB, -- [{ "orderItemId": "...", "quantity": 1 }, ...]
+  p_notes     TEXT
+)
+RETURNS UUID AS $$
+DECLARE
+  v_status        TEXT;
+  v_return_id     UUID;
+  v_item          JSONB;
+  v_order_item_id UUID;
+  v_quantity      NUMERIC;
+  v_ceramic_id    UUID;
+  v_stock_entry_id UUID;
+BEGIN
+  SELECT status INTO v_status FROM orders WHERE id = p_order_id FOR UPDATE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Order % not found', p_order_id;
+  END IF;
+  IF v_status <> 'approved' THEN
+    RAISE EXCEPTION 'Only approved orders can have returns recorded';
+  END IF;
+
+  IF jsonb_array_length(p_items) = 0 THEN
+    RAISE EXCEPTION 'A return must include at least one item';
+  END IF;
+
+  INSERT INTO returns (order_id, created_by, notes)
+  VALUES (p_order_id, p_admin_id, p_notes)
+  RETURNING id INTO v_return_id;
+
+  FOR v_item IN SELECT * FROM jsonb_array_elements(p_items) LOOP
+    v_order_item_id := (v_item->>'orderItemId')::UUID;
+    v_quantity       := (v_item->>'quantity')::NUMERIC;
+
+    SELECT ceramic_id INTO v_ceramic_id
+    FROM order_items
+    WHERE id = v_order_item_id AND order_id = p_order_id;
+
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Order item % does not belong to order %', v_order_item_id, p_order_id;
+    END IF;
+
+    INSERT INTO stock_entries (ceramic_id, quantity, entry_type, direction)
+    VALUES (v_ceramic_id, v_quantity, 'Return', 'add')
+    RETURNING id INTO v_stock_entry_id;
+
+    INSERT INTO return_items (return_id, order_item_id, quantity, stock_entry_id)
+    VALUES (v_return_id, v_order_item_id, v_quantity, v_stock_entry_id);
+  END LOOP;
+
+  RETURN v_return_id;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Helper to read current user's role without RLS recursion
 CREATE OR REPLACE FUNCTION public.get_my_role()
 RETURNS TEXT AS $$
@@ -258,6 +370,8 @@ ALTER TABLE sales          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_profiles  ENABLE ROW LEVEL SECURITY;
 ALTER TABLE orders         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE returns        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE return_items   ENABLE ROW LEVEL SECURITY;
 
 -- Finishes
 CREATE POLICY "Public Read Finishes"  ON finishes FOR SELECT USING (true);
@@ -313,6 +427,13 @@ CREATE POLICY "Sellers can read own order items"
 
 CREATE POLICY "Admin all order items"
   ON order_items FOR ALL USING (get_my_role() = 'admin');
+
+-- Returns — same convention as sales/stock_entries: public read, admin all.
+CREATE POLICY "Public Read Returns"      ON returns      FOR SELECT USING (true);
+CREATE POLICY "Admin All Returns"        ON returns      FOR ALL    USING (get_my_role() = 'admin');
+
+CREATE POLICY "Public Read Return Items" ON return_items FOR SELECT USING (true);
+CREATE POLICY "Admin All Return Items"   ON return_items FOR ALL    USING (get_my_role() = 'admin');
 
 -- Realtime — lets the admin dashboard subscribe to postgres_changes on orders.
 ALTER PUBLICATION supabase_realtime ADD TABLE orders;

@@ -10,6 +10,7 @@ export function useOrderMutations() {
 
   const invalidateAfterMutation = () => {
     queryClient.invalidateQueries({ queryKey: ["orders"] });
+    queryClient.invalidateQueries({ queryKey: ["order"] });
     queryClient.invalidateQueries({ queryKey: ["ceramics"] });
     queryClient.invalidateQueries({ queryKey: ["sales"] });
   };
@@ -50,5 +51,61 @@ export function useOrderMutations() {
     },
   });
 
-  return { approveMutation, rejectMutation };
+  const paymentStatusMutation = useMutation({
+    mutationFn: async ({
+      orderId,
+      paymentStatus,
+    }: {
+      orderId: string;
+      paymentStatus: "paid" | "unpaid";
+    }) => {
+      const res = await fetch(`/api/orders/${orderId}/payment-status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentStatus }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to update payment status");
+      return json;
+    },
+    onSuccess: (_data, variables) => {
+      toast.success(
+        variables.paymentStatus === "paid" ? "Marked as paid." : "Marked as unpaid.",
+      );
+      invalidateAfterMutation();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to update payment status");
+    },
+  });
+
+  const returnMutation = useMutation({
+    mutationFn: async ({
+      orderId,
+      items,
+      notes,
+    }: {
+      orderId: string;
+      items: { orderItemId: string; quantity: number }[];
+      notes?: string;
+    }) => {
+      const res = await fetch(`/api/orders/${orderId}/returns`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items, notes }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to record return");
+      return json;
+    },
+    onSuccess: () => {
+      toast.success("Return recorded — stock restored.");
+      invalidateAfterMutation();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to record return");
+    },
+  });
+
+  return { approveMutation, rejectMutation, paymentStatusMutation, returnMutation };
 }

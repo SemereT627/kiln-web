@@ -30,7 +30,11 @@ export async function PATCH(
 
     const { data, error } = await supabase
       .from("orders")
-      .update({ payment_status: paymentStatus })
+      .update({
+        payment_status: paymentStatus,
+        paid_by: paymentStatus === "paid" ? admin.id : null,
+        paid_at: paymentStatus === "paid" ? new Date().toISOString() : null,
+      })
       .eq("id", id)
       .select()
       .single();
@@ -42,10 +46,10 @@ export async function PATCH(
       targetTable: "orders",
       targetId: id,
       before: { paymentStatus: before?.payment_status },
-      after: { paymentStatus: data.payment_status },
+      after: { paymentStatus: data.payment_status, paidBy: data.paid_by, paidAt: data.paid_at },
     });
 
-    return NextResponse.json({ paymentStatus: data.payment_status });
+    return NextResponse.json({ paymentStatus: data.payment_status, paidBy: data.paid_by, paidAt: data.paid_at });
   } catch (error: any) {
     console.error("PATCH Order Payment Status Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

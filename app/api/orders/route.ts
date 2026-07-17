@@ -9,22 +9,12 @@ interface OrderItemInput {
 }
 
 function formatOrder(order: any) {
-  return {
-    id: order.id,
-    clientId: order.client_id,
-    status: order.status,
-    paymentMethod: order.payment_method,
-    bankAccount: order.bank_account,
-    paymentStatus: order.payment_status,
-    notes: order.notes,
-    sellerId: order.seller_id,
-    sellerName: order.seller?.full_name ?? null,
-    reviewedBy: order.reviewed_by,
-    reviewedAt: order.reviewed_at,
-    rejectionReason: order.rejection_reason,
-    createdAt: order.created_at,
-    updatedAt: order.updated_at,
-    items: (order.order_items || []).map((item: any) => ({
+  const items = (order.order_items || []).map((item: any) => {
+    const returnedQuantity = (item.return_items || []).reduce(
+      (sum: number, ri: any) => sum + Number(ri.quantity),
+      0,
+    );
+    return {
       id: item.id,
       ceramicId: item.ceramic_id,
       productName: item.ceramic?.name,
@@ -33,11 +23,38 @@ function formatOrder(order: any) {
       priceAtSale: item.price_at_sale,
       measurementUnit: item.ceramic?.ceramic_type?.measurement_unit || "m²",
       saleId: item.sale_id,
-    })),
-    total: (order.order_items || []).reduce(
-      (sum: number, item: any) => sum + item.quantity * item.price_at_sale,
-      0,
-    ),
+      returnedQuantity,
+    };
+  });
+
+  const total = items.reduce((sum: number, item: any) => sum + item.quantity * item.priceAtSale, 0);
+  const returnedTotal = items.reduce(
+    (sum: number, item: any) => sum + item.returnedQuantity * item.priceAtSale,
+    0,
+  );
+
+  return {
+    id: order.id,
+    clientId: order.client_id,
+    status: order.status,
+    paymentMethod: order.payment_method,
+    bankAccount: order.bank_account,
+    paymentStatus: order.payment_status,
+    paidBy: order.paid_by,
+    paidAt: order.paid_at,
+    notes: order.notes,
+    sellerId: order.seller_id,
+    sellerName: order.seller?.full_name ?? null,
+    reviewedBy: order.reviewed_by,
+    reviewedAt: order.reviewed_at,
+    rejectionReason: order.rejection_reason,
+    createdAt: order.created_at,
+    updatedAt: order.updated_at,
+    items,
+    total,
+    returnedTotal,
+    outstandingTotal: total - returnedTotal,
+    hasReturns: returnedTotal > 0,
   };
 }
 
@@ -50,7 +67,8 @@ const ORDER_SELECT = `
       product_code,
       name,
       ceramic_type:ceramic_types(measurement_unit)
-    )
+    ),
+    return_items(quantity)
   )
 `;
 
@@ -63,6 +81,8 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
+    const paymentMethod = searchParams.get("paymentMethod");
+    const paymentStatus = searchParams.get("paymentStatus");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
     const mineOnly = searchParams.get("mine") === "1";
@@ -81,6 +101,12 @@ export async function GET(request: Request) {
 
     if (status) {
       query = query.eq("status", status);
+    }
+    if (paymentMethod) {
+      query = query.eq("payment_method", paymentMethod);
+    }
+    if (paymentStatus) {
+      query = query.eq("payment_status", paymentStatus);
     }
     if (mineOnly || !isAdmin) {
       query = query.eq("seller_id", user.id);

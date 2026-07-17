@@ -12,27 +12,25 @@ const ORDER_SELECT = `
       product_code,
       name,
       ceramic_type:ceramic_types(measurement_unit)
-    )
+    ),
+    return_items(quantity)
+  ),
+  returns(
+    id,
+    notes,
+    created_at,
+    created_by:user_profiles!returns_created_by_fkey(full_name),
+    return_items(id, order_item_id, quantity)
   )
 `;
 
 function formatOrder(order: any) {
-  return {
-    id: order.id,
-    clientId: order.client_id,
-    status: order.status,
-    paymentMethod: order.payment_method,
-    bankAccount: order.bank_account,
-    paymentStatus: order.payment_status,
-    notes: order.notes,
-    sellerId: order.seller_id,
-    sellerName: order.seller?.full_name ?? null,
-    reviewedBy: order.reviewed_by,
-    reviewedAt: order.reviewed_at,
-    rejectionReason: order.rejection_reason,
-    createdAt: order.created_at,
-    updatedAt: order.updated_at,
-    items: (order.order_items || []).map((item: any) => ({
+  const items = (order.order_items || []).map((item: any) => {
+    const returnedQuantity = (item.return_items || []).reduce(
+      (sum: number, ri: any) => sum + Number(ri.quantity),
+      0,
+    );
+    return {
       id: item.id,
       ceramicId: item.ceramic_id,
       productName: item.ceramic?.name,
@@ -41,6 +39,48 @@ function formatOrder(order: any) {
       priceAtSale: item.price_at_sale,
       measurementUnit: item.ceramic?.ceramic_type?.measurement_unit || "m²",
       saleId: item.sale_id,
+      returnedQuantity,
+    };
+  });
+
+  const total = items.reduce((sum: number, item: any) => sum + item.quantity * item.priceAtSale, 0);
+  const returnedTotal = items.reduce(
+    (sum: number, item: any) => sum + item.returnedQuantity * item.priceAtSale,
+    0,
+  );
+
+  return {
+    id: order.id,
+    clientId: order.client_id,
+    status: order.status,
+    paymentMethod: order.payment_method,
+    bankAccount: order.bank_account,
+    paymentStatus: order.payment_status,
+    paidBy: order.paid_by,
+    paidAt: order.paid_at,
+    notes: order.notes,
+    sellerId: order.seller_id,
+    sellerName: order.seller?.full_name ?? null,
+    reviewedBy: order.reviewed_by,
+    reviewedAt: order.reviewed_at,
+    rejectionReason: order.rejection_reason,
+    createdAt: order.created_at,
+    updatedAt: order.updated_at,
+    items,
+    total,
+    returnedTotal,
+    outstandingTotal: total - returnedTotal,
+    hasReturns: returnedTotal > 0,
+    returns: (order.returns || []).map((r: any) => ({
+      id: r.id,
+      notes: r.notes,
+      createdAt: r.created_at,
+      createdByName: r.created_by?.full_name ?? null,
+      items: (r.return_items || []).map((ri: any) => ({
+        id: ri.id,
+        orderItemId: ri.order_item_id,
+        quantity: ri.quantity,
+      })),
     })),
   };
 }

@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Sheet,
   SheetContent,
@@ -34,6 +36,8 @@ import {
   HandCoins,
   ChevronRight,
   ShieldAlert,
+  Undo2,
+  Wallet,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useOrdersRealtime } from "@/hooks/use-orders-realtime";
@@ -41,6 +45,7 @@ import { useOrderMutations } from "@/hooks/use-order-mutations";
 import { useUser } from "@/components/user-provider";
 
 type OrderStatus = "pending" | "approved" | "rejected";
+type FilterMode = OrderStatus | "unpaid_credit";
 
 interface OrderItem {
   id: string;
@@ -50,6 +55,15 @@ interface OrderItem {
   quantity: number;
   priceAtSale: number;
   measurementUnit: string;
+  returnedQuantity: number;
+}
+
+interface OrderReturn {
+  id: string;
+  notes: string | null;
+  createdAt: string;
+  createdByName: string | null;
+  items: { id: string; orderItemId: string; quantity: number }[];
 }
 
 interface Order {
@@ -58,18 +72,25 @@ interface Order {
   paymentMethod: "cash" | "bank_transfer" | "credit";
   bankAccount: string | null;
   paymentStatus: "paid" | "unpaid";
+  paidBy: string | null;
+  paidAt: string | null;
   notes: string | null;
   sellerName: string | null;
   rejectionReason: string | null;
   createdAt: string;
   items: OrderItem[];
   total: number;
+  returnedTotal: number;
+  outstandingTotal: number;
+  hasReturns: boolean;
+  returns?: OrderReturn[];
 }
 
-const STATUS_TABS: { label: string; value: OrderStatus }[] = [
+const STATUS_TABS: { label: string; value: FilterMode }[] = [
   { label: "Pending", value: "pending" },
   { label: "Approved", value: "approved" },
   { label: "Rejected", value: "rejected" },
+  { label: "Unpaid Credit", value: "unpaid_credit" },
 ];
 
 const PAYMENT_LABEL: Record<Order["paymentMethod"], string> = {
@@ -84,27 +105,103 @@ const PAYMENT_ICON: Record<Order["paymentMethod"], React.ElementType> = {
   credit: HandCoins,
 };
 
+function ordersUrl(filterMode: FilterMode) {
+  if (filterMode === "unpaid_credit") {
+    return "/api/orders?status=approved&paymentMethod=credit&paymentStatus=unpaid&limit=50";
+  }
+  return `/api/orders?status=${filterMode}&limit=50`;
+}
+
 export default function OrdersPage() {
   const userProfile = useUser();
   const isAdmin = userProfile?.role === "admin";
   useOrdersRealtime(isAdmin);
-  const [status, setStatus] = useState<OrderStatus>("pending");
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [filterMode, setFilterMode] = useState<FilterMode>("pending");
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [returnOpen, setReturnOpen] = useState(false);
+  const [returnNotes, setReturnNotes] = useState("");
+  const [returnQuantities, setReturnQuantities] = useState<Record<string, string>>({});
 
   const { data: response, isLoading } = useQuery({
-    queryKey: ["orders", status],
+    queryKey: ["orders", filterMode],
     queryFn: async () => {
-      const res = await fetch(`/api/orders?status=${status}&limit=50`);
+      const res = await fetch(ordersUrl(filterMode));
       if (!res.ok) throw new Error("Failed to fetch orders");
       return res.json();
     },
   });
 
-  const { approveMutation, rejectMutation } = useOrderMutations();
+  // Outstanding credit total is independent of the active tab, so admins can
+  // see it at a glance regardless of what they're currently reviewing.
+  const { data: outstandingResponse } = useQuery({
+    queryKey: ["orders-outstanding-credit"],
+    queryFn: async () => {
+      const res = await fetch(
+        "/api/orders?status=approved&paymentMethod=credit&paymentStatus=unpaid&limit=-1",
+      );
+      if (!res.ok) throw new Error("Failed to fetch outstanding credit");
+      return res.json();
+    },
+    enabled: isAdmin,
+  });
+
+  const {
+    approveMutation,
+    rejectMutation,
+    paymentStatusMutation,
+    returnMutation,
+  } = useOrderMutations();
 
   const orders: Order[] = response?.data || [];
+  const outstandingOrders: Order[] = outstandingResponse?.data || [];
+  const outstandingTotal = outstandingOrders.reduce((sum, o) => sum + o.outstandingTotal, 0);
+
+  const listOrder = orders.find((o) => o.id === selectedOrderId) ?? null;
+
+  const { data: detailOrder } = useQuery({
+    queryKey: ["order", selectedOrderId],
+    queryFn: async () => {
+      const res = await fetch(`/api/orders/${selectedOrderId}`);
+      if (!res.ok) throw new Error("Failed to fetch order");
+      return res.json();
+    },
+    enabled: !!selectedOrderId,
+  });
+
+  const selectedOrder: Order | null = detailOrder ?? listOrder;
+
+  const closeSheet = () => {
+    setSelectedOrderId(null);
+    setReturnOpen(false);
+    setReturnNotes("");
+    setReturnQuantities({});
+  };
+
+  const openReturnDialog = () => {
+    setReturnQuantities({});
+    setReturnNotes("");
+    setReturnOpen(true);
+  };
+
+  const submitReturn = () => {
+    if (!selectedOrder) return;
+    const items = Object.entries(returnQuantities)
+      .map(([orderItemId, qty]) => ({ orderItemId, quantity: Number(qty) }))
+      .filter((i) => i.quantity > 0);
+    if (items.length === 0) return;
+    returnMutation.mutate(
+      { orderId: selectedOrder.id, items, notes: returnNotes.trim() || undefined },
+      {
+        onSuccess: () => {
+          setReturnOpen(false);
+          setReturnNotes("");
+          setReturnQuantities({});
+        },
+      },
+    );
+  };
 
   if (userProfile && !isAdmin) {
     return (
@@ -139,14 +236,29 @@ export default function OrdersPage() {
         </p>
       </div>
 
-      <div className="flex gap-2">
+      <Card className="border-amber-500/30 bg-amber-500/5">
+        <CardContent className="flex items-center gap-4 py-4">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/10">
+            <Wallet className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-muted-foreground">Outstanding Credit</p>
+            <p className="text-xl font-bold tabular-nums">{outstandingTotal.toFixed(2)} ETB</p>
+          </div>
+          <p className="text-xs text-muted-foreground shrink-0">
+            {outstandingOrders.length} unpaid order{outstandingOrders.length !== 1 ? "s" : ""}
+          </p>
+        </CardContent>
+      </Card>
+
+      <div className="flex flex-wrap gap-2">
         {STATUS_TABS.map((tab) => (
           <Button
             key={tab.value}
-            variant={status === tab.value ? "default" : "outline"}
+            variant={filterMode === tab.value ? "default" : "outline"}
             size="sm"
             className="rounded-full"
-            onClick={() => setStatus(tab.value)}
+            onClick={() => setFilterMode(tab.value)}
           >
             {tab.label}
           </Button>
@@ -156,7 +268,7 @@ export default function OrdersPage() {
       <Card className="py-0 gap-0">
         <CardHeader className="py-3.5 px-5 border-b bg-muted/30 gap-0">
           <CardTitle className="text-base">
-            {STATUS_TABS.find((t) => t.value === status)?.label} Orders
+            {STATUS_TABS.find((t) => t.value === filterMode)?.label} Orders
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4">
@@ -170,7 +282,7 @@ export default function OrdersPage() {
             <EmptyState
               icon={ClipboardCheck}
               title="No orders here"
-              description={`There are no ${status} orders right now.`}
+              description="There are no orders matching this filter right now."
             />
           ) : (
             <div className="flex flex-col gap-3">
@@ -179,14 +291,14 @@ export default function OrdersPage() {
                 return (
                   <button
                     key={order.id}
-                    onClick={() => setSelectedOrder(order)}
+                    onClick={() => setSelectedOrderId(order.id)}
                     className="flex items-center gap-4 rounded-xl border p-4 text-left transition-colors hover:border-primary/40 hover:bg-muted/30"
                   >
                     <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                       <PaymentIcon className="h-5 w-5 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-semibold truncate">
                           {order.sellerName || "Unknown seller"}
                         </p>
@@ -198,6 +310,12 @@ export default function OrdersPage() {
                             Payment not yet received
                           </Badge>
                         )}
+                        {order.hasReturns && (
+                          <Badge variant="outline" className="text-[10px] gap-1">
+                            <Undo2 className="h-3 w-3" />
+                            Has returns
+                          </Badge>
+                        )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {PAYMENT_LABEL[order.paymentMethod]}
@@ -206,7 +324,9 @@ export default function OrdersPage() {
                       </p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="font-bold tabular-nums">{order.total.toFixed(2)} ETB</p>
+                      <p className="font-bold tabular-nums">
+                        {order.outstandingTotal.toFixed(2)} ETB
+                      </p>
                       {order.status === "rejected" && (
                         <p className="text-[10px] text-destructive mt-0.5">Rejected</p>
                       )}
@@ -220,7 +340,7 @@ export default function OrdersPage() {
         </CardContent>
       </Card>
 
-      <Sheet open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
+      <Sheet open={!!selectedOrderId} onOpenChange={(open) => !open && closeSheet()}>
         <SheetContent className="sm:max-w-md overflow-y-auto">
           {selectedOrder && (
             <>
@@ -258,33 +378,69 @@ export default function OrdersPage() {
                 )}
 
                 <div className="flex flex-col gap-2">
-                  {selectedOrder.items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between rounded-lg border p-3 text-sm"
-                    >
-                      <div className="min-w-0">
-                        <p className="font-medium truncate">{item.productName}</p>
-                        <p className="text-xs text-muted-foreground">{item.productCode}</p>
+                  {selectedOrder.items.map((item) => {
+                    const remaining = item.quantity - item.returnedQuantity;
+                    return (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between rounded-lg border p-3 text-sm"
+                      >
+                        <div className="min-w-0">
+                          <p className="font-medium truncate">{item.productName}</p>
+                          <p className="text-xs text-muted-foreground">{item.productCode}</p>
+                          {item.returnedQuantity > 0 && (
+                            <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">
+                              {item.returnedQuantity} {item.measurementUnit} returned
+                            </p>
+                          )}
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="font-semibold tabular-nums">
+                            {remaining} {item.measurementUnit}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {(remaining * item.priceAtSale).toFixed(2)} ETB
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <p className="font-semibold tabular-nums">
-                          {item.quantity} {item.measurementUnit}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {(item.quantity * item.priceAtSale).toFixed(2)} ETB
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 <div className="flex items-center justify-between border-t pt-3">
-                  <span className="text-sm font-medium text-muted-foreground">Total</span>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    {selectedOrder.hasReturns ? "Outstanding total" : "Total"}
+                  </span>
                   <span className="font-bold text-lg tabular-nums">
-                    {selectedOrder.total.toFixed(2)} ETB
+                    {selectedOrder.outstandingTotal.toFixed(2)} ETB
                   </span>
                 </div>
+
+                {selectedOrder.returns && selectedOrder.returns.length > 0 && (
+                  <div className="flex flex-col gap-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Return history
+                    </p>
+                    {selectedOrder.returns.map((r) => (
+                      <div key={r.id} className="rounded-lg bg-muted/40 p-3 text-sm">
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium">
+                            {r.items.reduce((s, i) => s + i.quantity, 0)} item(s) returned
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(r.createdAt).toLocaleString()}
+                          </p>
+                        </div>
+                        {r.createdByName && (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Recorded by {r.createdByName}
+                          </p>
+                        )}
+                        {r.notes && <p className="text-xs mt-1">{r.notes}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {selectedOrder.status === "rejected" && selectedOrder.rejectionReason && (
                   <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
@@ -322,12 +478,42 @@ export default function OrdersPage() {
                     className="flex-1"
                     onClick={() =>
                       approveMutation.mutate(selectedOrder.id, {
-                        onSuccess: () => setSelectedOrder(null),
+                        onSuccess: () => closeSheet(),
                       })
                     }
                     disabled={approveMutation.isPending || rejectMutation.isPending}
                   >
                     {approveMutation.isPending ? "Approving..." : "Approve"}
+                  </Button>
+                </SheetFooter>
+              )}
+
+              {selectedOrder.status === "approved" && (
+                <SheetFooter className="flex-row gap-2 flex-wrap">
+                  {selectedOrder.paymentMethod === "credit" && (
+                    <Button
+                      variant="outline"
+                      className="flex-1"
+                      disabled={paymentStatusMutation.isPending}
+                      onClick={() =>
+                        paymentStatusMutation.mutate({
+                          orderId: selectedOrder.id,
+                          paymentStatus: selectedOrder.paymentStatus === "paid" ? "unpaid" : "paid",
+                        })
+                      }
+                    >
+                      {selectedOrder.paymentStatus === "paid" ? "Mark as Unpaid" : "Mark as Paid"}
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    disabled={selectedOrder.items.every(
+                      (i) => i.quantity - i.returnedQuantity <= 0,
+                    )}
+                    onClick={openReturnDialog}
+                  >
+                    Record Return
                   </Button>
                 </SheetFooter>
               )}
@@ -369,7 +555,7 @@ export default function OrdersPage() {
                   { orderId: selectedOrder.id, reason: rejectReason.trim() },
                   {
                     onSuccess: () => {
-                      setSelectedOrder(null);
+                      closeSheet();
                       setRejectOpen(false);
                       setRejectReason("");
                     },
@@ -378,6 +564,72 @@ export default function OrdersPage() {
               }}
             >
               {rejectMutation.isPending ? "Rejecting..." : "Reject Order"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={returnOpen} onOpenChange={setReturnOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Record a return</DialogTitle>
+            <DialogDescription>
+              Enter the quantity returned for each item. Stock is restored immediately; sale
+              history is kept intact.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedOrder && (
+            <div className="flex flex-col gap-3">
+              {selectedOrder.items.map((item) => {
+                const remaining = item.quantity - item.returnedQuantity;
+                if (remaining <= 0) return null;
+                return (
+                  <div key={item.id} className="flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">{item.productName}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {remaining} {item.measurementUnit} returnable
+                      </p>
+                    </div>
+                    <Input
+                      type="number"
+                      min={0}
+                      max={remaining}
+                      step="any"
+                      className="w-24"
+                      placeholder="0"
+                      value={returnQuantities[item.id] ?? ""}
+                      onChange={(e) =>
+                        setReturnQuantities((prev) => ({ ...prev, [item.id]: e.target.value }))
+                      }
+                    />
+                  </div>
+                );
+              })}
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="return-notes">Notes (optional)</Label>
+                <Textarea
+                  id="return-notes"
+                  placeholder="e.g. defective, wrong item..."
+                  value={returnNotes}
+                  onChange={(e) => setReturnNotes(e.target.value)}
+                  rows={2}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReturnOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              disabled={
+                returnMutation.isPending ||
+                Object.values(returnQuantities).every((v) => !v || Number(v) <= 0)
+              }
+              onClick={submitReturn}
+            >
+              {returnMutation.isPending ? "Recording..." : "Record Return"}
             </Button>
           </DialogFooter>
         </DialogContent>
