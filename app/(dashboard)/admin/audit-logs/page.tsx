@@ -21,6 +21,8 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { EmptyState } from "@/components/empty-state";
+import { DataCardList } from "@/components/data-card-list";
+import { AuditDiffDialog, type CeramicLookup } from "@/components/audit-diff-dialog";
 import { AlertCircle, Calendar, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -47,27 +49,40 @@ function actionColor(action: string) {
   return ACTION_COLORS[suffix] ?? "bg-muted text-muted-foreground";
 }
 
-function DiffCell({ before, after }: { before: unknown; after: unknown }) {
+function DiffCell({
+  before,
+  after,
+  onOpen,
+}: {
+  before: unknown;
+  after: unknown;
+  onOpen: () => void;
+}) {
   if (!before && !after)
     return <span className="text-muted-foreground">—</span>;
   return (
-    <div className="flex flex-col gap-1 text-xs font-mono max-w-[360px]">
+    <button
+      type="button"
+      onClick={onOpen}
+      className="flex max-w-[360px] flex-col gap-1 rounded-md p-1 -m-1 text-left font-mono text-xs transition-colors hover:bg-muted/60"
+    >
       {before ? (
-        <div className="text-destructive/80 truncate">
+        <div className="truncate text-destructive/80">
           − {JSON.stringify(before)}
         </div>
       ) : null}
       {after ? (
-        <div className="text-emerald-600 dark:text-emerald-400 truncate">
+        <div className="truncate text-emerald-600 dark:text-emerald-400">
           + {JSON.stringify(after)}
         </div>
       ) : null}
-    </div>
+    </button>
   );
 }
 
 export default function AuditLogsPage() {
   const [page, setPage] = useState(1);
+  const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
   const limit = 50;
 
   const { data, isLoading, error } = useQuery<{
@@ -83,6 +98,24 @@ export default function AuditLogsPage() {
       return res.json();
     },
   });
+
+  const { data: ceramicsData } = useQuery<{
+    data: { _id: string; name: string; productId: string }[];
+  }>({
+    queryKey: ["ceramics", "list", "all"],
+    queryFn: async () => {
+      const res = await fetch("/api/ceramics?limit=-1");
+      if (!res.ok) throw new Error("Failed to fetch ceramics");
+      return res.json();
+    },
+  });
+
+  const ceramicLookup: CeramicLookup = new Map(
+    (ceramicsData?.data ?? []).map((c) => [
+      c._id,
+      { name: c.name, productId: c.productId },
+    ]),
+  );
 
   const logs = data?.data ?? [];
   const total = data?.total ?? 0;
@@ -101,7 +134,7 @@ export default function AuditLogsPage() {
   }
 
   return (
-    <div className="flex flex-col h-full gap-6 animate-in fade-in duration-500 overflow-hidden">
+    <div className="flex flex-col gap-6 md:h-full animate-in fade-in duration-500 md:overflow-hidden">
       <div className="shrink-0">
         <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
           Administration
@@ -114,9 +147,75 @@ export default function AuditLogsPage() {
         </p>
       </div>
 
-      <Card className="py-0 gap-0 flex-1 flex flex-col overflow-hidden">
-        <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
-          <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      <Card className="py-0 gap-0 md:flex-1 flex flex-col md:overflow-hidden">
+        <CardContent className="p-0 md:flex-1 flex flex-col md:overflow-hidden">
+          {/* Mobile card list */}
+          <div className="md:hidden p-4">
+            {isLoading ? (
+              <div className="flex flex-col gap-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-28 rounded-xl" />
+                ))}
+              </div>
+            ) : logs.length === 0 ? (
+              <EmptyState
+                icon={AlertCircle}
+                title="No audit events recorded yet"
+                description="System activity will show up here as it happens."
+              />
+            ) : (
+              <DataCardList
+                items={logs}
+                keyFor={(log) => log.id}
+                onRowClick={(log) =>
+                  (log.before || log.after) && setSelectedLog(log)
+                }
+                renderLeading={() => (
+                  <span className="flex size-8 items-center justify-center rounded-lg bg-muted">
+                    <Calendar className="size-3.5 text-muted-foreground" />
+                  </span>
+                )}
+                renderTitle={(log) => log.targetTable}
+                renderSubtitle={(log) => new Date(log.createdAt).toLocaleString()}
+                renderTrailing={(log) => (
+                  <Badge
+                    className={cn(
+                      "font-bold text-[10px] h-5 shrink-0",
+                      actionColor(log.action),
+                    )}
+                  >
+                    {log.action}
+                  </Badge>
+                )}
+                fields={[
+                  {
+                    label: "Actor",
+                    render: (log) => log.actorName ?? "System",
+                  },
+                  {
+                    label: "Target ID",
+                    render: (log) =>
+                      log.targetId ? log.targetId.slice(0, 8) : "—",
+                  },
+                  {
+                    label: "Diff",
+                    fullWidth: true,
+                    render: (log) =>
+                      log.before || log.after ? (
+                        <span className="font-mono text-[11px] text-primary underline underline-offset-2">
+                          Tap card to view full diff
+                        </span>
+                      ) : (
+                        "—"
+                      ),
+                  },
+                ]}
+              />
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:flex md:flex-1 md:flex-col md:overflow-auto">
             <Table>
               <TableHeader className="border-b">
                 <TableRow className="hover:bg-transparent">
@@ -209,7 +308,11 @@ export default function AuditLogsPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <DiffCell before={log.before} after={log.after} />
+                        <DiffCell
+                          before={log.before}
+                          after={log.after}
+                          onOpen={() => setSelectedLog(log)}
+                        />
                       </TableCell>
                     </TableRow>
                   ))
@@ -255,6 +358,17 @@ export default function AuditLogsPage() {
           </Pagination>
         </div>
       </Card>
+
+      <AuditDiffDialog
+        open={!!selectedLog}
+        onOpenChange={(open) => !open && setSelectedLog(null)}
+        before={selectedLog?.before}
+        after={selectedLog?.after}
+        title={selectedLog ? `${selectedLog.targetTable} · ${selectedLog.action}` : undefined}
+        targetTable={selectedLog?.targetTable}
+        targetId={selectedLog?.targetId}
+        ceramicLookup={ceramicLookup}
+      />
     </div>
   );
 }

@@ -59,6 +59,15 @@ import { useUser } from "@/components/user-provider";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DataCardList } from "@/components/data-card-list";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const supabase = createClient();
 
@@ -237,9 +246,14 @@ export default function CeramicTypesPage() {
     }
   };
 
+  const SORT_OPTIONS: { key: string; label: string }[] = [
+    { key: "size", label: "Size" },
+    { key: "price_per_unit", label: "Price" },
+  ];
+
   return (
-    <div className="h-full flex flex-col gap-6 animate-in fade-in duration-500 overflow-hidden">
-      <div className="flex items-center justify-between shrink-0 gap-4">
+    <div className="flex flex-col gap-6 md:h-full animate-in fade-in duration-500 md:overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between shrink-0 gap-4">
         <div>
           <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
             Catalog
@@ -259,23 +273,139 @@ export default function CeramicTypesPage() {
         )}
       </div>
 
-      <Card className="py-0 gap-0 flex-1 flex flex-col overflow-hidden">
+      <Card className="py-0 gap-0 md:flex-1 flex flex-col md:overflow-hidden">
         <CardHeader className="py-3.5 px-5 border-b shrink-0 bg-muted/30 gap-0">
-          <div className="relative max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search types by size..."
-              className="pl-9 h-9"
-              value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value);
-                setCurrentPage(1);
-              }}
-            />
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[140px] max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search types by size..."
+                className="pl-9 h-9"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+              />
+            </div>
+
+            <div className="flex md:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 gap-2 rounded-r-none"
+                  >
+                    Sort:{" "}
+                    {SORT_OPTIONS.find((o) => o.key === sortConfig.key)?.label ??
+                      "Recent"}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+                  <DropdownMenuRadioGroup
+                    value={sortConfig.key}
+                    onValueChange={handleSort}
+                  >
+                    {SORT_OPTIONS.map((opt) => (
+                      <DropdownMenuRadioItem key={opt.key} value={opt.key}>
+                        {opt.label}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 w-9 rounded-l-none border-l-0 p-0"
+                aria-label="Toggle sort direction"
+                onClick={() => handleSort(sortConfig.key)}
+              >
+                {getSortIcon(sortConfig.key)}
+              </Button>
+            </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
-          <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <CardContent className="p-0 md:flex-1 flex flex-col md:overflow-hidden">
+          {/* Mobile card list */}
+          <div className="md:hidden p-4">
+            {isLoading ? (
+              <div className="flex flex-col gap-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-32 rounded-xl" />
+                ))}
+              </div>
+            ) : types.length === 0 ? (
+              <EmptyState
+                icon={Layers}
+                title="No ceramic types found"
+                description={
+                  searchTerm
+                    ? "Try a different search term."
+                    : "Define your first brand + size + finish combo."
+                }
+                action={
+                  isAdmin && !searchTerm ? (
+                    <Button size="sm" onClick={handleAddClick}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Type
+                    </Button>
+                  ) : undefined
+                }
+              />
+            ) : (
+              <DataCardList
+                items={types}
+                keyFor={(t: any) => t.id}
+                renderTitle={(t: any) => t.size}
+                renderSubtitle={(t: any) => t.brand?.name || "Unknown"}
+                renderTrailing={(t: any) =>
+                  isAdmin ? (
+                    <div className="flex items-center gap-0.5">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => handleEditClick(t)}
+                      >
+                        <Pencil className="h-4 w-4 text-primary" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setConfirmDeleteId(t.id)}
+                      >
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  ) : undefined
+                }
+                fields={[
+                  {
+                    label: "Finish",
+                    render: (t: any) => t.finish?.name || "Normal",
+                  },
+                  {
+                    label: "Unit",
+                    render: (t: any) => t.measurement_unit || "m²",
+                  },
+                  {
+                    label: "Price",
+                    render: (t: any) =>
+                      t.price_per_unit != null
+                        ? Number(t.price_per_unit).toFixed(2)
+                        : "—",
+                  },
+                ]}
+              />
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:flex md:flex-1 md:flex-col md:overflow-auto">
             <Table>
               <TableHeader className="border-b">
                 <TableRow className="hover:bg-transparent">
@@ -489,9 +619,9 @@ export default function CeramicTypesPage() {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Brand</Label>
-                <div className="col-span-3">
+              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-4 sm:items-center sm:gap-4">
+                <Label className="sm:text-right">Brand</Label>
+                <div className="sm:col-span-3">
                   <Select value={brandId} onValueChange={setBrandId} required>
                     <SelectTrigger>
                       <SelectValue placeholder="Select Brand" />
@@ -504,22 +634,22 @@ export default function CeramicTypesPage() {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="size" className="text-right">
+              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-4 sm:items-center sm:gap-4">
+                <Label htmlFor="size" className="sm:text-right">
                   Size
                 </Label>
                 <Input
                   id="size"
                   value={size}
                   onChange={(e) => setSize(e.target.value)}
-                  className="col-span-3"
+                  className="sm:col-span-3"
                   placeholder="e.g. 60*60"
                   required
                 />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Finish</Label>
-                <div className="col-span-3">
+              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-4 sm:items-center sm:gap-4">
+                <Label className="sm:text-right">Finish</Label>
+                <div className="sm:col-span-3">
                   <Select value={finishId} onValueChange={setFinishId} required>
                     <SelectTrigger>
                       <SelectValue placeholder="Select Finish" />
@@ -532,9 +662,9 @@ export default function CeramicTypesPage() {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label className="text-right">Unit</Label>
-                <div className="col-span-3">
+              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-4 sm:items-center sm:gap-4">
+                <Label className="sm:text-right">Unit</Label>
+                <div className="sm:col-span-3">
                   <Select value={unit} onValueChange={setUnit}>
                     <SelectTrigger>
                       <SelectValue />
@@ -547,8 +677,8 @@ export default function CeramicTypesPage() {
                   </Select>
                 </div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="price" className="text-right">
+              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-4 sm:items-center sm:gap-4">
+                <Label htmlFor="price" className="sm:text-right">
                   Price
                 </Label>
                 <Input
@@ -557,7 +687,7 @@ export default function CeramicTypesPage() {
                   step="0.01"
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
-                  className="col-span-3"
+                  className="sm:col-span-3"
                   placeholder="e.g. 250.00"
                 />
               </div>

@@ -58,6 +58,7 @@ import { ProductImage } from "@/components/product-image";
 import { StockBadge } from "@/components/stock-badge";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
+import { DataCardList } from "@/components/data-card-list";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
@@ -233,9 +234,19 @@ export default function InventoryPage() {
     return <ArrowDown className="ml-2 h-3 w-3 text-primary" />;
   };
 
+  const SORT_OPTIONS: { key: string; label: string }[] = [
+    { key: "name", label: "Product" },
+    { key: "brand_name", label: "Brand" },
+    { key: "size", label: "Size" },
+    { key: "finish_name", label: "Finish" },
+    { key: "initial_stock", label: "Initial" },
+    { key: "sold_stock", label: "Sold" },
+    { key: "current_stock", label: "Stock" },
+  ];
+
   return (
-    <div className="flex flex-col h-full gap-6 animate-in fade-in duration-500 overflow-hidden">
-      <div className="flex items-center justify-between shrink-0 gap-4">
+    <div className="flex flex-col gap-6 md:h-full animate-in fade-in duration-500 md:overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between shrink-0 gap-4">
         <div>
           <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
             Catalog
@@ -333,10 +344,10 @@ export default function InventoryPage() {
         </div>
       )}
 
-      <Card className="py-0 gap-0 flex-1 flex flex-col overflow-hidden hover:shadow-xs shadow-xs">
+      <Card className="py-0 gap-0 md:flex-1 flex flex-col md:overflow-hidden hover:shadow-xs shadow-xs">
         <CardHeader className="bg-muted/30 border-b shrink-0 py-3.5 gap-0">
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 max-w-sm">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[140px] max-w-sm">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search products..."
@@ -492,6 +503,44 @@ export default function InventoryPage() {
               </Button>
             )}
 
+            <div className="flex md:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-9 gap-2 rounded-r-none"
+                  >
+                    Sort:{" "}
+                    {SORT_OPTIONS.find((o) => o.key === sortConfig.key)?.label ??
+                      "Recent"}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="w-48">
+                  <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+                  <DropdownMenuRadioGroup
+                    value={sortConfig.key}
+                    onValueChange={handleSort}
+                  >
+                    {SORT_OPTIONS.map((opt) => (
+                      <DropdownMenuRadioItem key={opt.key} value={opt.key}>
+                        {opt.label}
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 w-9 rounded-l-none border-l-0 p-0"
+                aria-label="Toggle sort direction"
+                onClick={() => handleSort(sortConfig.key)}
+              >
+                {getSortIcon(sortConfig.key)}
+              </Button>
+            </div>
+
             <div className="ml-auto flex items-center gap-2 rounded-full border bg-background px-3.5 py-1.5 shadow-xs">
               <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
                 Total Stock
@@ -503,8 +552,106 @@ export default function InventoryPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
-          <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <CardContent className="p-0 md:flex-1 flex flex-col md:overflow-hidden">
+          {/* Mobile card list */}
+          <div className="md:hidden p-4">
+            {isLoading ? (
+              <div className="flex flex-col gap-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-40 rounded-xl" />
+                ))}
+              </div>
+            ) : data.length === 0 ? (
+              <EmptyState
+                icon={PackageSearch}
+                title="No products found"
+                description={
+                  hasActiveFilters || searchTerm
+                    ? "Try adjusting your search or filters."
+                    : "Add your first product to get started."
+                }
+                action={
+                  isAdmin && !hasActiveFilters && !searchTerm ? (
+                    <Button size="sm" onClick={handleAdd}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Product
+                    </Button>
+                  ) : undefined
+                }
+              />
+            ) : (
+              <DataCardList
+                items={data}
+                keyFor={(item: any) => item._id}
+                onRowClick={handleRowClick}
+                renderLeading={(item: any) => (
+                  <ProductImage
+                    src={item.imageUrl}
+                    alt={item.name}
+                    className="h-10 w-10 rounded-lg ring-1 ring-border"
+                    iconSize="sm"
+                    sizes="40px"
+                  />
+                )}
+                renderTitle={(item: any) => item.name}
+                renderSubtitle={(item: any) => item.productId}
+                renderTrailing={(item: any) =>
+                  isAdmin ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={(e) => handleEdit(e, item)}>
+                          <Edit className="mr-2 h-4 w-4" /> Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={(e) => handleDelete(e, item._id)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : undefined
+                }
+                fields={[
+                  { label: "Brand", render: (item: any) => item.brand },
+                  { label: "Size", render: (item: any) => item.size },
+                  { label: "Finish", render: (item: any) => item.finish },
+                  {
+                    label: "Unit",
+                    render: (item: any) => item.measurementUnit || "m²",
+                  },
+                  {
+                    label: "Initial",
+                    render: (item: any) => item.initialStock.toFixed(2),
+                  },
+                  {
+                    label: "Sold",
+                    render: (item: any) => item.soldStock.toFixed(2),
+                  },
+                  {
+                    label: "Stock",
+                    render: (item: any) => item.currentStock.toFixed(2),
+                  },
+                  {
+                    label: "Status",
+                    render: (item: any) => (
+                      <StockBadge stock={item.currentStock} size="sm" />
+                    ),
+                  },
+                ]}
+              />
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:flex md:flex-1 md:flex-col md:overflow-auto">
             <Table>
               <TableHeader className="border-b">
                 <TableRow className="hover:bg-transparent">

@@ -99,12 +99,10 @@ export function CeramicForm({
   const watchedName = watch("name");
   const skipTypeResetRef = useRef(false);
 
-  // Product code is derived from the name for new products; existing codes
-  // are preserved as-is when editing.
+  // Product code is always derived from the name, including on edit.
   useEffect(() => {
-    if (isEditing) return;
     setValue("productId", slugifyProductCode(watchedName || ""));
-  }, [watchedName, isEditing, setValue]);
+  }, [watchedName, setValue]);
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -273,7 +271,7 @@ export function CeramicForm({
             </div>
 
             {/* Product Code + Name */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label htmlFor="productId" className="text-sm">Product Code</Label>
                 <Input

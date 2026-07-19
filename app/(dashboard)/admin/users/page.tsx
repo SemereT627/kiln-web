@@ -41,6 +41,7 @@ import { useUser } from "@/components/user-provider";
 import { EmptyState } from "@/components/empty-state";
 import { AddUserForm } from "@/components/add-user-form";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { DataCardList } from "@/components/data-card-list";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -133,6 +134,65 @@ export default function AdminUsersPage() {
       user.email?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
+  const renderRoleAction = (user: UserRow) => {
+    if (user.id === currentUser?.id) {
+      return (
+        <div className="text-[10px] font-bold text-primary uppercase tracking-tighter opacity-50">
+          Current Session
+        </div>
+      );
+    }
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={
+              changeRoleMutation.isPending &&
+              changeRoleMutation.variables?.userId === user.id
+            }
+            className="h-8 gap-1.5 text-xs"
+          >
+            {changeRoleMutation.isPending &&
+            changeRoleMutation.variables?.userId === user.id ? (
+              <span className="flex items-center gap-1.5">
+                <div className="size-2 rounded-full bg-primary animate-pulse" />
+                Updating
+              </span>
+            ) : (
+              <>
+                Manage Role
+                <ChevronDown className="size-3 opacity-50" />
+              </>
+            )}
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-44">
+          {ROLE_OPTIONS.filter((role) => role !== user.role).map((role) => (
+            <DropdownMenuItem
+              key={role}
+              className="text-xs font-medium capitalize"
+              onClick={() =>
+                changeRoleMutation.mutate({ userId: user.id, role })
+              }
+            >
+              <Shield className="size-3 mr-2" />
+              Set as {role}
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuItem
+            className="text-xs font-medium text-destructive focus:text-destructive"
+            onClick={() => setDeleteTarget(user)}
+          >
+            <Trash2 className="size-3 mr-2" />
+            Delete User
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  };
+
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-4 text-center animate-in fade-in duration-500">
@@ -153,8 +213,8 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="flex flex-col h-full gap-6 animate-in fade-in duration-500 overflow-hidden">
-      <div className="flex items-center justify-between shrink-0 gap-4">
+    <div className="flex flex-col gap-6 md:h-full animate-in fade-in duration-500 md:overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between shrink-0 gap-4">
         <div>
           <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
             Administration
@@ -180,10 +240,10 @@ export default function AdminUsersPage() {
         }
       />
 
-      <Card className="py-0 gap-0 flex-1 flex flex-col overflow-hidden">
+      <Card className="py-0 gap-0 md:flex-1 flex flex-col md:overflow-hidden">
         <CardHeader className="py-3.5 px-5 border-b shrink-0 bg-muted/30 gap-0">
-          <div className="flex items-center justify-between gap-4">
-            <div className="relative flex-1 max-w-sm">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="relative flex-1 min-w-[160px] max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name or email..."
@@ -197,8 +257,88 @@ export default function AdminUsersPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0 flex-1 overflow-hidden flex flex-col">
-          <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <CardContent className="p-0 md:flex-1 flex flex-col md:overflow-hidden">
+          {/* Mobile card list */}
+          <div className="md:hidden p-4">
+            {isLoading ? (
+              <div className="flex flex-col gap-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <Skeleton key={i} className="h-32 rounded-xl" />
+                ))}
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <EmptyState
+                icon={UserPlus}
+                title="No users found"
+                description={
+                  searchTerm
+                    ? "Try a different search term."
+                    : "Add your first user to get started."
+                }
+              />
+            ) : (
+              <DataCardList
+                items={filteredUsers}
+                keyFor={(user) => user.id}
+                renderLeading={(user) => (
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                    <span className="text-[11px] font-bold text-primary">
+                      {(user.full_name ?? user.email ?? "?")
+                        .split(" ")
+                        .map((w: string) => w[0])
+                        .join("")
+                        .slice(0, 2)
+                        .toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                renderTitle={(user) => (
+                  <span className="flex items-center gap-2">
+                    {user.full_name ?? "—"}
+                    {user.id === currentUser?.id && (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] h-4 px-1 font-bold bg-primary/10 text-primary border-primary/20"
+                      >
+                        YOU
+                      </Badge>
+                    )}
+                  </span>
+                )}
+                renderSubtitle={(user) => user.email ?? "—"}
+                renderTrailing={(user) => (
+                  <Badge
+                    className={cn(
+                      "capitalize font-bold text-[10px] h-5 shrink-0",
+                      user.role === "admin"
+                        ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                        : user.role === "seller"
+                          ? "bg-primary/10 text-primary"
+                          : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    <Shield className="size-2.5 mr-1" />
+                    {user.role}
+                  </Badge>
+                )}
+                fields={[
+                  {
+                    label: "Joined",
+                    render: (user) =>
+                      new Date(user.created_at).toLocaleDateString(),
+                  },
+                  {
+                    label: "Role",
+                    fullWidth: true,
+                    render: (user) => renderRoleAction(user),
+                  },
+                ]}
+              />
+            )}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden md:flex md:flex-1 md:flex-col md:overflow-auto">
             <Table>
               <TableHeader className="border-b">
                 <TableRow className="hover:bg-transparent">
@@ -322,66 +462,7 @@ export default function AdminUsersPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        {user.id === currentUser?.id ? (
-                          <div className="text-[10px] font-bold text-primary uppercase tracking-tighter opacity-50 pr-4">
-                            Current Session
-                          </div>
-                        ) : (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                disabled={
-                                  changeRoleMutation.isPending &&
-                                  changeRoleMutation.variables?.userId ===
-                                    user.id
-                                }
-                                className="h-8 gap-1.5 text-xs"
-                              >
-                                {changeRoleMutation.isPending &&
-                                changeRoleMutation.variables?.userId ===
-                                  user.id ? (
-                                  <span className="flex items-center gap-1.5">
-                                    <div className="size-2 rounded-full bg-primary animate-pulse" />
-                                    Updating
-                                  </span>
-                                ) : (
-                                  <>
-                                    Manage Role
-                                    <ChevronDown className="size-3 opacity-50" />
-                                  </>
-                                )}
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-44">
-                              {ROLE_OPTIONS.filter(
-                                (role) => role !== user.role,
-                              ).map((role) => (
-                                <DropdownMenuItem
-                                  key={role}
-                                  className="text-xs font-medium capitalize"
-                                  onClick={() =>
-                                    changeRoleMutation.mutate({
-                                      userId: user.id,
-                                      role,
-                                    })
-                                  }
-                                >
-                                  <Shield className="size-3 mr-2" />
-                                  Set as {role}
-                                </DropdownMenuItem>
-                              ))}
-                              <DropdownMenuItem
-                                className="text-xs font-medium text-destructive focus:text-destructive"
-                                onClick={() => setDeleteTarget(user)}
-                              >
-                                <Trash2 className="size-3 mr-2" />
-                                Delete User
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )}
+                        {renderRoleAction(user)}
                       </TableCell>
                     </TableRow>
                   ))

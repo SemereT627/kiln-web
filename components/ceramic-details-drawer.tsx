@@ -141,9 +141,10 @@ export function CeramicDetailsDrawer({
             <ProductImage
               src={ceramic.imageUrl}
               alt={ceramic.name}
-              className="w-full aspect-video rounded-2xl border shadow-inner"
+              className="w-full rounded-2xl border shadow-inner"
               iconSize="lg"
               sizes="(max-width: 640px) 100vw, 580px"
+              fit="contain"
             />
 
             {/* Key Stats */}

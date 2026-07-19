@@ -12,6 +12,9 @@ interface ProductImageProps {
   className?: string;
   iconSize?: "sm" | "md" | "lg";
   sizes?: string;
+  /** "cover" crops to fill the box (thumbnails); "contain" shows the whole
+   * uploaded image undistorted, letterboxed inside the box (detail previews). */
+  fit?: "cover" | "contain";
 }
 
 export function ProductImage({
@@ -20,6 +23,7 @@ export function ProductImage({
   className,
   iconSize = "md",
   sizes = "100px",
+  fit = "cover",
 }: ProductImageProps) {
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
@@ -30,6 +34,34 @@ export function ProductImage({
     return (
       <div className={cn("flex items-center justify-center bg-muted", className)}>
         <ImageIcon className={cn("opacity-20 text-muted-foreground", iconClass)} />
+      </div>
+    );
+  }
+
+  if (fit === "contain") {
+    // No fixed aspect box here — the container sizes to the image's own
+    // natural aspect ratio so it renders at full width with no letterboxing
+    // or cropping, whatever the uploaded photo's shape.
+    return (
+      <div
+        className={cn(
+          "relative overflow-hidden bg-muted",
+          !loaded && "min-h-40",
+          className,
+        )}
+      >
+        {!loaded && <Skeleton className="absolute inset-0 rounded-none" />}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={src}
+          alt={alt}
+          className={cn(
+            "block w-full h-auto transition-opacity duration-300",
+            loaded ? "opacity-100" : "opacity-0",
+          )}
+          onLoad={() => setLoaded(true)}
+          onError={() => setError(true)}
+        />
       </div>
     );
   }

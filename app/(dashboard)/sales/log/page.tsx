@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import {
   Table,
@@ -43,6 +44,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatEthiopian } from "@/lib/ethiopian-calendar";
 import { StatCard } from "@/components/stat-card";
 import { EmptyState } from "@/components/empty-state";
+import { DataCardList } from "@/components/data-card-list";
+import { cn } from "@/lib/utils";
 
 interface SaleRecord {
   id: string;
@@ -55,6 +58,50 @@ interface SaleRecord {
   size: string;
   finish: string;
   measurementUnit: string;
+  orderId: string | null;
+  orderSellerName: string | null;
+  orderPaymentMethod: string | null;
+}
+
+interface OrderGroup {
+  key: string;
+  orderId: string | null;
+  sellerName: string | null;
+  paymentMethod: string | null;
+  items: SaleRecord[];
+}
+
+function groupByOrder(items: SaleRecord[]): OrderGroup[] {
+  const groups: OrderGroup[] = [];
+  const byOrderId = new Map<string, OrderGroup>();
+
+  for (const sale of items) {
+    if (!sale.orderId) {
+      groups.push({
+        key: `direct-${sale.id}`,
+        orderId: null,
+        sellerName: null,
+        paymentMethod: null,
+        items: [sale],
+      });
+      continue;
+    }
+    let group = byOrderId.get(sale.orderId);
+    if (!group) {
+      group = {
+        key: sale.orderId,
+        orderId: sale.orderId,
+        sellerName: sale.orderSellerName,
+        paymentMethod: sale.orderPaymentMethod,
+        items: [],
+      };
+      byOrderId.set(sale.orderId, group);
+      groups.push(group);
+    }
+    group.items.push(sale);
+  }
+
+  return groups;
 }
 
 interface DateGroup {
@@ -104,7 +151,18 @@ function parseTSV(raw: string) {
 }
 
 export default function SalesLogPage() {
+  return (
+    <Suspense fallback={null}>
+      <SalesLogPageInner />
+    </Suspense>
+  );
+}
+
+function SalesLogPageInner() {
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const highlightOrderId = searchParams.get("order");
+  const autoOpenedRef = useRef(false);
   const [selectedDate, setSelectedDate] = useState<DateGroup | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
@@ -150,8 +208,9 @@ export default function SalesLogPage() {
   });
 
   // Group all sales by date
-  const dateGroups: DateGroup[] = [];
-  if (data) {
+  const dateGroups: DateGroup[] = useMemo(() => {
+    const groups: DateGroup[] = [];
+    if (!data) return groups;
     const map = new Map<string, DateGroup>();
     for (const sale of data) {
       const key = new Date(sale.createdAt).toLocaleDateString();
@@ -173,13 +232,25 @@ export default function SalesLogPage() {
       }
       group.items.push(sale);
     }
-    for (const g of map.values()) dateGroups.push(g);
-    dateGroups.sort(
+    for (const g of map.values()) groups.push(g);
+    groups.sort(
       (a, b) =>
         new Date(b.items[0].createdAt).getTime() -
         new Date(a.items[0].createdAt).getTime(),
     );
-  }
+    return groups;
+  }, [data]);
+
+  useEffect(() => {
+    if (autoOpenedRef.current || !highlightOrderId || dateGroups.length === 0) return;
+    const match = dateGroups.find((g) =>
+      g.items.some((item) => item.orderId === highlightOrderId),
+    );
+    if (match) {
+      autoOpenedRef.current = true;
+      setSelectedDate(match);
+    }
+  }, [dateGroups, highlightOrderId]);
 
   const totalTransactions = data?.length ?? 0;
   const totalTileSold =
@@ -194,9 +265,9 @@ export default function SalesLogPage() {
   const daysCount = dateGroups.length;
 
   return (
-    <div className="h-full flex flex-col gap-6 animate-in fade-in duration-500">
+    <div className="flex flex-col gap-6 md:h-full animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 shrink-0">
+      <div className="flex flex-wrap items-start justify-between gap-4 shrink-0">
         <div>
           <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
             History
@@ -258,7 +329,7 @@ export default function SalesLogPage() {
       </div>
 
       {/* Dates table */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="md:flex-1 md:min-h-0 md:overflow-hidden">
         {error ? (
           <div className="h-full flex items-center justify-center">
             <div className="text-center max-w-sm">
@@ -270,8 +341,55 @@ export default function SalesLogPage() {
             </div>
           </div>
         ) : (
-          <Card className="p-0 gap-0 h-full flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto overflow-x-hidden">
+          <Card className="p-0 gap-0 md:h-full flex flex-col md:overflow-hidden">
+            {/* Mobile card list */}
+            <div className="md:hidden p-4">
+              {isLoading ? (
+                <div className="flex flex-col gap-3">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <Skeleton key={i} className="h-24 rounded-xl" />
+                  ))}
+                </div>
+              ) : dateGroups.length > 0 ? (
+                <DataCardList
+                  items={dateGroups}
+                  keyFor={(group) => group.date}
+                  onRowClick={(group) => setSelectedDate(group)}
+                  renderLeading={() => (
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 ring-1 ring-blue-500/10">
+                      <Calendar className="h-4 w-4 text-blue-500" />
+                    </span>
+                  )}
+                  renderTitle={(group) => formatGreg(group.items[0].createdAt)}
+                  renderSubtitle={(group) =>
+                    formatEthiopian(new Date(group.items[0].createdAt))
+                  }
+                  fields={[
+                    { label: "Transactions", render: (group) => group.count },
+                    {
+                      label: "Total Sold",
+                      render: (group) => group.total.toFixed(2),
+                    },
+                    {
+                      label: "Revenue",
+                      render: (group) =>
+                        group.grossTotal !== null
+                          ? `${group.grossTotal.toFixed(2)} ETB`
+                          : "—",
+                    },
+                  ]}
+                />
+              ) : (
+                <EmptyState
+                  icon={ShoppingCart}
+                  title="No sales records found"
+                  description="Sales you record will show up here, grouped by day."
+                />
+              )}
+            </div>
+
+            {/* Desktop table */}
+            <div className="hidden md:flex md:flex-1 md:flex-col md:overflow-auto">
               <Table>
               <TableHeader className="border-b">
                 <TableRow className="hover:bg-transparent">
@@ -460,10 +578,7 @@ export default function SalesLogPage() {
           if (!open) setSelectedDate(null);
         }}
       >
-        <SheetContent
-          className="flex flex-col p-0 gap-0"
-          style={{ width: "700px", maxWidth: "700px" }}
-        >
+        <SheetContent className="flex flex-col gap-0 p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-175">
           <SheetHeader className="p-6 pb-4 shrink-0 border-b">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -491,86 +606,208 @@ export default function SalesLogPage() {
           </SheetHeader>
 
           <div className="flex-1 overflow-auto">
-            <div className="w-175">
-              <Table>
-                <TableHeader className="border-b">
-                  <TableRow className="hover:bg-transparent">
-                    <TableHead className="sticky top-0 z-10 bg-background pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
-                      Product
-                    </TableHead>
-                    <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
-                      Brand
-                    </TableHead>
-                    <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
-                      Size / Finish
-                    </TableHead>
-                    <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
-                      Qty
-                    </TableHead>
-                    <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
-                      Unit Price
-                    </TableHead>
-                    <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
-                      Total
-                    </TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {selectedDate?.items.map((sale) => {
-                    const lineTotal =
-                      sale.priceAtSale !== null
-                        ? sale.quantity * sale.priceAtSale
-                        : null;
-                    const finishDot = sale.finish?.toLowerCase().includes("polish")
-                      ? "bg-indigo-400"
-                      : sale.finish?.toLowerCase().includes("decor")
-                        ? "bg-violet-400"
-                        : "bg-zinc-400";
-                    return (
-                      <TableRow
-                        key={sale.id}
-                        className="border-b transition-colors hover:bg-muted/40 h-[52px]"
-                      >
-                        <TableCell className="pl-4">
-                          <p className="font-semibold text-sm">{sale.productName}</p>
-                          <p className="text-[10px] text-muted-foreground font-mono mt-0.5">
-                            {sale.productCode}
-                          </p>
-                        </TableCell>
-                        <TableCell className="text-sm text-foreground">
-                          {sale.brand}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1.5">
-                            <div className={`h-1.5 w-1.5 rounded-full shrink-0 ${finishDot}`} />
-                            <span className="text-sm text-muted-foreground">
-                              {sale.size} · {sale.finish}
-                            </span>
+            {(() => {
+              const orderGroups = groupByOrder(selectedDate?.items ?? []);
+              return (
+                <>
+                  {/* Mobile card list */}
+                  <div className="p-4 md:hidden flex flex-col gap-5">
+                    {orderGroups.map((group) => {
+                      const groupTotal = group.items.reduce(
+                        (s, sale) =>
+                          s + (sale.priceAtSale != null ? sale.quantity * sale.priceAtSale : 0),
+                        0,
+                      );
+                      const isHighlighted =
+                        !!highlightOrderId && group.orderId === highlightOrderId;
+                      return (
+                        <div
+                          key={group.key}
+                          className={cn(
+                            "flex flex-col gap-2 rounded-xl",
+                            isHighlighted && "ring-2 ring-primary/50 p-2 -m-2",
+                          )}
+                        >
+                          <div className="flex items-center justify-between px-0.5">
+                            <p className="text-xs font-semibold text-foreground">
+                              {group.orderId
+                                ? `Order #${group.orderId!.slice(0, 8)} · ${group.sellerName ?? "Unknown seller"}`
+                                : "Direct sale"}
+                            </p>
+                            <p className="text-xs font-bold tabular-nums text-muted-foreground">
+                              {groupTotal.toFixed(2)} ETB
+                            </p>
                           </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className="font-bold tabular-nums text-blue-600 dark:text-blue-400">
-                            {sale.quantity.toFixed(2)}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground/50 ml-0.5">
-                            {sale.measurementUnit || "m²"}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums text-muted-foreground text-sm">
-                          {sale.priceAtSale !== null &&
-                          sale.priceAtSale !== undefined
-                            ? sale.priceAtSale.toFixed(2)
-                            : "—"}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums font-semibold text-sm">
-                          {lineTotal !== null ? lineTotal.toFixed(2) : "—"}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                          <DataCardList
+                            items={group.items}
+                            keyFor={(sale) => sale.id}
+                            renderTitle={(sale) => sale.productName}
+                            renderSubtitle={(sale) => sale.productCode}
+                            renderTrailing={(sale) => (
+                              <span className="font-bold tabular-nums text-sm text-blue-600 dark:text-blue-400">
+                                {sale.quantity.toFixed(2)}{" "}
+                                <span className="text-[10px] font-normal text-muted-foreground/70">
+                                  {sale.measurementUnit || "m²"}
+                                </span>
+                              </span>
+                            )}
+                            fields={[
+                              { label: "Brand", render: (sale) => sale.brand },
+                              {
+                                label: "Size / Finish",
+                                render: (sale) => `${sale.size} · ${sale.finish}`,
+                              },
+                              {
+                                label: "Unit Price",
+                                render: (sale) =>
+                                  sale.priceAtSale != null
+                                    ? sale.priceAtSale.toFixed(2)
+                                    : "—",
+                              },
+                              {
+                                label: "Total",
+                                render: (sale) =>
+                                  sale.priceAtSale != null
+                                    ? (sale.quantity * sale.priceAtSale).toFixed(2)
+                                    : "—",
+                              },
+                            ]}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Desktop table */}
+                  <div className="hidden w-175 md:block">
+                    <Table>
+                      <TableHeader className="border-b">
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="sticky top-0 z-10 bg-background pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                            Product
+                          </TableHead>
+                          <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                            Brand
+                          </TableHead>
+                          <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                            Size / Finish
+                          </TableHead>
+                          <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                            Qty
+                          </TableHead>
+                          <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                            Unit Price
+                          </TableHead>
+                          <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                            Total
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {orderGroups.map((group) => {
+                          const groupTotal = group.items.reduce(
+                            (s, sale) =>
+                              s +
+                              (sale.priceAtSale != null ? sale.quantity * sale.priceAtSale : 0),
+                            0,
+                          );
+                          const isHighlighted =
+                            !!highlightOrderId && group.orderId === highlightOrderId;
+                          return (
+                            <Fragment key={group.key}>
+                              <TableRow className="hover:bg-transparent border-b">
+                                <TableCell
+                                  colSpan={6}
+                                  className={cn(
+                                    "py-2 pl-4",
+                                    isHighlighted ? "bg-primary/10" : "bg-muted/30",
+                                  )}
+                                >
+                                  <span
+                                    className={cn(
+                                      "text-xs font-semibold",
+                                      isHighlighted ? "text-primary" : "text-foreground",
+                                    )}
+                                  >
+                                    {group.orderId
+                                      ? `Order #${group.orderId!.slice(0, 8)} · ${group.sellerName ?? "Unknown seller"}`
+                                      : "Direct sale"}
+                                  </span>
+                                </TableCell>
+                              </TableRow>
+                              {group.items.map((sale) => {
+                                const lineTotal =
+                                  sale.priceAtSale !== null
+                                    ? sale.quantity * sale.priceAtSale
+                                    : null;
+                                const finishDot = sale.finish
+                                  ?.toLowerCase()
+                                  .includes("polish")
+                                  ? "bg-indigo-400"
+                                  : sale.finish?.toLowerCase().includes("decor")
+                                    ? "bg-violet-400"
+                                    : "bg-zinc-400";
+                                return (
+                                  <TableRow
+                                    key={sale.id}
+                                    className="border-b transition-colors hover:bg-muted/40 h-[52px]"
+                                  >
+                                    <TableCell className="pl-4">
+                                      <p className="font-semibold text-sm">{sale.productName}</p>
+                                      <p className="text-[10px] text-muted-foreground font-mono mt-0.5">
+                                        {sale.productCode}
+                                      </p>
+                                    </TableCell>
+                                    <TableCell className="text-sm text-foreground">
+                                      {sale.brand}
+                                    </TableCell>
+                                    <TableCell>
+                                      <div className="flex items-center gap-1.5">
+                                        <div
+                                          className={`h-1.5 w-1.5 rounded-full shrink-0 ${finishDot}`}
+                                        />
+                                        <span className="text-sm text-muted-foreground">
+                                          {sale.size} · {sale.finish}
+                                        </span>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                      <span className="font-bold tabular-nums text-blue-600 dark:text-blue-400">
+                                        {sale.quantity.toFixed(2)}
+                                      </span>
+                                      <span className="text-[10px] text-muted-foreground/50 ml-0.5">
+                                        {sale.measurementUnit || "m²"}
+                                      </span>
+                                    </TableCell>
+                                    <TableCell className="text-right tabular-nums text-muted-foreground text-sm">
+                                      {sale.priceAtSale !== null &&
+                                      sale.priceAtSale !== undefined
+                                        ? sale.priceAtSale.toFixed(2)
+                                        : "—"}
+                                    </TableCell>
+                                    <TableCell className="text-right tabular-nums font-semibold text-sm">
+                                      {lineTotal !== null ? lineTotal.toFixed(2) : "—"}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                              <TableRow className="hover:bg-transparent border-b">
+                                <TableCell colSpan={5} className="text-right text-xs text-muted-foreground pr-3">
+                                  Subtotal
+                                </TableCell>
+                                <TableCell className="text-right text-xs font-bold tabular-nums pr-4">
+                                  {groupTotal.toFixed(2)} ETB
+                                </TableCell>
+                              </TableRow>
+                            </Fragment>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </SheetContent>
       </Sheet>

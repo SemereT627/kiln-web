@@ -92,8 +92,8 @@ export default function BrandsPage() {
   };
 
   return (
-    <div className="h-full flex flex-col gap-6 animate-in fade-in duration-500 overflow-hidden">
-      <div className="flex items-center justify-between shrink-0 gap-4">
+    <div className="flex flex-col gap-6 md:h-full animate-in fade-in duration-500 md:overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between shrink-0 gap-4">
         <div>
           <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
             Catalog
@@ -113,7 +113,7 @@ export default function BrandsPage() {
         )}
       </div>
 
-      <Card className="py-0 gap-0 flex-1 flex flex-col overflow-hidden">
+      <Card className="py-0 gap-0 md:flex-1 flex flex-col md:overflow-hidden">
         <CardHeader className="py-3.5 px-5 border-b shrink-0 bg-muted/30 gap-0">
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -128,7 +128,7 @@ export default function BrandsPage() {
             />
           </div>
         </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto overflow-x-hidden p-4">
+        <CardContent className="md:flex-1 md:overflow-y-auto md:overflow-x-hidden p-4">
           {isLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {Array.from({ length: 8 }).map((_, i) => (
@@ -268,15 +268,15 @@ export default function BrandsPage() {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">
+              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-4 sm:items-center sm:gap-4">
+                <Label htmlFor="name" className="sm:text-right">
                   Name
                 </Label>
                 <Input
                   id="name"
                   value={newBrand}
                   onChange={(e) => setNewBrand(e.target.value)}
-                  className="col-span-3"
+                  className="sm:col-span-3"
                   placeholder="e.g. DUKEM"
                   autoFocus
                 />

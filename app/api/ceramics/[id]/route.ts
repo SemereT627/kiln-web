@@ -96,6 +96,8 @@ export async function PUT(
     if (body.initialStock !== undefined) {
       // "Initial stock" is the earliest stock entry for this ceramic — there's
       // no distinct Initial type anymore, the first Restock/Adjustment serves that role.
+      const initialStock = Math.max(0, Number(body.initialStock) || 0);
+
       const { data: existing } = await supabase
         .from("stock_entries")
         .select("id")
@@ -104,16 +106,26 @@ export async function PUT(
         .limit(1)
         .maybeSingle();
 
-      if (existing) {
+      if (initialStock > 0) {
+        if (existing) {
+          const { error: stockError } = await supabase
+            .from("stock_entries")
+            .update({ quantity: initialStock })
+            .eq("id", existing.id);
+          if (stockError) throw stockError;
+        } else {
+          const { error: stockError } = await supabase
+            .from("stock_entries")
+            .insert({ ceramic_id: id, quantity: initialStock, entry_type: "Restock" });
+          if (stockError) throw stockError;
+        }
+      } else if (existing) {
+        // stock_entries.quantity must stay positive — zeroing out initial
+        // stock means removing the ledger row rather than writing a 0.
         const { error: stockError } = await supabase
           .from("stock_entries")
-          .update({ quantity: body.initialStock })
+          .delete()
           .eq("id", existing.id);
-        if (stockError) throw stockError;
-      } else {
-        const { error: stockError } = await supabase
-          .from("stock_entries")
-          .insert({ ceramic_id: id, quantity: body.initialStock, entry_type: "Restock" });
         if (stockError) throw stockError;
       }
     }

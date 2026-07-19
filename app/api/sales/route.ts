@@ -21,6 +21,10 @@ export async function GET(request: Request) {
           product_code,
           name,
           ceramic_type:ceramic_types(size, measurement_unit, brand:brands(name), finish:finishes(name))
+        ),
+        order_items(
+          order_id,
+          order:orders(payment_method, seller:user_profiles!orders_seller_id_fkey(full_name))
         )
       `, { count: "exact" });
 
@@ -41,18 +45,24 @@ export async function GET(request: Request) {
 
     if (error) throw error;
 
-    const formattedData = (data || []).map((item: any) => ({
-      id: item.id,
-      quantity: item.quantity,
-      priceAtSale: item.price_at_sale ?? null,
-      createdAt: item.sold_at,
-      productName: item.ceramic?.name,
-      productCode: item.ceramic?.product_code,
-      brand: item.ceramic?.ceramic_type?.brand?.name,
-      size: item.ceramic?.ceramic_type?.size,
-      finish: item.ceramic?.ceramic_type?.finish?.name,
-      measurementUnit: item.ceramic?.ceramic_type?.measurement_unit || "m²",
-    }));
+    const formattedData = (data || []).map((item: any) => {
+      const orderItem = item.order_items?.[0] ?? null;
+      return {
+        id: item.id,
+        quantity: item.quantity,
+        priceAtSale: item.price_at_sale ?? null,
+        createdAt: item.sold_at,
+        productName: item.ceramic?.name,
+        productCode: item.ceramic?.product_code,
+        brand: item.ceramic?.ceramic_type?.brand?.name,
+        size: item.ceramic?.ceramic_type?.size,
+        finish: item.ceramic?.ceramic_type?.finish?.name,
+        measurementUnit: item.ceramic?.ceramic_type?.measurement_unit || "m²",
+        orderId: orderItem?.order_id ?? null,
+        orderSellerName: orderItem?.order?.seller?.full_name ?? null,
+        orderPaymentMethod: orderItem?.order?.payment_method ?? null,
+      };
+    });
 
     return NextResponse.json({
       data: formattedData,

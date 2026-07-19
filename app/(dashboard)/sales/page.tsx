@@ -162,7 +162,7 @@ export default function SalesPage() {
     unit === "m²" ? [1, 5, 10, 20, 50, 100] : [1, 2, 5, 10, 20, 50];
 
   return (
-    <div className="flex flex-col h-full gap-6 pr-1 animate-in fade-in duration-500 overflow-hidden">
+    <div className="flex flex-col gap-6 pr-1 md:h-full animate-in fade-in duration-500 md:overflow-hidden">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
         <div>
           <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
@@ -203,10 +203,10 @@ export default function SalesPage() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-6 pb-2">
+      <div className="md:flex-1 md:min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-6 pb-2">
         {/* Product Catalog */}
-        <div className="lg:col-span-8 flex flex-col min-h-0 gap-4">
-          <Card className="py-0 gap-0 flex-1 flex flex-col overflow-hidden hover:shadow-xs shadow-xs">
+        <div className="lg:col-span-8 flex flex-col md:min-h-0 gap-4">
+          <Card className="py-0 gap-0 md:flex-1 flex flex-col md:overflow-hidden hover:shadow-xs shadow-xs">
             <CardHeader className="py-3.5 px-5 shrink-0 border-b bg-muted/30 gap-0">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Product Catalog</CardTitle>
@@ -215,7 +215,7 @@ export default function SalesPage() {
                 </Badge>
               </div>
             </CardHeader>
-            <CardContent className="flex-1 overflow-auto p-4 flex flex-col">
+            <CardContent className="md:flex-1 md:overflow-auto p-4 flex flex-col">
               <div
                 className={cn(
                   "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 content-start transition-opacity duration-200",
@@ -388,7 +388,7 @@ export default function SalesPage() {
         </div>
 
         {/* Transaction Panel */}
-        <Card className="py-0 gap-0 lg:col-span-4 flex flex-col bg-card overflow-hidden h-full shadow-md border-primary/10">
+        <Card className="py-0 gap-0 lg:col-span-4 flex flex-col bg-card md:h-full md:overflow-hidden shadow-md border-primary/10">
           <CardHeader className="border-b bg-muted/30 shrink-0 py-3.5 gap-0">
             <CardTitle className="text-base flex items-center gap-2.5">
               <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10">
@@ -398,7 +398,7 @@ export default function SalesPage() {
             </CardTitle>
           </CardHeader>
 
-          <CardContent className="flex-1 p-6 flex flex-col min-h-0">
+          <CardContent className="md:flex-1 p-6 flex flex-col md:min-h-0">
             {selectedProduct ? (
               <div className="flex-1 flex flex-col min-h-0 space-y-6">
                 {/* Selected product info */}

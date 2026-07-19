@@ -223,8 +223,8 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 animate-in fade-in duration-500">
-      <div>
+    <div className="flex flex-col gap-6 md:h-full animate-in fade-in duration-500 md:overflow-hidden">
+      <div className="shrink-0">
         <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
           Order Management
         </p>
@@ -236,7 +236,7 @@ export default function OrdersPage() {
         </p>
       </div>
 
-      <Card className="border-amber-500/30 bg-amber-500/5">
+      <Card className="border-amber-500/30 bg-amber-500/5 shrink-0">
         <CardContent className="flex items-center gap-4 py-4">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/10">
             <Wallet className="h-5 w-5 text-amber-600 dark:text-amber-400" />
@@ -251,7 +251,7 @@ export default function OrdersPage() {
         </CardContent>
       </Card>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 shrink-0">
         {STATUS_TABS.map((tab) => (
           <Button
             key={tab.value}
@@ -265,13 +265,13 @@ export default function OrdersPage() {
         ))}
       </div>
 
-      <Card className="py-0 gap-0">
-        <CardHeader className="py-3.5 px-5 border-b bg-muted/30 gap-0">
+      <Card className="py-0 gap-0 md:flex-1 flex flex-col md:overflow-hidden">
+        <CardHeader className="py-3.5 px-5 border-b bg-muted/30 gap-0 shrink-0">
           <CardTitle className="text-base">
             {STATUS_TABS.find((t) => t.value === filterMode)?.label} Orders
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-4">
+        <CardContent className="p-4 md:flex-1 md:overflow-auto">
           {isLoading ? (
             <div className="flex flex-col gap-3">
               {Array.from({ length: 4 }).map((_, i) => (
