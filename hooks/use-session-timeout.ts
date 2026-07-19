@@ -38,7 +38,10 @@ export function useSessionTimeout(enabled: boolean) {
 
   const signOut = useCallback(async () => {
     const supabase = createClient();
-    await supabase.auth.signOut();
+    // Local scope only — a global sign-out would also revoke this user's
+    // refresh token on other sessions (e.g. the seller's mobile app),
+    // silently breaking order sync there until they manually re-login.
+    await supabase.auth.signOut({ scope: "local" });
     router.push("/login");
   }, [router]);
 
