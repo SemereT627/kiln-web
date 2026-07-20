@@ -183,7 +183,7 @@ export function NotificationsBell() {
                       <Button
                         size="sm"
                         className="flex-1 h-8"
-                        onClick={() => approveMutation.mutate(order.id)}
+                        onClick={() => approveMutation.mutate({ orderId: order.id })}
                         disabled={approveMutation.isPending}
                       >
                         <Check className="h-3.5 w-3.5 mr-1" />

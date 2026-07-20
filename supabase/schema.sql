@@ -234,12 +234,23 @@ CREATE TRIGGER trg_orders_touch_updated_at
 -- Atomically approve an order: insert one `sales` row per order item and
 -- flip the order to 'approved'. If any item oversells, trg_check_sale_stock
 -- raises and the whole approval rolls back (no partial approval).
-CREATE OR REPLACE FUNCTION public.approve_order(p_order_id UUID, p_admin_id UUID)
+--
+-- p_price_overrides lets the admin settle a negotiated price at approval
+-- time instead of the price snapshotted from ceramic_types when the seller
+-- submitted the order — [{ "orderItemId": "...", "priceAtSale": 123.45 }].
+-- Applied inside this same transaction so there's no window for a
+-- concurrent reject/approve to race the price update.
+CREATE OR REPLACE FUNCTION public.approve_order(
+  p_order_id UUID,
+  p_admin_id UUID,
+  p_price_overrides JSONB DEFAULT NULL
+)
 RETURNS TABLE(sale_id UUID) AS $$
 DECLARE
-  item       RECORD;
+  item        RECORD;
   new_sale_id UUID;
-  v_seller   UUID;
+  v_seller    UUID;
+  v_price     NUMERIC;
 BEGIN
   SELECT seller_id INTO v_seller
   FROM orders
@@ -251,8 +262,28 @@ BEGIN
   END IF;
 
   FOR item IN SELECT * FROM order_items WHERE order_id = p_order_id LOOP
+    v_price := item.price_at_sale;
+
+    IF p_price_overrides IS NOT NULL THEN
+      SELECT (o->>'priceAtSale')::NUMERIC INTO v_price
+      FROM jsonb_array_elements(p_price_overrides) o
+      WHERE (o->>'orderItemId')::UUID = item.id;
+
+      IF v_price IS NULL THEN
+        v_price := item.price_at_sale;
+      END IF;
+    END IF;
+
+    IF v_price <= 0 THEN
+      RAISE EXCEPTION 'Price at sale must be greater than 0 (order item %)', item.id;
+    END IF;
+
+    IF v_price <> item.price_at_sale THEN
+      UPDATE order_items SET price_at_sale = v_price WHERE id = item.id;
+    END IF;
+
     INSERT INTO sales (ceramic_id, quantity, price_at_sale, sold_by, sold_at)
-    VALUES (item.ceramic_id, item.quantity, item.price_at_sale, v_seller, now())
+    VALUES (item.ceramic_id, item.quantity, v_price, v_seller, now())
     RETURNING id INTO new_sale_id;
 
     UPDATE order_items SET sale_id = new_sale_id WHERE id = item.id;

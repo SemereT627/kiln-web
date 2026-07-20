@@ -14,6 +14,22 @@ export async function POST(
     }
 
     const { id } = await params;
+    const body = await request.json().catch(() => ({}));
+    const priceOverrides: { orderItemId: string; priceAtSale: number }[] = Array.isArray(
+      body?.priceOverrides,
+    )
+      ? body.priceOverrides
+      : [];
+
+    for (const override of priceOverrides) {
+      if (!override.orderItemId || !(Number(override.priceAtSale) > 0)) {
+        return NextResponse.json(
+          { error: "Price at sale must be greater than 0" },
+          { status: 400 },
+        );
+      }
+    }
+
     const supabase = await createServiceClient();
 
     const { data: before } = await supabase
@@ -25,11 +41,14 @@ export async function POST(
     const { data: sales, error } = await supabase.rpc("approve_order", {
       p_order_id: id,
       p_admin_id: admin.id,
+      p_price_overrides: priceOverrides.length > 0 ? priceOverrides : null,
     });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
+
+    const overrideMap = new Map(priceOverrides.map((o) => [o.orderItemId, o.priceAtSale]));
 
     await logAudit({
       actor: admin,
@@ -41,11 +60,18 @@ export async function POST(
             items: before.order_items.map((i: any) => ({
               ceramicId: i.ceramic_id,
               quantity: i.quantity,
+              priceAtSale: i.price_at_sale,
             })),
           }
         : null,
       after: {
         saleIds: (sales || []).map((s: any) => s.sale_id),
+        items: before
+          ? before.order_items.map((i: any) => ({
+              ceramicId: i.ceramic_id,
+              priceAtSale: overrideMap.get(i.id) ?? i.price_at_sale,
+            }))
+          : [],
       },
     });
 

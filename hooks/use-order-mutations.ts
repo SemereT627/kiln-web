@@ -16,8 +16,18 @@ export function useOrderMutations() {
   };
 
   const approveMutation = useMutation({
-    mutationFn: async (orderId: string) => {
-      const res = await fetch(`/api/orders/${orderId}/approve`, { method: "POST" });
+    mutationFn: async ({
+      orderId,
+      priceOverrides,
+    }: {
+      orderId: string;
+      priceOverrides?: { orderItemId: string; priceAtSale: number }[];
+    }) => {
+      const res = await fetch(`/api/orders/${orderId}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priceOverrides: priceOverrides ?? [] }),
+      });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed to approve order");
       return json;

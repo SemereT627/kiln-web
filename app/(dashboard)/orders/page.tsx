@@ -123,6 +123,7 @@ export default function OrdersPage() {
   const [returnOpen, setReturnOpen] = useState(false);
   const [returnNotes, setReturnNotes] = useState("");
   const [returnQuantities, setReturnQuantities] = useState<Record<string, string>>({});
+  const [priceEdits, setPriceEdits] = useState<Record<string, string>>({});
 
   const { data: response, isLoading } = useQuery({
     queryKey: ["orders", filterMode],
@@ -172,11 +173,42 @@ export default function OrdersPage() {
 
   const selectedOrder: Order | null = detailOrder ?? listOrder;
 
+  const openOrder = (orderId: string) => {
+    setPriceEdits({});
+    setSelectedOrderId(orderId);
+  };
+
   const closeSheet = () => {
     setSelectedOrderId(null);
     setReturnOpen(false);
     setReturnNotes("");
     setReturnQuantities({});
+    setPriceEdits({});
+  };
+
+  const priceForItem = (item: OrderItem) => {
+    const edit = priceEdits[item.id];
+    return edit !== undefined && edit !== "" ? Number(edit) : item.priceAtSale;
+  };
+
+  const pendingTotal = (selectedOrder?.items ?? []).reduce(
+    (sum, item) => sum + (item.quantity - item.returnedQuantity) * priceForItem(item),
+    0,
+  );
+
+  const approveSelectedOrder = () => {
+    if (!selectedOrder) return;
+    const priceOverrides = selectedOrder.items
+      .filter((item) => {
+        const edit = priceEdits[item.id];
+        return edit !== undefined && edit !== "" && Number(edit) !== item.priceAtSale;
+      })
+      .map((item) => ({ orderItemId: item.id, priceAtSale: Number(priceEdits[item.id]) }));
+
+    approveMutation.mutate(
+      { orderId: selectedOrder.id, priceOverrides },
+      { onSuccess: () => closeSheet() },
+    );
   };
 
   const openReturnDialog = () => {
@@ -291,7 +323,7 @@ export default function OrdersPage() {
                 return (
                   <button
                     key={order.id}
-                    onClick={() => setSelectedOrderId(order.id)}
+                    onClick={() => openOrder(order.id)}
                     className="flex items-center gap-4 rounded-xl border p-4 text-left transition-colors hover:border-primary/40 hover:bg-muted/30"
                   >
                     <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
@@ -380,6 +412,7 @@ export default function OrdersPage() {
                 <div className="flex flex-col gap-2">
                   {selectedOrder.items.map((item) => {
                     const remaining = item.quantity - item.returnedQuantity;
+                    const isPending = selectedOrder.status === "pending";
                     return (
                       <div
                         key={item.id}
@@ -398,9 +431,25 @@ export default function OrdersPage() {
                           <p className="font-semibold tabular-nums">
                             {remaining} {item.measurementUnit}
                           </p>
-                          <p className="text-xs text-muted-foreground">
-                            {(remaining * item.priceAtSale).toFixed(2)} ETB
-                          </p>
+                          {isPending ? (
+                            <div className="flex items-center justify-end gap-1 mt-1">
+                              <Input
+                                type="number"
+                                min={0}
+                                step="any"
+                                className="w-24 h-7 text-right text-xs tabular-nums"
+                                value={priceEdits[item.id] ?? String(item.priceAtSale)}
+                                onChange={(e) =>
+                                  setPriceEdits((prev) => ({ ...prev, [item.id]: e.target.value }))
+                                }
+                              />
+                              <span className="text-xs text-muted-foreground">ETB</span>
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground">
+                              {(remaining * item.priceAtSale).toFixed(2)} ETB
+                            </p>
+                          )}
                         </div>
                       </div>
                     );
@@ -412,7 +461,11 @@ export default function OrdersPage() {
                     {selectedOrder.hasReturns ? "Outstanding total" : "Total"}
                   </span>
                   <span className="font-bold text-lg tabular-nums">
-                    {selectedOrder.outstandingTotal.toFixed(2)} ETB
+                    {(selectedOrder.status === "pending"
+                      ? pendingTotal
+                      : selectedOrder.outstandingTotal
+                    ).toFixed(2)}{" "}
+                    ETB
                   </span>
                 </div>
 
@@ -476,11 +529,7 @@ export default function OrdersPage() {
                   </Button>
                   <Button
                     className="flex-1"
-                    onClick={() =>
-                      approveMutation.mutate(selectedOrder.id, {
-                        onSuccess: () => closeSheet(),
-                      })
-                    }
+                    onClick={approveSelectedOrder}
                     disabled={approveMutation.isPending || rejectMutation.isPending}
                   >
                     {approveMutation.isPending ? "Approving..." : "Approve"}
