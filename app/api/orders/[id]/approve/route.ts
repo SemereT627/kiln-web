@@ -15,18 +15,21 @@ export async function POST(
 
     const { id } = await params;
     const body = await request.json().catch(() => ({}));
-    const priceOverrides: { orderItemId: string; priceAtSale: number }[] = Array.isArray(
-      body?.priceOverrides,
-    )
-      ? body.priceOverrides
-      : [];
+    const overrides: { orderItemId: string; priceAtSale?: number; quantity?: number }[] =
+      Array.isArray(body?.overrides) ? body.overrides : [];
 
-    for (const override of priceOverrides) {
-      if (!override.orderItemId || !(Number(override.priceAtSale) > 0)) {
+    for (const override of overrides) {
+      if (!override.orderItemId) {
+        return NextResponse.json({ error: "Invalid override" }, { status: 400 });
+      }
+      if (override.priceAtSale !== undefined && !(Number(override.priceAtSale) > 0)) {
         return NextResponse.json(
           { error: "Price at sale must be greater than 0" },
           { status: 400 },
         );
+      }
+      if (override.quantity !== undefined && !(Number(override.quantity) > 0)) {
+        return NextResponse.json({ error: "Quantity must be greater than 0" }, { status: 400 });
       }
     }
 
@@ -41,14 +44,14 @@ export async function POST(
     const { data: sales, error } = await supabase.rpc("approve_order", {
       p_order_id: id,
       p_admin_id: admin.id,
-      p_price_overrides: priceOverrides.length > 0 ? priceOverrides : null,
+      p_overrides: overrides.length > 0 ? overrides : null,
     });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    const overrideMap = new Map(priceOverrides.map((o) => [o.orderItemId, o.priceAtSale]));
+    const overrideMap = new Map(overrides.map((o) => [o.orderItemId, o]));
 
     await logAudit({
       actor: admin,
@@ -67,10 +70,14 @@ export async function POST(
       after: {
         saleIds: (sales || []).map((s: any) => s.sale_id),
         items: before
-          ? before.order_items.map((i: any) => ({
-              ceramicId: i.ceramic_id,
-              priceAtSale: overrideMap.get(i.id) ?? i.price_at_sale,
-            }))
+          ? before.order_items.map((i: any) => {
+              const override = overrideMap.get(i.id);
+              return {
+                ceramicId: i.ceramic_id,
+                quantity: override?.quantity ?? i.quantity,
+                priceAtSale: override?.priceAtSale ?? i.price_at_sale,
+              };
+            })
           : [],
       },
     });

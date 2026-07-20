@@ -124,6 +124,7 @@ export default function OrdersPage() {
   const [returnNotes, setReturnNotes] = useState("");
   const [returnQuantities, setReturnQuantities] = useState<Record<string, string>>({});
   const [priceEdits, setPriceEdits] = useState<Record<string, string>>({});
+  const [quantityEdits, setQuantityEdits] = useState<Record<string, string>>({});
 
   const { data: response, isLoading } = useQuery({
     queryKey: ["orders", filterMode],
@@ -175,6 +176,7 @@ export default function OrdersPage() {
 
   const openOrder = (orderId: string) => {
     setPriceEdits({});
+    setQuantityEdits({});
     setSelectedOrderId(orderId);
   };
 
@@ -184,6 +186,7 @@ export default function OrdersPage() {
     setReturnNotes("");
     setReturnQuantities({});
     setPriceEdits({});
+    setQuantityEdits({});
   };
 
   const priceForItem = (item: OrderItem) => {
@@ -191,22 +194,42 @@ export default function OrdersPage() {
     return edit !== undefined && edit !== "" ? Number(edit) : item.priceAtSale;
   };
 
+  const quantityForItem = (item: OrderItem) => {
+    const edit = quantityEdits[item.id];
+    return edit !== undefined && edit !== "" ? Number(edit) : item.quantity;
+  };
+
   const pendingTotal = (selectedOrder?.items ?? []).reduce(
-    (sum, item) => sum + (item.quantity - item.returnedQuantity) * priceForItem(item),
+    (sum, item) =>
+      sum + (quantityForItem(item) - item.returnedQuantity) * priceForItem(item),
     0,
   );
 
   const approveSelectedOrder = () => {
     if (!selectedOrder) return;
-    const priceOverrides = selectedOrder.items
-      .filter((item) => {
-        const edit = priceEdits[item.id];
-        return edit !== undefined && edit !== "" && Number(edit) !== item.priceAtSale;
+    const overrides = selectedOrder.items
+      .map((item) => {
+        const priceEdit = priceEdits[item.id];
+        const quantityEdit = quantityEdits[item.id];
+        const override: { orderItemId: string; priceAtSale?: number; quantity?: number } = {
+          orderItemId: item.id,
+        };
+        if (priceEdit !== undefined && priceEdit !== "" && Number(priceEdit) !== item.priceAtSale) {
+          override.priceAtSale = Number(priceEdit);
+        }
+        if (
+          quantityEdit !== undefined &&
+          quantityEdit !== "" &&
+          Number(quantityEdit) !== item.quantity
+        ) {
+          override.quantity = Number(quantityEdit);
+        }
+        return override;
       })
-      .map((item) => ({ orderItemId: item.id, priceAtSale: Number(priceEdits[item.id]) }));
+      .filter((o) => o.priceAtSale !== undefined || o.quantity !== undefined);
 
     approveMutation.mutate(
-      { orderId: selectedOrder.id, priceOverrides },
+      { orderId: selectedOrder.id, overrides },
       { onSuccess: () => closeSheet() },
     );
   };
@@ -411,8 +434,10 @@ export default function OrdersPage() {
 
                 <div className="flex flex-col gap-2">
                   {selectedOrder.items.map((item) => {
-                    const remaining = item.quantity - item.returnedQuantity;
                     const isPending = selectedOrder.status === "pending";
+                    const remaining = isPending
+                      ? quantityForItem(item) - item.returnedQuantity
+                      : item.quantity - item.returnedQuantity;
                     return (
                       <div
                         key={item.id}
@@ -428,9 +453,27 @@ export default function OrdersPage() {
                           )}
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="font-semibold tabular-nums">
-                            {remaining} {item.measurementUnit}
-                          </p>
+                          {isPending ? (
+                            <div className="flex items-center justify-end gap-1">
+                              <Input
+                                type="number"
+                                min={0}
+                                step="any"
+                                className="w-20 h-7 text-right text-xs tabular-nums"
+                                value={quantityEdits[item.id] ?? String(item.quantity)}
+                                onChange={(e) =>
+                                  setQuantityEdits((prev) => ({ ...prev, [item.id]: e.target.value }))
+                                }
+                              />
+                              <span className="text-xs text-muted-foreground">
+                                {item.measurementUnit}
+                              </span>
+                            </div>
+                          ) : (
+                            <p className="font-semibold tabular-nums">
+                              {remaining} {item.measurementUnit}
+                            </p>
+                          )}
                           {isPending ? (
                             <div className="flex items-center justify-end gap-1 mt-1">
                               <Input
