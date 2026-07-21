@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { requireSeller } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 
@@ -87,7 +87,7 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get("limit") || "20");
     const mineOnly = searchParams.get("mine") === "1";
 
-    const supabase = await createClient();
+    const supabase = await createServiceClient();
     const { data: profile } = await supabase
       .from("user_profiles")
       .select("role")
