@@ -252,7 +252,7 @@ export default function CeramicTypesPage() {
   ];
 
   return (
-    <div className="flex flex-col gap-6 md:h-full animate-in fade-in duration-500 md:overflow-hidden">
+    <div className="flex flex-col gap-6 h-full overflow-hidden animate-in fade-in duration-500">
       <div className="flex flex-wrap items-center justify-between shrink-0 gap-4">
         <div>
           <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
@@ -273,7 +273,7 @@ export default function CeramicTypesPage() {
         )}
       </div>
 
-      <Card className="py-0 gap-0 md:flex-1 flex flex-col md:overflow-hidden">
+      <Card className="py-0 gap-0 flex-1 flex flex-col overflow-hidden">
         <CardHeader className="py-3.5 px-5 border-b shrink-0 bg-muted/30 gap-0">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-[140px] max-w-sm">
@@ -328,9 +328,9 @@ export default function CeramicTypesPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-0 md:flex-1 flex flex-col md:overflow-hidden">
+        <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
           {/* Mobile card list */}
-          <div className="md:hidden p-4">
+          <div className="md:hidden flex-1 min-h-0 overflow-y-auto p-4">
             {isLoading ? (
               <div className="flex flex-col gap-3">
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -543,7 +543,7 @@ export default function CeramicTypesPage() {
       </Card>
 
       {totalPages > 1 && (
-        <div className="flex items-center justify-between px-1 shrink-0">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-1 shrink-0">
           <p className="text-xs text-muted-foreground">
             Showing{" "}
             <span className="font-medium text-foreground">

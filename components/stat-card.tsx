@@ -34,19 +34,21 @@ export function StatCard({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl border bg-card p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md">
-      <div className="flex items-start justify-between mb-4">
-        <div className={cn("rounded-xl p-2.5", STAT_ICON_STYLES[variant])}>
+    <div className="rounded-2xl border bg-card p-3 shadow-xs transition-all duration-200 md:p-5 md:hover:-translate-y-0.5 md:hover:shadow-md">
+      <div className="flex items-start justify-between mb-2 md:mb-4">
+        <div className={cn("rounded-xl p-2 shrink-0 md:p-2.5", STAT_ICON_STYLES[variant])}>
           <Icon className="h-4 w-4" strokeWidth={2} />
         </div>
         {action}
       </div>
-      <p className="text-sm text-muted-foreground leading-tight">{title}</p>
-      <div className="text-2xl font-semibold tracking-tight leading-tight mt-1">
+      <div className="text-lg font-semibold tracking-tight leading-tight md:text-2xl">
         {value}
       </div>
+      <p className="text-[11px] text-muted-foreground leading-snug mt-0.5 md:text-sm md:mt-1">
+        {title}
+      </p>
       {subtext && (
-        <p className="text-xs text-muted-foreground/80 mt-1.5 leading-snug">
+        <p className="hidden text-xs text-muted-foreground/80 mt-1.5 leading-snug md:block">
           {subtext}
         </p>
       )}

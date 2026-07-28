@@ -7,7 +7,6 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LocaleSelector } from "@/components/locale-selector";
 import { NotificationsBell } from "@/components/notifications-bell";
-import { Suspense } from "react";
 
 export default function DashboardLayout({
   children,
@@ -17,9 +16,7 @@ export default function DashboardLayout({
   return (
     <SidebarProvider>
       <div className="flex h-svh w-full overflow-hidden">
-        <Suspense fallback={null}>
-          <AppSidebar />
-        </Suspense>
+        <AppSidebar />
         <SidebarInset className="flex flex-col flex-1 overflow-hidden">
           <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background/80 backdrop-blur-md z-10">
             <SidebarTrigger className="-ml-1 md:hidden" />

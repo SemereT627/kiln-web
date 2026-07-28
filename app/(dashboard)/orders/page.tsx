@@ -278,7 +278,7 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 md:h-full animate-in fade-in duration-500 md:overflow-hidden">
+    <div className="flex flex-col gap-6 h-full animate-in fade-in duration-500 overflow-hidden">
       <div className="shrink-0">
         <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
           Order Management
@@ -320,13 +320,13 @@ export default function OrdersPage() {
         ))}
       </div>
 
-      <Card className="py-0 gap-0 md:flex-1 flex flex-col md:overflow-hidden">
+      <Card className="py-0 gap-0 flex-1 flex flex-col overflow-hidden">
         <CardHeader className="py-3.5 px-5 border-b bg-muted/30 gap-0 shrink-0">
           <CardTitle className="text-base">
             {STATUS_TABS.find((t) => t.value === filterMode)?.label} Orders
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-4 md:flex-1 md:overflow-auto">
+        <CardContent className="p-4 flex-1 overflow-auto">
           {isLoading ? (
             <div className="flex flex-col gap-3">
               {Array.from({ length: 4 }).map((_, i) => (

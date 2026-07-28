@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   PackageSearch,
@@ -129,7 +129,6 @@ function NavGroup({
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const user = useUser();
   const isLoading = useUserLoading();
   const isAdmin = user?.role === "admin";
@@ -149,14 +148,7 @@ export function AppSidebar() {
 
   const localelessPath = pathname.replace(/^\/[a-z]{2}(?=\/|$)/, "") || "/";
 
-  const isActive = (href: string) => {
-    if (href.includes("?")) {
-      const [path, query] = href.split("?");
-      const tab = query.split("=")[1];
-      return localelessPath === path && searchParams.get("tab") === tab;
-    }
-    return localelessPath === href;
-  };
+  const isActive = (href: string) => localelessPath === href;
 
   return (
     <Sidebar

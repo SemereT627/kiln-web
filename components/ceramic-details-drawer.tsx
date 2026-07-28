@@ -74,9 +74,7 @@ export function CeramicDetailsDrawer({
   const { data: soldHistory, isLoading: loadingSold } = useQuery({
     queryKey: ["sales", "ceramic", ceramic?._id],
     queryFn: async () => {
-      const res = await fetch(
-        `/api/sales?ceramicId=${ceramic._id}&limit=-1`
-      );
+      const res = await fetch(`/api/sales?ceramicId=${ceramic._id}&limit=-1`);
       if (!res.ok) throw new Error("Failed to fetch sold history");
       const json = await res.json();
       return (json.data || []) as Array<{
@@ -121,7 +119,7 @@ export function CeramicDetailsDrawer({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="w-full sm:max-w-xl overflow-y-auto p-4 gap-0">
+        <SheetContent className="flex flex-col gap-0 p-4 data-[side=right]:w-[calc(100%-2rem)] data-[side=right]:sm:w-full data-[side=right]:sm:max-w-175">
           <SheetHeader className="p-0 space-y-4 pr-6">
             <div className="flex items-center justify-between">
               <Badge variant="outline" className="font-mono text-[10px]">
@@ -129,7 +127,9 @@ export function CeramicDetailsDrawer({
               </Badge>
               <StockBadge stock={ceramic.currentStock} />
             </div>
-            <SheetTitle className="text-2xl font-bold">{ceramic.name}</SheetTitle>
+            <SheetTitle className="text-2xl font-bold">
+              {ceramic.name}
+            </SheetTitle>
             <SheetDescription>
               Detailed overview of product specifications and current inventory
               status.
@@ -138,14 +138,16 @@ export function CeramicDetailsDrawer({
 
           <div className="mt-8 space-y-8 pb-8">
             {/* Product Image */}
-            <ProductImage
-              src={ceramic.imageUrl}
-              alt={ceramic.name}
-              className="w-full rounded-2xl border shadow-inner"
-              iconSize="lg"
-              sizes="(max-width: 640px) 100vw, 580px"
-              fit="contain"
-            />
+            {ceramic.imageUrl && (
+              <ProductImage
+                src={ceramic.imageUrl}
+                alt={ceramic.name}
+                className="w-full rounded-2xl border border-border/60"
+                iconSize="lg"
+                sizes="(max-width: 640px) 100vw, 580px"
+                fit="contain"
+              />
+            )}
 
             {/* Key Stats */}
             <div className="grid grid-cols-2 gap-4">
@@ -305,7 +307,10 @@ export function CeramicDetailsDrawer({
                             {entry.quantity.toFixed(2)} {unit}
                           </span>
                           {entry.reason && (
-                            <Badge variant="outline" className="text-[10px] h-5 px-1.5 capitalize">
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] h-5 px-1.5 capitalize"
+                            >
                               {entry.reason}
                             </Badge>
                           )}
@@ -361,7 +366,7 @@ export function CeramicDetailsDrawer({
 
       {/* ── Sold History Sheet ── */}
       <Sheet open={soldHistoryOpen} onOpenChange={setSoldHistoryOpen}>
-        <SheetContent className="w-full sm:max-w-xl flex flex-col p-0 gap-0">
+        <SheetContent className="flex flex-col gap-0 p-0 data-[side=right]:w-[calc(100%-2.5rem)] data-[side=right]:sm:w-full data-[side=right]:sm:max-w-175">
           <SheetHeader className="p-6 pb-4 border-b shrink-0">
             <SheetTitle className="flex items-center gap-2">
               <ShoppingCart className="h-4 w-4 text-primary" />
@@ -395,9 +400,15 @@ export function CeramicDetailsDrawer({
                           <Skeleton className="h-2.5 w-16" />
                         </div>
                       </TableCell>
-                      <TableCell><Skeleton className="h-3.5 w-16 ml-auto" /></TableCell>
-                      <TableCell><Skeleton className="h-3.5 w-16 ml-auto" /></TableCell>
-                      <TableCell><Skeleton className="h-3.5 w-16 ml-auto" /></TableCell>
+                      <TableCell>
+                        <Skeleton className="h-3.5 w-16 ml-auto" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-3.5 w-16 ml-auto" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-3.5 w-16 ml-auto" />
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -483,11 +494,12 @@ export function CeramicDetailsDrawer({
           product={ceramic}
           onSuccess={() => {
             queryClient.invalidateQueries({ queryKey: ["ceramics"] });
-            queryClient.invalidateQueries({ queryKey: ["restock", ceramic._id] });
+            queryClient.invalidateQueries({
+              queryKey: ["restock", ceramic._id],
+            });
           }}
         />
       )}
     </>
   );
 }
-

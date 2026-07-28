@@ -265,7 +265,7 @@ function SalesLogPageInner() {
   const daysCount = dateGroups.length;
 
   return (
-    <div className="flex flex-col gap-6 md:h-full animate-in fade-in duration-500">
+    <div className="flex flex-col gap-4 h-full overflow-hidden animate-in fade-in duration-500 md:gap-6">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4 shrink-0">
         <div>
@@ -295,7 +295,7 @@ function SalesLogPageInner() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 md:grid-cols-3 shrink-0">
+      <div className="grid grid-cols-3 gap-2 shrink-0 md:gap-4">
         <StatCard
           title="Total Transactions"
           value={totalTransactions}
@@ -329,7 +329,7 @@ function SalesLogPageInner() {
       </div>
 
       {/* Dates table */}
-      <div className="md:flex-1 md:min-h-0 md:overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden">
         {error ? (
           <div className="h-full flex items-center justify-center">
             <div className="text-center max-w-sm">
@@ -341,9 +341,9 @@ function SalesLogPageInner() {
             </div>
           </div>
         ) : (
-          <Card className="p-0 gap-0 md:h-full flex flex-col md:overflow-hidden">
+          <Card className="p-0 gap-0 h-full flex flex-col overflow-hidden">
             {/* Mobile card list */}
-            <div className="md:hidden p-4">
+            <div className="md:hidden flex-1 min-h-0 overflow-y-auto p-4">
               {isLoading ? (
                 <div className="flex flex-col gap-3">
                   {Array.from({ length: 6 }).map((_, i) => (
@@ -578,7 +578,7 @@ function SalesLogPageInner() {
           if (!open) setSelectedDate(null);
         }}
       >
-        <SheetContent className="flex flex-col gap-0 p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-175">
+        <SheetContent className="flex flex-col gap-0 p-0 data-[side=right]:w-[calc(100%-2rem)] data-[side=right]:sm:w-full data-[side=right]:sm:max-w-175">
           <SheetHeader className="p-6 pb-4 shrink-0 border-b">
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />

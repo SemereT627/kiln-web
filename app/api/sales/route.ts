@@ -76,6 +76,22 @@ export async function GET(request: Request) {
   }
 }
 
+async function resolvePrice(
+  supabase: Awaited<ReturnType<typeof createServiceClient>>,
+  ceramicId: string,
+  priceAtSale: unknown,
+) {
+  if (priceAtSale !== undefined && priceAtSale !== null) {
+    return parseFloat(priceAtSale as string);
+  }
+  const { data: ceramic } = await supabase
+    .from("vw_ceramics_inventory")
+    .select("price_per_unit")
+    .eq("id", ceramicId)
+    .single();
+  return ceramic?.price_per_unit ?? 0;
+}
+
 export async function POST(request: Request) {
   try {
     const seller = await requireSeller(request);
@@ -85,25 +101,80 @@ export async function POST(request: Request) {
 
     const supabase = await createServiceClient();
     const body = await request.json();
+
+    // Batch checkout: { items: [{ ceramicId, quantity, priceAtSale? }, ...] }
+    if (Array.isArray(body.items)) {
+      const items = body.items as {
+        ceramicId: string;
+        quantity: number;
+        priceAtSale?: number | null;
+      }[];
+
+      if (items.length === 0) {
+        return NextResponse.json({ error: "No items provided" }, { status: 400 });
+      }
+
+      const results: {
+        ceramicId: string;
+        success: boolean;
+        data?: Record<string, unknown>;
+        error?: string;
+      }[] = [];
+
+      for (const item of items) {
+        if (!item.ceramicId || !item.quantity) {
+          results.push({
+            ceramicId: item.ceramicId,
+            success: false,
+            error: "Missing required fields",
+          });
+          continue;
+        }
+
+        const priceAtSale = await resolvePrice(supabase, item.ceramicId, item.priceAtSale);
+
+        const { data, error } = await supabase
+          .from("sales")
+          .insert([
+            {
+              ceramic_id: item.ceramicId,
+              quantity: item.quantity,
+              price_at_sale: priceAtSale,
+              sold_by: seller.id,
+              sold_at: new Date().toISOString(),
+            },
+          ])
+          .select()
+          .single();
+
+        if (error) {
+          results.push({ ceramicId: item.ceramicId, success: false, error: error.message });
+        } else {
+          results.push({ ceramicId: item.ceramicId, success: true, data });
+          await logAudit({
+            actor: seller,
+            action: "sale.create",
+            targetTable: "sales",
+            targetId: data.id,
+            after: {
+              ceramicId: item.ceramicId,
+              quantity: item.quantity,
+              priceAtSale,
+            },
+          });
+        }
+      }
+
+      return NextResponse.json({ results }, { status: 201 });
+    }
+
     const { ceramicId, quantity } = body;
 
     if (!ceramicId || !quantity) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    let priceAtSale =
-      body.priceAtSale !== undefined && body.priceAtSale !== null
-        ? parseFloat(body.priceAtSale)
-        : null;
-
-    if (priceAtSale === null) {
-      const { data: ceramic } = await supabase
-        .from("vw_ceramics_inventory")
-        .select("price_per_unit")
-        .eq("id", ceramicId)
-        .single();
-      priceAtSale = ceramic?.price_per_unit ?? 0;
-    }
+    const priceAtSale = await resolvePrice(supabase, ceramicId, body.priceAtSale);
 
     const insertPayload = {
       ceramic_id: ceramicId,
