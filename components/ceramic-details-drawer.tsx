@@ -119,7 +119,7 @@ export function CeramicDetailsDrawer({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="flex flex-col gap-0 p-4 data-[side=right]:w-[calc(100%-2rem)] data-[side=right]:sm:w-full data-[side=right]:sm:max-w-175">
+        <SheetContent className="flex flex-col gap-0 p-4 overflow-y-auto data-[side=right]:w-[calc(100%-2rem)] data-[side=right]:sm:w-full data-[side=right]:sm:max-w-175">
           <SheetHeader className="p-0 space-y-4 pr-6">
             <div className="flex items-center justify-between">
               <Badge variant="outline" className="font-mono text-[10px]">
