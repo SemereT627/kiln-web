@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/password-input";
 import { Label } from "@/components/ui/label";
 import { Loader2, UserPlus, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -140,10 +141,9 @@ export function AddUserForm({ open, onOpenChange, onSuccess }: AddUserFormProps)
               <Label htmlFor="add-user-password" className="font-semibold">
                 Password <span className="text-destructive">*</span>
               </Label>
-              <Input
+              <PasswordInput
                 id="add-user-password"
                 name="new-user-password"
-                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Minimum 6 characters"

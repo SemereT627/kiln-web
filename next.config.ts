@@ -14,7 +14,7 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       // Strip /en prefix so existing routes continue to work as-is
-      { source: "/en", destination: "/" },
+      { source: "/en", destination: "/dashboard" },
       { source: "/en/:path*", destination: "/:path*" },
     ];
   },

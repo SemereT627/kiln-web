@@ -32,36 +32,42 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Locale redirect: prefix all non-API, non-asset, non-locale paths with /en
-  const hasLocale = pathname.startsWith("/en");
   const isApi = pathname.startsWith("/api");
-  const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/signup");
-
-  if (!hasLocale && !isApi) {
-    const localeUrl = request.nextUrl.clone();
-    localeUrl.pathname = `/en${pathname === "/" ? "" : pathname}`;
-    return NextResponse.redirect(localeUrl);
-  }
+  // Landing page + auth screens are pre-auth, locale-agnostic surfaces — kept
+  // outside the /en locale scheme entirely (never prefixed, never gated).
+  const isPublicRoute =
+    pathname === "/" || pathname.startsWith("/login") || pathname.startsWith("/signup");
+  const hasLocale = pathname.startsWith("/en");
 
   // API routes enforce their own auth (requireAdmin / RLS) — never redirect them.
   if (isApi) {
     return supabaseResponse;
   }
 
-  // Strip /en prefix for auth checks below
-  const strippedPath = hasLocale ? pathname.slice(3) || "/" : pathname;
-  const isAuthPath = strippedPath.startsWith("/login") || strippedPath.startsWith("/signup");
-
-  if (!user && !isAuthPath) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/en/login";
-    return NextResponse.redirect(loginUrl);
+  if (isPublicRoute) {
+    // Already signed in — these routes have nothing left to offer.
+    if (user) {
+      const dashboardUrl = request.nextUrl.clone();
+      dashboardUrl.pathname = "/en/dashboard";
+      return NextResponse.redirect(dashboardUrl);
+    }
+    return supabaseResponse;
   }
 
-  if (user && isAuthPath) {
-    const homeUrl = request.nextUrl.clone();
-    homeUrl.pathname = "/en";
-    return NextResponse.redirect(homeUrl);
+  // Locale redirect: prefix all other non-API, non-public paths with /en
+  if (!hasLocale) {
+    const localeUrl = request.nextUrl.clone();
+    localeUrl.pathname = `/en${pathname}`;
+    return NextResponse.redirect(localeUrl);
+  }
+
+  // Strip /en prefix for the auth check below
+  const strippedPath = pathname.slice(3) || "/";
+
+  if (!user) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    return NextResponse.redirect(loginUrl);
   }
 
   // Protect /admin routes
@@ -73,9 +79,9 @@ export async function middleware(request: NextRequest) {
       .single();
 
     if (profile?.role !== "admin") {
-      const homeUrl = request.nextUrl.clone();
-      homeUrl.pathname = "/";
-      return NextResponse.redirect(homeUrl);
+      const dashboardUrl = request.nextUrl.clone();
+      dashboardUrl.pathname = "/en/dashboard";
+      return NextResponse.redirect(dashboardUrl);
     }
   }
 

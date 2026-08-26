@@ -176,7 +176,7 @@ export default function SalesPage() {
           </p>
         </div>
         <Button asChild variant="outline" size="sm" className="mt-2">
-          <a href="/">Return to Dashboard</a>
+          <a href="/dashboard">Return to Dashboard</a>
         </Button>
       </div>
     );

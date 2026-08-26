@@ -31,7 +31,6 @@ import {
 } from "recharts";
 import { useUser } from "@/components/user-provider";
 import { BentoStatGrid } from "@/components/dashboard/bento-stat-grid";
-import { AmbientCanvas } from "@/components/dashboard/ambient-canvas";
 import { LiveClock } from "@/components/dashboard/live-clock";
 
 function SectionHeader({
@@ -239,7 +238,6 @@ export default function Dashboard() {
   return (
     <div className="flex h-full flex-col animate-in fade-in duration-500">
       <div className="relative shrink-0 -mx-6 -mt-6 px-6 py-5 md:-mx-8 md:-mt-8 overflow-hidden border-b bg-background/80">
-        <AmbientCanvas />
         <div className="relative flex items-center justify-between gap-4">
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-2">

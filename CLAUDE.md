@@ -59,10 +59,12 @@ Schema lives in `supabase/schema.sql` (run manually in Supabase SQL editor).
 Key design decisions:
 
 - **Stock is never a column** — `current_stock = SUM(stock_entries.quantity) - SUM(sales.quantity)`, computed in `vw_ceramics_inventory`
-- `stock_entries.entry_type` ∈ `{Initial, Restock, Adjustment}`
+- `stock_entries.entry_type` ∈ `{Restock, Adjustment, Return}`; `direction` ∈ `{add, remove}`; `reason` required only for `Adjustment`
 - `ceramic_types` encodes brand + size + finish + unit + price; ceramics reference a type
 - `get_my_role()` SQL function avoids RLS recursion when checking roles
 - One-admin constraint enforced via partial unique index: `CREATE UNIQUE INDEX one_admin_only ON user_profiles (role) WHERE (role = 'admin')`
+- Two sale-creation paths both write `sales`: a direct POS-style sale (`POST /api/sales/sync`, mobile "Sell" tab, gated by `requireSeller()`) and an `orders` → admin-approval workflow (`orders` + `order_items`, approved via the `approve_order` RPC, which inserts `sales` rows — with optional admin qty/price overrides — only at approval time, not at order submission)
+- `returns`/`return_items` are partial, per-line-item returns against an already-approved order, admin-recorded on web only (no seller request/approval cycle); a `Return` stock entry restores stock without touching the original `sales` row
 
 ### Shared UI Components
 
@@ -96,7 +98,8 @@ Frontend uses **TanStack React Query** for all data fetching/mutation. No Redux 
 
 ### Auth & Roles
 
-- Two roles: `admin`, `viewer`
-- RLS: public SELECT on all tables; INSERT/UPDATE/DELETE require `get_my_role() = 'admin'`
+- Three roles: `admin` (full access), `seller` (record sales/orders + view catalog/stock — mobile app + web), `viewer` (read-only)
+- RLS itself only grants admin ALL / public SELECT — `INSERT`/`UPDATE`/`DELETE` require `get_my_role() = 'admin'`. Seller writes (direct sales, order submission) don't go through RLS: they hit API routes gated by `requireSeller()` that use `createServiceClient()` (service role, bypasses RLS)
+- `requireAdmin()` / `requireSeller()` in `lib/auth.ts` resolve the user from either the session cookie (web) or an `Authorization: Bearer` token (mobile app, no cookies)
 - `user_profiles` row auto-created on signup via `handle_new_user()` trigger
 - Session inactivity timeout handled in `hooks/use-session-timeout.ts`

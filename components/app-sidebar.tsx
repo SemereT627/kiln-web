@@ -42,7 +42,7 @@ type NavItem = {
 };
 
 const overviewItems: NavItem[] = [
-  { title: "Dashboard", href: "/", icon: LayoutDashboard },
+  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
 ];
 
 const salesItems: NavItem[] = [

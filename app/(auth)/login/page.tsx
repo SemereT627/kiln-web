@@ -3,11 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/password-input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, ArrowRight, Layers3 } from "lucide-react";
+import { AlertCircle, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,7 +30,7 @@ export default function LoginPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      router.push("/");
+      router.push("/dashboard");
       router.refresh();
     }
   }
@@ -51,7 +53,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-3">
           <div className="bg-white/10 rounded-xl p-2.5">
-            <Layers3 className="size-6 text-white" />
+            <Image src="/logo-192.png" alt="ACSM" width={24} height={24} className="rounded-sm" />
           </div>
           <div>
             <p className="text-white font-bold text-lg leading-none">ACSM</p>
@@ -96,7 +98,7 @@ export default function LoginPage() {
           {/* Mobile logo */}
           <div className="flex items-center gap-2 lg:hidden">
             <div className="bg-primary/10 rounded-lg p-2">
-              <Layers3 className="size-5 text-primary" />
+              <Image src="/logo-192.png" alt="ACSM" width={20} height={20} className="rounded-sm" />
             </div>
             <span className="font-bold text-lg">ACSM</span>
           </div>
@@ -128,9 +130,8 @@ export default function LoginPage() {
               <Label htmlFor="password" className="text-sm font-medium">
                 Password
               </Label>
-              <Input
+              <PasswordInput
                 id="password"
-                type="password"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
