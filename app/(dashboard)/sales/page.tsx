@@ -93,7 +93,11 @@ export default function SalesPage() {
     message: "",
   });
 
-  const { data: response, isLoading, isFetching } = useQuery({
+  const {
+    data: response,
+    isLoading,
+    isFetching,
+  } = useQuery({
     queryKey: [
       "ceramics",
       { page: currentPage, search: searchTerm, type: "sales-catalog" },
@@ -109,7 +113,9 @@ export default function SalesPage() {
   });
 
   const checkoutMutation = useMutation({
-    mutationFn: async (items: { ceramicId: string; quantity: number; priceAtSale: number }[]) => {
+    mutationFn: async (
+      items: { ceramicId: string; quantity: number; priceAtSale: number }[],
+    ) => {
       const res = await fetch("/api/sales", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -156,7 +162,10 @@ export default function SalesPage() {
       }
     },
     onError: (error: any) => {
-      setStatus({ type: "error", message: error.message || "An error occurred." });
+      setStatus({
+        type: "error",
+        message: error.message || "An error occurred.",
+      });
     },
   });
 
@@ -263,7 +272,9 @@ export default function SalesPage() {
   const updateCartPrice = (ceramicId: string, price: number) => {
     setCart((prev) =>
       prev.map((l) =>
-        l.ceramicId === ceramicId ? { ...l, priceAtSale: Math.max(0, price) } : l,
+        l.ceramicId === ceramicId
+          ? { ...l, priceAtSale: Math.max(0, price) }
+          : l,
       ),
     );
   };
@@ -272,11 +283,17 @@ export default function SalesPage() {
     setCart((prev) => prev.filter((l) => l.ceramicId !== ceramicId));
   };
 
-  const cartTotal = cart.reduce((sum, l) => sum + l.quantity * l.priceAtSale, 0);
-  const cartHasIssues = cart.some((l) => l.quantity <= 0 || l.quantity > l.stock);
+  const cartTotal = cart.reduce(
+    (sum, l) => sum + l.quantity * l.priceAtSale,
+    0,
+  );
+  const cartHasIssues = cart.some(
+    (l) => l.quantity <= 0 || l.quantity > l.stock,
+  );
 
   const handleCheckout = () => {
-    if (cart.length === 0 || cartHasIssues || checkoutMutation.isPending) return;
+    if (cart.length === 0 || cartHasIssues || checkoutMutation.isPending)
+      return;
     checkoutMutation.mutate(
       cart.map((l) => ({
         ceramicId: l.ceramicId,
@@ -409,7 +426,9 @@ export default function SalesPage() {
                           </p>
                           <div className="mt-1.5 flex items-center gap-1.5">
                             {isOutOfStock ? (
-                              <span className="text-[11px] font-semibold text-destructive">Out of Stock</span>
+                              <span className="text-[11px] font-semibold text-destructive">
+                                Out of Stock
+                              </span>
                             ) : (
                               <>
                                 <span className="text-[11px] font-bold tabular-nums text-foreground">
@@ -456,8 +475,14 @@ export default function SalesPage() {
           {totalPages > 1 && (
             <div className="flex flex-wrap items-center justify-between gap-2 px-1 shrink-0">
               <p className="text-xs text-muted-foreground">
-                Page <span className="font-medium text-foreground">{currentPage}</span> of{" "}
-                <span className="font-medium text-foreground">{totalPages}</span>
+                Page{" "}
+                <span className="font-medium text-foreground">
+                  {currentPage}
+                </span>{" "}
+                of{" "}
+                <span className="font-medium text-foreground">
+                  {totalPages}
+                </span>
               </p>
               <Pagination className="w-auto mx-0">
                 <PaginationContent className="gap-1.5">
@@ -527,7 +552,7 @@ export default function SalesPage() {
         </Card>
       </div>
 
-      {/* Floating transaction bar — below lg, mirrors the acsm-mobile cart bar */}
+      {/* Floating transaction bar — below lg, mirrors the tylio-mobile cart bar */}
       {cart.length > 0 && (
         <button
           type="button"
@@ -588,8 +613,8 @@ export default function SalesPage() {
               <DialogHeader>
                 <DialogTitle>{dialogProduct.name}</DialogTitle>
                 <DialogDescription>
-                  {dialogProduct.brand} &bull; {dialogProduct.size} &bull; Stock:{" "}
-                  {dialogProduct.currentStock.toFixed(2)} {dialogUnit}
+                  {dialogProduct.brand} &bull; {dialogProduct.size} &bull;
+                  Stock: {dialogProduct.currentStock.toFixed(2)} {dialogUnit}
                   {dialogAlreadyInCart > 0 &&
                     ` (${dialogAlreadyInCart} already in cart)`}
                 </DialogDescription>
@@ -648,7 +673,8 @@ export default function SalesPage() {
 
                 {dialogExceedsStock && (
                   <p className="text-xs text-destructive text-center font-medium">
-                    Exceeds available stock ({dialogRemainingStock.toFixed(2)} {dialogUnit} remaining)
+                    Exceeds available stock ({dialogRemainingStock.toFixed(2)}{" "}
+                    {dialogUnit} remaining)
                   </p>
                 )}
               </div>
@@ -792,7 +818,9 @@ function CartLineItem({
             variant="outline"
             size="icon"
             className="h-6 w-6 rounded-full shrink-0"
-            onClick={() => onQtyChange(parseFloat((line.quantity - 1).toFixed(2)))}
+            onClick={() =>
+              onQtyChange(parseFloat((line.quantity - 1).toFixed(2)))
+            }
           >
             <Minus className="h-3 w-3" />
           </Button>
@@ -807,11 +835,15 @@ function CartLineItem({
             variant="outline"
             size="icon"
             className="h-6 w-6 rounded-full shrink-0"
-            onClick={() => onQtyChange(parseFloat((line.quantity + 1).toFixed(2)))}
+            onClick={() =>
+              onQtyChange(parseFloat((line.quantity + 1).toFixed(2)))
+            }
           >
             <Plus className="h-3 w-3" />
           </Button>
-          <span className="text-[10px] text-muted-foreground">{line.measurementUnit}</span>
+          <span className="text-[10px] text-muted-foreground">
+            {line.measurementUnit}
+          </span>
         </div>
 
         {exceedsStock && (
