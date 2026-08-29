@@ -27,7 +27,7 @@ const features = [
 
 export default function LandingPage() {
   return (
-    <div className="min-h-dvh bg-background text-foreground overflow-x-hidden">
+    <div className="min-h-full bg-background text-foreground overflow-x-hidden">
       {/* Decorative tile squares backdrop */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute top-[8%] left-[12%] w-30 h-30 rotate-12 opacity-[0.06] dark:opacity-[0.08] rounded-xl border border-foreground" />
@@ -36,15 +36,13 @@ export default function LandingPage() {
         <div className="absolute top-[62%] left-[80%] w-35 h-35 rotate-[-15deg] opacity-[0.04] dark:opacity-[0.05] rounded-xl border border-foreground" />
       </div>
 
-      <div className="relative z-10 flex min-h-dvh flex-col">
+      <div className="relative z-10 flex min-h-full flex-col">
         {/* Header */}
         <header className="flex items-center justify-between px-6 py-6 sm:px-10">
           <div className="flex items-center gap-3">
-            <div className="bg-primary/10 rounded-xl p-2.5">
-              <Image src="/logo-192.png" alt="ACSM" width={24} height={24} className="rounded-sm" />
-            </div>
+            <Image src="/logo-192.png" alt="Tylio" width={36} height={36} className="rounded-lg" />
             <div>
-              <p className="font-bold text-lg leading-none">ACSM</p>
+              <p className="font-bold text-lg leading-none">Tylio</p>
               <p className="text-muted-foreground text-xs mt-0.5">Stock Management</p>
             </div>
           </div>
@@ -57,7 +55,7 @@ export default function LandingPage() {
         </header>
 
         {/* Hero */}
-        <main className="flex flex-1 flex-col items-center justify-center px-6 py-16 text-center sm:px-10">
+        <main className="flex flex-1 flex-col items-center justify-center px-6 py-10 text-center sm:px-10">
           <div className="max-w-2xl space-y-6">
             <h1 className="text-4xl font-bold leading-tight sm:text-6xl">
               Ceramic inventory,
@@ -82,7 +80,7 @@ export default function LandingPage() {
           </div>
 
           {/* Feature highlights */}
-          <div className="mt-20 grid w-full max-w-5xl gap-6 sm:grid-cols-3">
+          <div className="mt-12 grid w-full max-w-5xl gap-6 sm:grid-cols-3">
             {features.map((feature) => (
               <div
                 key={feature.title}
@@ -102,7 +100,7 @@ export default function LandingPage() {
 
         {/* Footer */}
         <footer className="px-6 py-8 text-center sm:px-10">
-          <p className="text-xs text-muted-foreground/60">© {new Date().getFullYear()} ACSM</p>
+          <p className="text-xs text-muted-foreground/60">© {new Date().getFullYear()} Tylio</p>
         </footer>
       </div>
     </div>

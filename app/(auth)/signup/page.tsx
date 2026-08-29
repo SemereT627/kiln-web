@@ -56,11 +56,9 @@ export default function SignupPage() {
 
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-3">
-          <div className="bg-white/10 rounded-xl p-2.5">
-            <Image src="/logo-192.png" alt="ACSM" width={24} height={24} className="rounded-sm" />
-          </div>
+          <Image src="/logo-192.png" alt="Tylio" width={36} height={36} className="rounded-lg" />
           <div>
-            <p className="text-white font-bold text-lg leading-none">ACSM</p>
+            <p className="text-white font-bold text-lg leading-none">Tylio</p>
             <p className="text-white/40 text-xs mt-0.5">Stock Management</p>
           </div>
         </div>
@@ -92,7 +90,7 @@ export default function SignupPage() {
 
         {/* Bottom */}
         <p className="relative z-10 text-white/20 text-xs">
-          © {new Date().getFullYear()} ACSM
+          © {new Date().getFullYear()} Tylio
         </p>
       </div>
 
@@ -101,10 +99,8 @@ export default function SignupPage() {
         <div className="w-full max-w-sm space-y-8">
           {/* Mobile logo */}
           <div className="flex items-center gap-2 lg:hidden">
-            <div className="bg-primary/10 rounded-lg p-2">
-              <Image src="/logo-192.png" alt="ACSM" width={20} height={20} className="rounded-sm" />
-            </div>
-            <span className="font-bold text-lg">ACSM</span>
+            <Image src="/logo-192.png" alt="Tylio" width={32} height={32} className="rounded-md" />
+            <span className="font-bold text-lg">Tylio</span>
           </div>
 
           {success ? (

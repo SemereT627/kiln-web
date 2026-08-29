@@ -70,7 +70,10 @@ export function UserMenu() {
               </p>
             </div>
             <DropdownMenuSeparator className="my-1" />
-            <DropdownMenuItem asChild className="rounded-md py-1.5 px-2 gap-2 cursor-pointer text-sm">
+            <DropdownMenuItem
+              asChild
+              className="rounded-md py-1.5 px-2 gap-2 cursor-pointer text-sm"
+            >
               <Link href="/profile">
                 <User className="size-3.5 text-muted-foreground" />
                 Profile

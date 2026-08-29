@@ -14,7 +14,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "ACSM - Inventory Management",
+  title: "Tylio - Inventory Management",
   description: "Aesthetically pleasing ceramic store management system",
   icons: {
     icon: [
@@ -39,7 +39,12 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col font-poppins">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
           <QueryProvider>
             <TooltipProvider>
               <UserProvider>
