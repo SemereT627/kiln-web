@@ -144,7 +144,20 @@ export function AppSidebar() {
     enabled: isAdmin,
     refetchInterval: 60_000,
   });
-  const pendingOrderCount = pendingOrders?.total ?? 0;
+  const { data: pendingReturnRequests } = useQuery({
+    queryKey: ["return-requests", "pending"],
+    queryFn: async () => {
+      const res = await fetch("/api/return-requests?status=pending&limit=1");
+      if (!res.ok) throw new Error("Failed to fetch pending return requests");
+      return res.json();
+    },
+    enabled: isAdmin,
+    refetchInterval: 60_000,
+  });
+  // Combined "things awaiting your approval" count — return requests are
+  // folded into the Orders page itself (not a separate queue), so they
+  // share this one badge rather than getting their own.
+  const pendingOrderCount = (pendingOrders?.total ?? 0) + (pendingReturnRequests?.total ?? 0);
 
   const localelessPath = pathname.replace(/^\/[a-z]{2}(?=\/|$)/, "") || "/";
 

@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { requireSeller } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { sanitizeSearchTerm } from "@/lib/postgrest";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
-    const search = searchParams.get("search") || "";
+    const search = sanitizeSearchTerm(searchParams.get("search") || "");
     const ceramicId = searchParams.get("ceramicId");
 
     const supabase = await createClient();

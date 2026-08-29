@@ -25,7 +25,9 @@ async function getRequestUser(request?: Request): Promise<User | null> {
   return tokenUser;
 }
 
-async function getRole(userId: string): Promise<string | null> {
+/** Looks up a user's role directly via service role — no session/cookie
+ * dependency, so this is also safe to call from middleware.ts. */
+export async function getRole(userId: string): Promise<string | null> {
   const supabase = await createServiceClient();
   const { data: profile } = await supabase
     .from("user_profiles")
@@ -43,8 +45,13 @@ export async function requireAdmin(request?: Request): Promise<User | null> {
   return role === "admin" ? user : null;
 }
 
-/** Sales-recording routes: admins and sales reps (mobile app + web). */
-export async function requireSeller(request?: Request): Promise<User | null> {
+/** Sales-recording routes: admins and sales reps (mobile app + web).
+ * The resolved role is attached to the returned user (as `.role`) so
+ * callers that need it — e.g. to tell an admin's view of orders from a
+ * seller's — don't have to re-query user_profiles themselves. */
+export async function requireSeller(
+  request?: Request,
+): Promise<(User & { role: string }) | null> {
   const user = await getRequestUser(request);
   if (!user) {
     console.error("requireSeller: no user resolved from request");
@@ -55,5 +62,5 @@ export async function requireSeller(request?: Request): Promise<User | null> {
     console.error("requireSeller: wrong role", user.id, role);
     return null;
   }
-  return user;
+  return { ...user, role };
 }

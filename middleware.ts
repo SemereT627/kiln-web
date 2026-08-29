@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { getRole } from "@/lib/auth";
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -70,15 +71,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Protect /admin routes
+  // Protect /admin routes — same role check as requireAdmin() in lib/auth.ts,
+  // reused directly since it's just a service-role lookup by id (no
+  // session/cookie dependency to conflict with the client wired up above).
   if (strippedPath.startsWith("/admin")) {
-    const { data: profile } = await supabase
-      .from("user_profiles")
-      .select("role")
-      .eq("id", user?.id)
-      .single();
+    const role = await getRole(user.id);
 
-    if (profile?.role !== "admin") {
+    if (role !== "admin") {
       const dashboardUrl = request.nextUrl.clone();
       dashboardUrl.pathname = "/en/dashboard";
       return NextResponse.redirect(dashboardUrl);

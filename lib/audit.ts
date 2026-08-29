@@ -22,7 +22,7 @@ export async function logAudit({
 }: LogAuditArgs) {
   try {
     const supabase = await createServiceClient();
-    await supabase.from("audit_logs").insert([
+    const { error } = await supabase.from("audit_logs").insert([
       {
         actor_id: actor?.id ?? null,
         actor_name: actor?.email ?? null,
@@ -33,7 +33,13 @@ export async function logAudit({
         after: after ?? null,
       },
     ]);
+    // Supabase JS doesn't throw on a DB-level error (constraint violation,
+    // RLS denial, etc.) — it comes back as `error` here, not as a thrown
+    // exception, so this needs its own check or it logs nothing at all.
+    if (error) {
+      console.error("Audit log write failed:", { action, targetTable, targetId, error });
+    }
   } catch (error) {
-    console.error("Audit log write failed:", error);
+    console.error("Audit log write threw:", { action, targetTable, targetId, error });
   }
 }

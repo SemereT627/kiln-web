@@ -1,20 +1,17 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { logAudit } from "@/lib/audit";
+import { requireAdmin } from "@/lib/auth";
+import { parseBody } from "@/lib/validate";
+import { z } from "zod";
 
-async function requireAdmin() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  return profile?.role === "admin" ? user : null;
-}
+const updateCeramicSchema = z.object({
+  productId: z.string().trim().min(1).optional(),
+  name: z.string().trim().min(1).optional(),
+  typeId: z.string().min(1).optional(),
+  imageUrl: z.string().nullable().optional(),
+  initialStock: z.union([z.number(), z.string()]).optional(),
+});
 
 export async function GET(
   request: Request,
@@ -23,12 +20,12 @@ export async function GET(
   try {
     const { id } = await params;
     const supabase = await createClient();
+    // Read from the inventory view, never the raw table — it's the only
+    // place current/initial/sold stock are computed, and it keeps this
+    // response shape identical to GET /api/ceramics (list).
     const { data, error } = await supabase
-      .from("ceramics")
-      .select(`
-        *,
-        ceramic_types(id, size, brand_id, brand:brands(id, name), finish:finishes(name))
-      `)
+      .from("vw_ceramics_inventory")
+      .select("*")
       .eq("id", id)
       .single();
 
@@ -41,11 +38,13 @@ export async function GET(
       _id: data.id,
       productId: data.product_code,
       name: data.name,
-      brand: data.ceramic_types?.brand?.name,
-      brandId: data.ceramic_types?.brand_id,
-      size: data.ceramic_types?.size,
-      finish: data.ceramic_types?.finish?.name,
+      brand: data.brand_name || "Unknown",
+      brandId: data.brand_id,
+      size: data.size || "Unknown",
+      finish: data.finish_name || "Normal",
       typeId: data.type_id,
+      measurementUnit: data.measurement_unit || "m²",
+      pricePerUnit: data.price_per_unit ?? null,
       initialStock: data.initial_stock,
       soldStock: data.sold_stock,
       currentStock: data.current_stock,
@@ -65,14 +64,17 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const admin = await requireAdmin();
+    const admin = await requireAdmin(request);
     if (!admin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { id } = await params;
+    const parsed = await parseBody(request, updateCeramicSchema);
+    if ("response" in parsed) return parsed.response;
+    const body = parsed.data;
+
     const supabase = await createClient();
-    const body = await request.json();
 
     const { data: before } = await supabase
       .from("vw_ceramics_inventory")
@@ -94,38 +96,24 @@ export async function PUT(
     if (ceramicError) throw ceramicError;
 
     if (body.initialStock !== undefined) {
-      // "Initial stock" is the earliest stock entry for this ceramic — there's
-      // no distinct Initial type anymore, the first Restock/Adjustment serves that role.
-      const initialStock = Math.max(0, Number(body.initialStock) || 0);
+      // "Initial stock" (vw_ceramics_inventory.initial_stock) is actually the
+      // sum of every stock_entries row for this ceramic, not a single ledger
+      // entry — there's no one row to mutate. Editing it here means "recount
+      // the total to this value", which we record as an Adjustment entry for
+      // the delta, same as any other manual correction (never rewrite history).
+      const targetTotal = Math.max(0, Number(body.initialStock) || 0);
+      const currentTotal = Number(before?.initial_stock ?? 0);
+      const delta = targetTotal - currentTotal;
 
-      const { data: existing } = await supabase
-        .from("stock_entries")
-        .select("id")
-        .eq("ceramic_id", id)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-
-      if (initialStock > 0) {
-        if (existing) {
-          const { error: stockError } = await supabase
-            .from("stock_entries")
-            .update({ quantity: initialStock })
-            .eq("id", existing.id);
-          if (stockError) throw stockError;
-        } else {
-          const { error: stockError } = await supabase
-            .from("stock_entries")
-            .insert({ ceramic_id: id, quantity: initialStock, entry_type: "Restock" });
-          if (stockError) throw stockError;
-        }
-      } else if (existing) {
-        // stock_entries.quantity must stay positive — zeroing out initial
-        // stock means removing the ledger row rather than writing a 0.
-        const { error: stockError } = await supabase
-          .from("stock_entries")
-          .delete()
-          .eq("id", existing.id);
+      if (delta !== 0) {
+        const { error: stockError } = await supabase.from("stock_entries").insert({
+          ceramic_id: id,
+          quantity: Math.abs(delta),
+          entry_type: "Adjustment",
+          direction: delta > 0 ? "add" : "remove",
+          reason: "miscount",
+          notes: "Recount via Initial Stock edit",
+        });
         if (stockError) throw stockError;
       }
     }
@@ -188,7 +176,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const admin = await requireAdmin();
+    const admin = await requireAdmin(request);
     if (!admin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

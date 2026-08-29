@@ -1,28 +1,44 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { logAudit } from "@/lib/audit";
+import { sanitizeSearchTerm, pickSortColumn } from "@/lib/postgrest";
+import { parseBody } from "@/lib/validate";
+import { z } from "zod";
 
-async function requireAdmin() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+const createCeramicSchema = z.object({
+  productId: z.string().trim().min(1).optional(),
+  name: z.string().trim().min(1, "Name is required"),
+  typeId: z.string().min(1, "typeId is required"),
+  imageUrl: z.string().nullable().optional(),
+  initialStock: z.number().min(0).optional(),
+});
 
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  return profile?.role === "admin" ? user : null;
-}
+const SORTABLE_COLUMNS = [
+  "name",
+  "product_code",
+  "brand_name",
+  "size",
+  "finish_name",
+  "price_per_unit",
+  "initial_stock",
+  "sold_stock",
+  "current_stock",
+  "created_at",
+  "updated_at",
+] as const;
+import { requireAdmin } from "@/lib/auth";
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
-    const search = searchParams.get("search") || "";
-    const sortBy = searchParams.get("sortBy") || "updated_at";
+    const search = sanitizeSearchTerm(searchParams.get("search") || "");
+    const sortBy = pickSortColumn(
+      searchParams.get("sortBy") || "updated_at",
+      SORTABLE_COLUMNS,
+      "updated_at",
+    );
     const order = searchParams.get("order") || "desc";
     
     // Filters
@@ -72,21 +88,23 @@ export async function GET(request: Request) {
 
     if (error) throw error;
 
-    // Summary across the ENTIRE filtered set (not just the current page)
-    const summaryQuery = applyFilters(
-      supabase
-        .from("vw_ceramics_inventory")
-        .select(
-          "type_id, brand_name, size, finish_name, measurement_unit, price_per_unit, initial_stock, sold_stock, current_stock",
-        )
-        .limit(100000),
+    // Summary across the ENTIRE filtered set (not just the current page) —
+    // aggregated in Postgres (get_ceramics_summary), not by fetching every
+    // row into Node, so it's correct regardless of catalog size.
+    const { data: summaryRows, error: summaryError } = await supabase.rpc(
+      "get_ceramics_summary",
+      {
+        p_search: search || null,
+        p_brand_id: brandId || null,
+        p_finish_name: finishName || null,
+        p_size: size || null,
+        p_status: status || null,
+      },
     );
-    const { data: summaryRows, error: summaryError } = await summaryQuery;
     if (summaryError) throw summaryError;
 
     const totals = { initialStock: 0, soldStock: 0, currentStock: 0 };
-    const byTypeMap = new Map<string, any>();
-    for (const row of summaryRows || []) {
+    const byType = (summaryRows || []).map((row: any) => {
       const rowCurrent = Number(row.current_stock) || 0;
       const rowInitial = Number(row.initial_stock) || 0;
       const rowSold = Number(row.sold_stock) || 0;
@@ -94,33 +112,24 @@ export async function GET(request: Request) {
       totals.soldStock += rowSold;
       totals.currentStock += rowCurrent;
 
-      const key = row.type_id || "unknown";
-      const existing = byTypeMap.get(key);
-      if (existing) {
-        existing.initialStock += rowInitial;
-        existing.soldStock += rowSold;
-        existing.currentStock += rowCurrent;
-        existing.productCount += 1;
-      } else {
-        const label = [row.brand_name, row.size, row.finish_name]
-          .filter(Boolean)
-          .join(" · ") || "Unknown";
-        byTypeMap.set(key, {
-          typeId: key,
-          label,
-          brand: row.brand_name || "Unknown",
-          size: row.size || "Unknown",
-          finish: row.finish_name || "Normal",
-          measurementUnit: row.measurement_unit || "m²",
-          pricePerUnit: row.price_per_unit ?? null,
-          initialStock: rowInitial,
-          soldStock: rowSold,
-          currentStock: rowCurrent,
-          productCount: 1,
-        });
-      }
-    }
-    const byType = Array.from(byTypeMap.values()).sort((a, b) => {
+      const label = [row.brand_name, row.size, row.finish_name]
+        .filter(Boolean)
+        .join(" · ") || "Unknown";
+      return {
+        typeId: row.type_id || "unknown",
+        label,
+        brand: row.brand_name || "Unknown",
+        size: row.size || "Unknown",
+        finish: row.finish_name || "Normal",
+        measurementUnit: row.measurement_unit || "m²",
+        pricePerUnit: row.price_per_unit ?? null,
+        initialStock: rowInitial,
+        soldStock: rowSold,
+        currentStock: rowCurrent,
+        productCount: Number(row.product_count) || 0,
+      };
+    });
+    byType.sort((a: any, b: any) => {
       const brandCmp = a.brand.localeCompare(b.brand);
       if (brandCmp !== 0) return brandCmp;
       return a.size.localeCompare(b.size, undefined, { numeric: true });
@@ -167,13 +176,16 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const admin = await requireAdmin();
+    const admin = await requireAdmin(request);
     if (!admin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const parsed = await parseBody(request, createCeramicSchema);
+    if ("response" in parsed) return parsed.response;
+    const body = parsed.data;
+
     const supabase = await createClient();
-    const body = await request.json();
 
     // 1. Insert product details into ceramics table
     const { data: ceramic, error: ceramicError } = await supabase
@@ -190,12 +202,13 @@ export async function POST(request: Request) {
     if (ceramicError) throw ceramicError;
 
     // 2. Insert starting stock as the first Restock entry
-    if (body.initialStock > 0) {
+    const parsedInitialStock = Number(body.initialStock);
+    if (Number.isFinite(parsedInitialStock) && parsedInitialStock > 0) {
       const { error: stockError } = await supabase
         .from("stock_entries")
         .insert([{
           ceramic_id: ceramic.id,
-          quantity: body.initialStock,
+          quantity: parsedInitialStock,
           entry_type: 'Restock'
         }]);
       if (stockError) throw stockError;

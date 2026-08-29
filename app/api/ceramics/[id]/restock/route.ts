@@ -1,22 +1,18 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { logAudit } from "@/lib/audit";
+import { requireAdmin } from "@/lib/auth";
+import { parseBody } from "@/lib/validate";
+import { z } from "zod";
 
-async function requireAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  return profile?.role === "admin" ? user : null;
-}
+const restockSchema = z.object({
+  quantity: z.union([z.number(), z.string()]),
+  entryType: z.enum(["Restock", "Adjustment", "Return"]).optional(),
+  direction: z.enum(["add", "remove"]).optional(),
+  reason: z.enum(["damaged", "lost", "miscount", "other"]).optional(),
+  supplier: z.string().optional(),
+  notes: z.string().optional(),
+});
 
 /** GET /api/ceramics/[id]/restock — returns restock/adjustment history for a ceramic */
 export async function GET(
@@ -59,27 +55,30 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const admin = await requireAdmin();
+    const admin = await requireAdmin(request);
     if (!admin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { id } = await params;
+
+    const parsed = await parseBody(request, restockSchema);
+    if ("response" in parsed) return parsed.response;
+    const { quantity, entryType = "Restock", direction, reason, supplier, notes } = parsed.data;
+
     const supabase = await createClient();
-    const body = await request.json();
 
-    const { quantity, entryType = "Restock", direction, reason, supplier, notes } = body;
-
-    if (!quantity || parseFloat(quantity) <= 0) {
+    const parsedQuantity = parseFloat(String(quantity));
+    if (!Number.isFinite(parsedQuantity) || parsedQuantity <= 0) {
       return NextResponse.json(
-        { error: "Quantity must be greater than 0" },
+        { error: "Quantity must be a number greater than 0" },
         { status: 400 }
       );
     }
 
     const insertPayload: any = {
       ceramic_id: id,
-      quantity: parseFloat(quantity),
+      quantity: parsedQuantity,
       entry_type: entryType,
     };
 
@@ -90,7 +89,7 @@ export async function POST(
           { status: 400 }
         );
       }
-      if (!["damaged", "lost", "miscount", "other"].includes(reason)) {
+      if (!reason) {
         return NextResponse.json(
           { error: "Adjustment requires reason: 'damaged', 'lost', 'miscount', or 'other'" },
           { status: 400 }

@@ -1,34 +1,35 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { logAudit } from "@/lib/audit";
+import { requireAdmin } from "@/lib/auth";
+import { parseBody } from "@/lib/validate";
+import { z } from "zod";
 
-async function requireAdmin() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  return profile?.role === "admin" ? user : null;
-}
+const updateCeramicTypeSchema = z.object({
+  brand_id: z.string().min(1).optional(),
+  size: z.string().trim().min(1).optional(),
+  finish_id: z.string().min(1).optional(),
+  measurement_unit: z.enum(["m²", "m", "pcs"]).optional(),
+  price_per_unit: z.union([z.number(), z.string()]).nullable().optional(),
+});
 
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const admin = await requireAdmin();
+    const admin = await requireAdmin(request);
     if (!admin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { id } = await params;
+
+    const parsed = await parseBody(request, updateCeramicTypeSchema);
+    if ("response" in parsed) return parsed.response;
+    const { brand_id, size, finish_id, measurement_unit, price_per_unit } = parsed.data;
+
     const supabase = await createClient();
-    const body = await request.json();
 
     const { data: before } = await supabase
       .from("ceramic_types")
@@ -36,15 +37,13 @@ export async function PUT(
       .eq("id", id)
       .single();
 
-    const { brand_id, size, finish_id, measurement_unit, price_per_unit } = body;
-
     const updates: any = {};
     if (brand_id !== undefined) updates.brand_id = brand_id;
     if (size !== undefined) updates.size = size;
     if (finish_id !== undefined) updates.finish_id = finish_id;
     if (measurement_unit !== undefined) updates.measurement_unit = measurement_unit;
     if (price_per_unit !== undefined) {
-      updates.price_per_unit = price_per_unit === "" ? null : parseFloat(price_per_unit);
+      updates.price_per_unit = price_per_unit === "" || price_per_unit === null ? null : parseFloat(String(price_per_unit));
     }
 
     const { data, error } = await supabase
@@ -77,7 +76,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const admin = await requireAdmin();
+    const admin = await requireAdmin(request);
     if (!admin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

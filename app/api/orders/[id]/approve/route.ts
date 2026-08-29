@@ -2,6 +2,21 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { parseBody } from "@/lib/validate";
+import { z } from "zod";
+
+const approveOrderSchema = z.object({
+  overrides: z
+    .array(
+      z.object({
+        orderItemId: z.string().min(1, "Invalid override"),
+        priceAtSale: z.number().positive("Price at sale must be greater than 0").optional(),
+        quantity: z.number().positive("Quantity must be greater than 0").optional(),
+      }),
+    )
+    .optional()
+    .default([]),
+});
 
 export async function POST(
   request: Request,
@@ -14,24 +29,10 @@ export async function POST(
     }
 
     const { id } = await params;
-    const body = await request.json().catch(() => ({}));
-    const overrides: { orderItemId: string; priceAtSale?: number; quantity?: number }[] =
-      Array.isArray(body?.overrides) ? body.overrides : [];
 
-    for (const override of overrides) {
-      if (!override.orderItemId) {
-        return NextResponse.json({ error: "Invalid override" }, { status: 400 });
-      }
-      if (override.priceAtSale !== undefined && !(Number(override.priceAtSale) > 0)) {
-        return NextResponse.json(
-          { error: "Price at sale must be greater than 0" },
-          { status: 400 },
-        );
-      }
-      if (override.quantity !== undefined && !(Number(override.quantity) > 0)) {
-        return NextResponse.json({ error: "Quantity must be greater than 0" }, { status: 400 });
-      }
-    }
+    const parsed = await parseBody(request, approveOrderSchema);
+    if ("response" in parsed) return parsed.response;
+    const { overrides } = parsed.data;
 
     const supabase = await createServiceClient();
 
@@ -48,7 +49,17 @@ export async function POST(
     });
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
+      if (error.message?.includes("exceeds current stock")) {
+        return NextResponse.json(
+          { error: "Not enough stock to approve this order at the requested quantity." },
+          { status: 400 },
+        );
+      }
+      console.error("approve_order RPC failed:", error);
+      return NextResponse.json(
+        { error: "Couldn't approve this order. Please try again." },
+        { status: 400 },
+      );
     }
 
     const overrideMap = new Map(overrides.map((o) => [o.orderItemId, o]));

@@ -21,7 +21,7 @@ export function StockBadge({ stock, size = "default" }: StockBadgeProps) {
       </Badge>
     );
 
-  if (stock < 5)
+  if (stock <= 5)
     return (
       <Badge
         className={cn(

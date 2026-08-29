@@ -1,7 +1,23 @@
 import { NextResponse } from "next/server";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { requireAdmin, requireSeller } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { parseBody } from "@/lib/validate";
+import { z } from "zod";
+
+const updateOrderSchema = z.object({
+  paymentMethod: z.enum(["cash", "bank_transfer", "credit"]).optional(),
+  bankAccount: z.string().trim().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  items: z
+    .array(
+      z.object({
+        id: z.string().min(1),
+        quantity: z.number().positive("quantity must be greater than 0"),
+      }),
+    )
+    .optional(),
+});
 
 const ORDER_SELECT = `
   *,
@@ -21,6 +37,17 @@ const ORDER_SELECT = `
     created_at,
     created_by:user_profiles!returns_created_by_fkey(full_name),
     return_items(id, order_item_id, quantity)
+  ),
+  return_requests(
+    id,
+    status,
+    notes,
+    rejection_reason,
+    created_at,
+    reviewed_at,
+    seller:user_profiles!return_requests_seller_id_fkey(full_name),
+    reviewed_by:user_profiles!return_requests_reviewed_by_fkey(full_name),
+    return_request_items(id, order_item_id, quantity)
   )
 `;
 
@@ -82,6 +109,21 @@ function formatOrder(order: any) {
         quantity: ri.quantity,
       })),
     })),
+    returnRequests: (order.return_requests || []).map((rr: any) => ({
+      id: rr.id,
+      status: rr.status,
+      notes: rr.notes,
+      rejectionReason: rr.rejection_reason,
+      createdAt: rr.created_at,
+      reviewedAt: rr.reviewed_at,
+      sellerName: rr.seller?.full_name ?? null,
+      reviewedByName: rr.reviewed_by?.full_name ?? null,
+      items: (rr.return_request_items || []).map((ri: any) => ({
+        id: ri.id,
+        orderItemId: ri.order_item_id,
+        quantity: ri.quantity,
+      })),
+    })),
   };
 }
 
@@ -96,14 +138,20 @@ export async function GET(
     }
 
     const { id } = await params;
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("orders")
-      .select(ORDER_SELECT)
-      .eq("id", id)
-      .single();
+    const supabase = await createServiceClient();
+    const isAdmin = user.role === "admin";
 
-    if (error) throw error;
+    let query = supabase.from("orders").select(ORDER_SELECT).eq("id", id);
+    if (!isAdmin) {
+      query = query.eq("seller_id", user.id);
+    }
+    const { data, error } = await query.single();
+
+    if (error) {
+      // Ownership-filtered miss and genuine not-found both look like a
+      // missing row — don't distinguish, or a seller could probe order IDs.
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
     return NextResponse.json(formatOrder(data));
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -121,8 +169,12 @@ export async function PATCH(
     }
 
     const { id } = await params;
+
+    const parsed = await parseBody(request, updateOrderSchema);
+    if ("response" in parsed) return parsed.response;
+    const body = parsed.data;
+
     const supabase = await createServiceClient();
-    const body = await request.json();
 
     const { data: before, error: beforeError } = await supabase
       .from("orders")

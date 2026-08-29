@@ -14,7 +14,7 @@ type SyncOrder = {
 };
 
 type SyncResult =
-  | { clientId: string; status: "synced" }
+  | { clientId: string; status: "synced"; id: string }
   | { clientId: string; status: "rejected"; reason: string };
 
 /**
@@ -54,6 +54,13 @@ export async function POST(request: Request) {
       (ceramics || []).map((c: { id: string; price_per_unit: number | null }) => [c.id, c.price_per_unit ?? 0]),
     );
 
+    // Stale mobile catalog cache can reference a deleted/renamed ceramic —
+    // reject the whole order rather than silently inserting it at price 0.
+    if (ceramicIds.some((cid) => !priceMap.has(cid))) {
+      results.push({ clientId: order.clientId, status: "rejected", reason: "invalid_ceramic" });
+      continue;
+    }
+
     const { data: newOrder, error: orderError } = await supabase
       .from("orders")
       .insert([
@@ -71,7 +78,14 @@ export async function POST(request: Request) {
 
     if (orderError) {
       if (orderError.code === "23505") {
-        results.push({ clientId: order.clientId, status: "synced" });
+        // Already synced in a prior attempt — look up its id so the client
+        // still learns it (the insert above never returned a row this time).
+        const { data: existing } = await supabase
+          .from("orders")
+          .select("id")
+          .eq("client_id", order.clientId)
+          .single();
+        results.push({ clientId: order.clientId, status: "synced", id: existing?.id ?? "" });
         continue;
       }
       console.error("orders/sync insert order failed", order.clientId, orderError);
@@ -106,7 +120,7 @@ export async function POST(request: Request) {
       },
     });
 
-    results.push({ clientId: order.clientId, status: "synced" });
+    results.push({ clientId: order.clientId, status: "synced", id: newOrder.id });
   }
 
   return NextResponse.json({ results });

@@ -77,7 +77,7 @@ const PIE_COLORS = [
 
 function StockBadge({ stock }: { stock: number }) {
   if (stock <= 0) return <Badge variant="destructive">Out of stock</Badge>;
-  if (stock < 5)
+  if (stock <= 5)
     return (
       <Badge className="bg-amber-500 hover:bg-amber-500 text-white">Low</Badge>
     );
@@ -181,7 +181,7 @@ export default function Dashboard() {
   }, 0);
 
   const lowStockCount = data.filter(
-    (i) => i.currentStock > 0 && i.currentStock < 5,
+    (i) => i.currentStock > 0 && i.currentStock <= 5,
   ).length;
 
   // Chart: top 8 m² products by current stock, excluding ZEKOLO
@@ -196,7 +196,7 @@ export default function Dashboard() {
 
   // Alerts: low or out-of-stock products, worst first
   const alerts = data
-    .filter((i) => i.currentStock < 5)
+    .filter((i) => i.currentStock <= 5)
     .sort((a, b) => a.currentStock - b.currentStock);
   const topAlert = alerts[0]
     ? {

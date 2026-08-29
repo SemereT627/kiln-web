@@ -13,6 +13,7 @@ export function useOrderMutations() {
     queryClient.invalidateQueries({ queryKey: ["order"] });
     queryClient.invalidateQueries({ queryKey: ["ceramics"] });
     queryClient.invalidateQueries({ queryKey: ["sales"] });
+    queryClient.invalidateQueries({ queryKey: ["return-requests"] });
   };
 
   const approveMutation = useMutation({
@@ -117,5 +118,68 @@ export function useOrderMutations() {
     },
   });
 
-  return { approveMutation, rejectMutation, paymentStatusMutation, returnMutation };
+  const approveReturnRequestMutation = useMutation({
+    mutationFn: async ({
+      orderId,
+      requestId,
+      overrides,
+    }: {
+      orderId: string;
+      requestId: string;
+      overrides?: { returnRequestItemId: string; quantity?: number }[];
+    }) => {
+      const res = await fetch(`/api/orders/${orderId}/return-requests/${requestId}/approve`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ overrides: overrides ?? [] }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to approve return request");
+      return json;
+    },
+    onSuccess: () => {
+      toast.success("Return request approved — stock restored.");
+      invalidateAfterMutation();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to approve return request");
+    },
+  });
+
+  const rejectReturnRequestMutation = useMutation({
+    mutationFn: async ({
+      orderId,
+      requestId,
+      reason,
+    }: {
+      orderId: string;
+      requestId: string;
+      reason: string;
+    }) => {
+      const res = await fetch(`/api/orders/${orderId}/return-requests/${requestId}/reject`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to reject return request");
+      return json;
+    },
+    onSuccess: () => {
+      toast.success("Return request rejected.");
+      invalidateAfterMutation();
+    },
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to reject return request");
+    },
+  });
+
+  return {
+    approveMutation,
+    rejectMutation,
+    paymentStatusMutation,
+    returnMutation,
+    approveReturnRequestMutation,
+    rejectReturnRequestMutation,
+  };
 }

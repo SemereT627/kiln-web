@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { parseBody } from "@/lib/validate";
+import { z } from "zod";
+
+const paymentStatusSchema = z.object({
+  paymentStatus: z.enum(["paid", "unpaid"]),
+});
 
 export async function PATCH(
   request: Request,
@@ -14,11 +20,10 @@ export async function PATCH(
     }
 
     const { id } = await params;
-    const body = await request.json();
-    const paymentStatus = body.paymentStatus;
-    if (!["paid", "unpaid"].includes(paymentStatus)) {
-      return NextResponse.json({ error: "Invalid payment status" }, { status: 400 });
-    }
+
+    const parsed = await parseBody(request, paymentStatusSchema);
+    if ("response" in parsed) return parsed.response;
+    const { paymentStatus } = parsed.data;
 
     const supabase = await createServiceClient();
 

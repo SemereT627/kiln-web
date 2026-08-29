@@ -2,6 +2,24 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireAdmin } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { parseBody } from "@/lib/validate";
+import { z } from "zod";
+
+const createUserSchema = z.object({
+  email: z.string().trim().email("Invalid email address"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  fullName: z.string().trim().nullable().optional(),
+  role: z.enum(["admin", "seller", "viewer"]),
+});
+
+const updateRoleSchema = z.object({
+  userId: z.string().min(1, "userId is required"),
+  role: z.enum(["admin", "seller", "viewer"]),
+});
+
+const deleteUserSchema = z.object({
+  userId: z.string().min(1, "userId is required"),
+});
 
 export async function GET(request: Request) {
   const admin = await requireAdmin(request);
@@ -43,10 +61,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { email, password, fullName, role } = await request.json();
-  if (!email || !password || !["admin", "seller", "viewer"].includes(role)) {
-    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
-  }
+  const parsed = await parseBody(request, createUserSchema);
+  if ("response" in parsed) return parsed.response;
+  const { email, password, fullName, role } = parsed.data;
 
   const serviceSupabase = await createServiceClient();
 
@@ -92,10 +109,9 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { userId, role } = await request.json();
-  if (!userId || !["admin", "seller", "viewer"].includes(role)) {
-    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
-  }
+  const parsed = await parseBody(request, updateRoleSchema);
+  if ("response" in parsed) return parsed.response;
+  const { userId, role } = parsed.data;
 
   const serviceSupabase = await createServiceClient();
 
@@ -132,10 +148,9 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { userId } = await request.json();
-  if (!userId) {
-    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
-  }
+  const parsed = await parseBody(request, deleteUserSchema);
+  if ("response" in parsed) return parsed.response;
+  const { userId } = parsed.data;
 
   if (userId === admin.id) {
     return NextResponse.json(

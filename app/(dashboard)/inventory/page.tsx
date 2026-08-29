@@ -859,7 +859,7 @@ export default function InventoryPage() {
                                 "h-2 w-2 rounded-full shrink-0",
                                 item.currentStock <= 0
                                   ? "bg-destructive"
-                                  : item.currentStock < 5
+                                  : item.currentStock <= 5
                                     ? "bg-amber-500"
                                     : "bg-emerald-500",
                               )}
@@ -869,14 +869,14 @@ export default function InventoryPage() {
                                 "text-xs font-medium",
                                 item.currentStock <= 0
                                   ? "text-destructive"
-                                  : item.currentStock < 5
+                                  : item.currentStock <= 5
                                     ? "text-amber-600 dark:text-amber-400"
                                     : "text-emerald-600 dark:text-emerald-400",
                               )}
                             >
                               {item.currentStock <= 0
                                 ? "Out"
-                                : item.currentStock < 5
+                                : item.currentStock <= 5
                                   ? "Low"
                                   : "Good"}
                             </span>

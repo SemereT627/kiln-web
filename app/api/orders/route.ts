@@ -2,6 +2,23 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { requireSeller } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { parseBody } from "@/lib/validate";
+import { z } from "zod";
+
+const createOrderSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        ceramicId: z.string().min(1, "ceramicId is required"),
+        quantity: z.number().positive("quantity must be greater than 0"),
+      }),
+    )
+    .min(1, "Order must have at least one item"),
+  paymentMethod: z.enum(["cash", "bank_transfer", "credit"]),
+  bankAccount: z.string().trim().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  clientId: z.string().nullable().optional(),
+});
 
 interface OrderItemInput {
   ceramicId: string;
@@ -55,6 +72,9 @@ function formatOrder(order: any) {
     returnedTotal,
     outstandingTotal: total - returnedTotal,
     hasReturns: returnedTotal > 0,
+    pendingReturnRequestCount: (order.return_requests || []).filter(
+      (rr: any) => rr.status === "pending",
+    ).length,
   };
 }
 
@@ -69,7 +89,8 @@ const ORDER_SELECT = `
       ceramic_type:ceramic_types(measurement_unit)
     ),
     return_items(quantity)
-  )
+  ),
+  return_requests(id, status)
 `;
 
 export async function GET(request: Request) {
@@ -88,12 +109,7 @@ export async function GET(request: Request) {
     const mineOnly = searchParams.get("mine") === "1";
 
     const supabase = await createServiceClient();
-    const { data: profile } = await supabase
-      .from("user_profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-    const isAdmin = profile?.role === "admin";
+    const isAdmin = user.role === "admin";
 
     let query = supabase
       .from("orders")
@@ -138,19 +154,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await request.json();
-    const items: OrderItemInput[] = body.items;
-    const paymentMethod = body.paymentMethod;
-    const bankAccount = body.bankAccount ?? null;
-    const notes = body.notes ?? null;
-    const clientId = body.clientId ?? null;
+    const parsed = await parseBody(request, createOrderSchema);
+    if ("response" in parsed) return parsed.response;
+    const { paymentMethod, clientId } = parsed.data;
+    const items: OrderItemInput[] = parsed.data.items;
+    const bankAccount = parsed.data.bankAccount ?? null;
+    const notes = parsed.data.notes ?? null;
 
-    if (!Array.isArray(items) || items.length === 0) {
-      return NextResponse.json({ error: "Order must have at least one item" }, { status: 400 });
-    }
-    if (!["cash", "bank_transfer", "credit"].includes(paymentMethod)) {
-      return NextResponse.json({ error: "Invalid payment method" }, { status: 400 });
-    }
     if (paymentMethod === "bank_transfer" && !bankAccount) {
       return NextResponse.json({ error: "Bank account is required for bank transfers" }, { status: 400 });
     }
@@ -167,6 +177,14 @@ export async function POST(request: Request) {
     const priceMap = new Map<string, number>(
       (ceramics || []).map((c: { id: string; price_per_unit: number | null }) => [c.id, c.price_per_unit ?? 0]),
     );
+
+    const unknownId = ceramicIds.find((cid) => !priceMap.has(cid));
+    if (unknownId) {
+      return NextResponse.json(
+        { error: `Unknown ceramic in order: ${unknownId}` },
+        { status: 400 },
+      );
+    }
 
     const { data: order, error: orderError } = await supabase
       .from("orders")

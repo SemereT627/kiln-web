@@ -53,7 +53,13 @@ export async function POST(request: Request) {
         .select("price_per_unit")
         .eq("id", item.ceramicId)
         .single();
-      priceAtSale = ceramic?.price_per_unit ?? 0;
+      // Stale mobile catalog cache can reference a deleted/renamed ceramic —
+      // reject rather than silently inserting the sale at price 0.
+      if (!ceramic) {
+        results.push({ clientId: item.clientId, status: "rejected", reason: "invalid_ceramic" });
+        continue;
+      }
+      priceAtSale = ceramic.price_per_unit ?? 0;
     }
 
     const { error } = await supabase.from("sales").insert([

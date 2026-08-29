@@ -368,7 +368,7 @@ export default function SalesPage() {
                   data.map((item: any) => {
                     const inCartQty = existingCartQtyFor(item._id);
                     const isOutOfStock = item.currentStock <= 0;
-                    const isLow = !isOutOfStock && item.currentStock < 5;
+                    const isLow = !isOutOfStock && item.currentStock <= 5;
                     const isInCart = inCartQty > 0;
                     return (
                       <button

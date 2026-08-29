@@ -79,7 +79,9 @@ CREATE TABLE sales (
 );
 
 -- 7. Inventory View
-CREATE VIEW vw_ceramics_inventory AS
+-- security_invoker: runs as the querying user (respecting their RLS), not
+-- the view's creator — the correct default for any view over RLS'd tables.
+CREATE VIEW vw_ceramics_inventory WITH (security_invoker = true) AS
 SELECT
   c.*,
   ct.brand_id                                                               AS brand_id,
@@ -114,6 +116,56 @@ LEFT JOIN (
   FROM sales
   GROUP BY ceramic_id
 ) sales_total ON c.id = sales_total.ceramic_id;
+
+-- Aggregates vw_ceramics_inventory (grouped by ceramic_type) for the
+-- ceramics-list summary card, applying the same filters GET /api/ceramics
+-- applies per-row — the aggregation happens in Postgres so it's correct at
+-- any catalog size, not capped by a row-fetch limit in the API route.
+CREATE OR REPLACE FUNCTION public.get_ceramics_summary(
+  p_search      TEXT DEFAULT NULL,
+  p_brand_id    UUID DEFAULT NULL,
+  p_finish_name TEXT DEFAULT NULL,
+  p_size        TEXT DEFAULT NULL,
+  p_status      TEXT DEFAULT NULL
+)
+RETURNS TABLE (
+  type_id          UUID,
+  brand_name       TEXT,
+  size             TEXT,
+  finish_name      TEXT,
+  measurement_unit TEXT,
+  price_per_unit   NUMERIC,
+  initial_stock    NUMERIC,
+  sold_stock       NUMERIC,
+  current_stock    NUMERIC,
+  product_count    BIGINT
+)
+LANGUAGE sql STABLE AS $$
+  SELECT
+    v.type_id,
+    v.brand_name,
+    v.size,
+    v.finish_name,
+    v.measurement_unit,
+    v.price_per_unit,
+    COALESCE(SUM(v.initial_stock), 0) AS initial_stock,
+    COALESCE(SUM(v.sold_stock), 0)    AS sold_stock,
+    COALESCE(SUM(v.current_stock), 0) AS current_stock,
+    COUNT(*)                          AS product_count
+  FROM vw_ceramics_inventory v
+  WHERE
+    (p_search IS NULL OR p_search = '' OR v.name ILIKE '%' || p_search || '%' OR v.product_code ILIKE '%' || p_search || '%')
+    AND (p_brand_id IS NULL OR v.brand_id = p_brand_id)
+    AND (p_finish_name IS NULL OR v.finish_name = p_finish_name)
+    AND (p_size IS NULL OR v.size = p_size)
+    AND (
+      p_status IS NULL
+      OR (p_status = 'in'  AND v.current_stock > 5)
+      OR (p_status = 'low' AND v.current_stock > 0 AND v.current_stock <= 5)
+      OR (p_status = 'out' AND v.current_stock <= 0)
+    )
+  GROUP BY v.type_id, v.brand_name, v.size, v.finish_name, v.measurement_unit, v.price_per_unit;
+$$;
 
 -- Block oversell: a Sale can never exceed current_stock.
 CREATE OR REPLACE FUNCTION public.check_sale_stock()
@@ -397,6 +449,135 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Return Requests — seller-submitted (mobile), admin-approved workflow,
+-- mirroring orders/order_items. A request sits 'pending' until an admin
+-- approves (which calls record_return to create the real returns row,
+-- with optional per-item quantity overrides) or rejects (reason required).
+CREATE TABLE return_requests (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id         UUID NOT NULL REFERENCES orders(id),
+  seller_id        UUID NOT NULL REFERENCES user_profiles(id),
+  status           TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+  notes            TEXT,
+  rejection_reason TEXT,
+  reviewed_by      UUID REFERENCES user_profiles(id),
+  reviewed_at      TIMESTAMPTZ,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE return_request_items (
+  id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  return_request_id  UUID NOT NULL REFERENCES return_requests(id) ON DELETE CASCADE,
+  order_item_id      UUID NOT NULL REFERENCES order_items(id),
+  quantity           NUMERIC NOT NULL CHECK (quantity > 0)
+);
+
+CREATE INDEX idx_return_requests_order_id ON return_requests (order_id);
+CREATE INDEX idx_return_requests_status_created_at ON return_requests (status, created_at DESC);
+CREATE INDEX idx_return_requests_seller_id ON return_requests (seller_id);
+CREATE INDEX idx_return_request_items_return_request_id ON return_request_items (return_request_id);
+CREATE INDEX idx_return_request_items_order_item_id ON return_request_items (order_item_id);
+
+CREATE TRIGGER trg_return_requests_touch_updated_at
+  BEFORE UPDATE ON return_requests
+  FOR EACH ROW EXECUTE PROCEDURE touch_order_updated_at();
+
+-- Block over-requesting: a line item can never have more requested (across
+-- all still-pending requests) plus already-returned than was ordered.
+CREATE OR REPLACE FUNCTION public.check_return_request_quantity()
+RETURNS TRIGGER AS $$
+DECLARE
+  ordered          NUMERIC;
+  already_returned NUMERIC;
+  already_pending  NUMERIC;
+BEGIN
+  SELECT quantity INTO ordered FROM order_items WHERE id = NEW.order_item_id;
+
+  SELECT COALESCE(SUM(quantity), 0) INTO already_returned
+  FROM return_items WHERE order_item_id = NEW.order_item_id;
+
+  SELECT COALESCE(SUM(rri.quantity), 0) INTO already_pending
+  FROM return_request_items rri
+  JOIN return_requests rr ON rr.id = rri.return_request_id
+  WHERE rri.order_item_id = NEW.order_item_id
+    AND rr.status = 'pending'
+    AND rri.id <> NEW.id;
+
+  IF NEW.quantity > (ordered - already_returned - already_pending) THEN
+    RAISE EXCEPTION 'Return request quantity (%) exceeds remaining returnable quantity (%)',
+      NEW.quantity, (ordered - already_returned - already_pending);
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SET search_path = public;
+
+CREATE TRIGGER trg_check_return_request_quantity
+  BEFORE INSERT ON return_request_items
+  FOR EACH ROW EXECUTE PROCEDURE check_return_request_quantity();
+
+-- Approve a return request: applies optional per-item quantity overrides,
+-- then defers to record_return for the actual effect (Return stock entries +
+-- return_items, capped by the existing trg_check_return_quantity trigger —
+-- authoritative at this final step in case sibling requests changed the
+-- remaining-returnable amount since this request was submitted).
+CREATE OR REPLACE FUNCTION public.approve_return_request(
+  p_request_id UUID,
+  p_admin_id   UUID,
+  p_overrides  JSONB DEFAULT NULL -- [{ "returnRequestItemId": "...", "quantity": 1 }, ...]
+)
+RETURNS UUID AS $$
+DECLARE
+  v_order_id   UUID;
+  v_status     TEXT;
+  v_notes      TEXT;
+  item         RECORD;
+  v_override   JSONB;
+  v_quantity   NUMERIC;
+  v_items      JSONB := '[]'::JSONB;
+  v_return_id  UUID;
+BEGIN
+  SELECT order_id, status, notes INTO v_order_id, v_status, v_notes
+  FROM return_requests WHERE id = p_request_id FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Return request % not found', p_request_id;
+  END IF;
+  IF v_status <> 'pending' THEN
+    RAISE EXCEPTION 'Return request % is not pending', p_request_id;
+  END IF;
+
+  FOR item IN SELECT * FROM return_request_items WHERE return_request_id = p_request_id LOOP
+    v_quantity := item.quantity;
+    v_override := NULL;
+
+    IF p_overrides IS NOT NULL THEN
+      SELECT o INTO v_override
+      FROM jsonb_array_elements(p_overrides) o
+      WHERE (o->>'returnRequestItemId')::UUID = item.id;
+
+      IF v_override IS NOT NULL AND v_override ? 'quantity' THEN
+        v_quantity := (v_override->>'quantity')::NUMERIC;
+      END IF;
+    END IF;
+
+    IF v_quantity <= 0 THEN
+      RAISE EXCEPTION 'Quantity must be greater than 0 (return request item %)', item.id;
+    END IF;
+
+    v_items := v_items || jsonb_build_object('orderItemId', item.order_item_id, 'quantity', v_quantity);
+  END LOOP;
+
+  v_return_id := record_return(v_order_id, p_admin_id, v_items, v_notes);
+
+  UPDATE return_requests
+  SET status = 'approved', reviewed_by = p_admin_id, reviewed_at = now()
+  WHERE id = p_request_id;
+
+  RETURN v_return_id;
+END;
+$$ LANGUAGE plpgsql SET search_path = public;
+
 -- Helper to read current user's role without RLS recursion
 CREATE OR REPLACE FUNCTION public.get_my_role()
 RETURNS TEXT AS $$
@@ -418,6 +599,8 @@ ALTER TABLE orders         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE returns        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE return_items   ENABLE ROW LEVEL SECURITY;
+ALTER TABLE return_requests      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE return_request_items ENABLE ROW LEVEL SECURITY;
 
 -- Finishes
 CREATE POLICY "Public Read Finishes"  ON finishes FOR SELECT USING (true);
@@ -481,8 +664,29 @@ CREATE POLICY "Admin All Returns"        ON returns      FOR ALL    USING (get_m
 CREATE POLICY "Public Read Return Items" ON return_items FOR SELECT USING (true);
 CREATE POLICY "Admin All Return Items"   ON return_items FOR ALL    USING (get_my_role() = 'admin');
 
+-- Return Requests — same convention as Orders: writes go through the
+-- service-role client in route handlers (seller create, admin approve/reject).
+CREATE POLICY "Sellers can read own return requests"
+  ON return_requests FOR SELECT USING (seller_id = auth.uid());
+
+CREATE POLICY "Admin all return requests"
+  ON return_requests FOR ALL USING (get_my_role() = 'admin');
+
+CREATE POLICY "Sellers can read own return request items"
+  ON return_request_items FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM return_requests
+      WHERE return_requests.id = return_request_items.return_request_id
+        AND return_requests.seller_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Admin all return request items"
+  ON return_request_items FOR ALL USING (get_my_role() = 'admin');
+
 -- Realtime — lets the admin dashboard subscribe to postgres_changes on orders.
 ALTER PUBLICATION supabase_realtime ADD TABLE orders;
+ALTER PUBLICATION supabase_realtime ADD TABLE return_requests;
 
 -- ============================================================
 -- Seed data

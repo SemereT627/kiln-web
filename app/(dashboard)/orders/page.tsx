@@ -66,6 +66,18 @@ interface OrderReturn {
   items: { id: string; orderItemId: string; quantity: number }[];
 }
 
+interface OrderReturnRequest {
+  id: string;
+  status: "pending" | "approved" | "rejected";
+  notes: string | null;
+  rejectionReason: string | null;
+  createdAt: string;
+  reviewedAt: string | null;
+  sellerName: string | null;
+  reviewedByName: string | null;
+  items: { id: string; orderItemId: string; quantity: number }[];
+}
+
 interface Order {
   id: string;
   status: OrderStatus;
@@ -84,6 +96,8 @@ interface Order {
   outstandingTotal: number;
   hasReturns: boolean;
   returns?: OrderReturn[];
+  returnRequests?: OrderReturnRequest[];
+  pendingReturnRequestCount?: number;
 }
 
 const STATUS_TABS: { label: string; value: FilterMode }[] = [
@@ -125,6 +139,11 @@ export default function OrdersPage() {
   const [returnQuantities, setReturnQuantities] = useState<Record<string, string>>({});
   const [priceEdits, setPriceEdits] = useState<Record<string, string>>({});
   const [quantityEdits, setQuantityEdits] = useState<Record<string, string>>({});
+  const [returnRequestQuantityEdits, setReturnRequestQuantityEdits] = useState<
+    Record<string, string>
+  >({});
+  const [returnRequestRejectTarget, setReturnRequestRejectTarget] = useState<string | null>(null);
+  const [returnRequestRejectReason, setReturnRequestRejectReason] = useState("");
 
   const { data: response, isLoading } = useQuery({
     queryKey: ["orders", filterMode],
@@ -154,6 +173,8 @@ export default function OrdersPage() {
     rejectMutation,
     paymentStatusMutation,
     returnMutation,
+    approveReturnRequestMutation,
+    rejectReturnRequestMutation,
   } = useOrderMutations();
 
   const orders: Order[] = response?.data || [];
@@ -187,6 +208,9 @@ export default function OrdersPage() {
     setReturnQuantities({});
     setPriceEdits({});
     setQuantityEdits({});
+    setReturnRequestQuantityEdits({});
+    setReturnRequestRejectTarget(null);
+    setReturnRequestRejectReason("");
   };
 
   const priceForItem = (item: OrderItem) => {
@@ -253,6 +277,43 @@ export default function OrdersPage() {
           setReturnOpen(false);
           setReturnNotes("");
           setReturnQuantities({});
+        },
+      },
+    );
+  };
+
+  const approveReturnRequest = (rr: OrderReturnRequest) => {
+    if (!selectedOrder) return;
+    const overrides = rr.items
+      .map((item) => {
+        const edit = returnRequestQuantityEdits[item.id];
+        const quantity =
+          edit !== undefined && edit !== "" && Number(edit) !== item.quantity
+            ? Number(edit)
+            : undefined;
+        return { returnRequestItemId: item.id, quantity };
+      })
+      .filter((o) => o.quantity !== undefined);
+
+    approveReturnRequestMutation.mutate({
+      orderId: selectedOrder.id,
+      requestId: rr.id,
+      overrides,
+    });
+  };
+
+  const submitReturnRequestRejection = () => {
+    if (!selectedOrder || !returnRequestRejectTarget || !returnRequestRejectReason.trim()) return;
+    rejectReturnRequestMutation.mutate(
+      {
+        orderId: selectedOrder.id,
+        requestId: returnRequestRejectTarget,
+        reason: returnRequestRejectReason.trim(),
+      },
+      {
+        onSuccess: () => {
+          setReturnRequestRejectTarget(null);
+          setReturnRequestRejectReason("");
         },
       },
     );
@@ -369,6 +430,12 @@ export default function OrdersPage() {
                           <Badge variant="outline" className="text-[10px] gap-1">
                             <Undo2 className="h-3 w-3" />
                             Has returns
+                          </Badge>
+                        )}
+                        {!!order.pendingReturnRequestCount && (
+                          <Badge className="text-[10px] gap-1 bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 hover:bg-amber-100">
+                            <Undo2 className="h-3 w-3" />
+                            Return requested
                           </Badge>
                         )}
                       </div>
@@ -511,6 +578,82 @@ export default function OrdersPage() {
                     ETB
                   </span>
                 </div>
+
+                {selectedOrder.returnRequests
+                  ?.filter((rr) => rr.status === "pending")
+                  .map((rr) => (
+                    <div
+                      key={rr.id}
+                      className="flex flex-col gap-2.5 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-amber-600">
+                          Return requested
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(rr.createdAt).toLocaleString()}
+                        </p>
+                      </div>
+                      {rr.sellerName && (
+                        <p className="text-xs text-muted-foreground -mt-1.5">
+                          Requested by {rr.sellerName}
+                        </p>
+                      )}
+                      <div className="flex flex-col gap-1.5">
+                        {rr.items.map((item) => {
+                          const orderItem = selectedOrder.items.find(
+                            (i) => i.id === item.orderItemId,
+                          );
+                          return (
+                            <div key={item.id} className="flex items-center justify-between gap-2 text-sm">
+                              <span className="truncate">
+                                {orderItem?.productName ?? "Unknown item"}
+                              </span>
+                              <Input
+                                type="number"
+                                min={0.01}
+                                step="any"
+                                className="h-7 w-24 text-right"
+                                value={returnRequestQuantityEdits[item.id] ?? String(item.quantity)}
+                                onChange={(e) =>
+                                  setReturnRequestQuantityEdits((prev) => ({
+                                    ...prev,
+                                    [item.id]: e.target.value,
+                                  }))
+                                }
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {rr.notes && <p className="text-xs">{rr.notes}</p>}
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 text-destructive hover:text-destructive"
+                          disabled={
+                            approveReturnRequestMutation.isPending ||
+                            rejectReturnRequestMutation.isPending
+                          }
+                          onClick={() => setReturnRequestRejectTarget(rr.id)}
+                        >
+                          Reject
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex-1"
+                          disabled={
+                            approveReturnRequestMutation.isPending ||
+                            rejectReturnRequestMutation.isPending
+                          }
+                          onClick={() => approveReturnRequest(rr)}
+                        >
+                          {approveReturnRequestMutation.isPending ? "Approving..." : "Approve"}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
 
                 {selectedOrder.returns && selectedOrder.returns.length > 0 && (
                   <div className="flex flex-col gap-2">
@@ -656,6 +799,43 @@ export default function OrdersPage() {
               }}
             >
               {rejectMutation.isPending ? "Rejecting..." : "Reject Order"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!returnRequestRejectTarget}
+        onOpenChange={(open) => {
+          if (!open) {
+            setReturnRequestRejectTarget(null);
+            setReturnRequestRejectReason("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject this return request?</DialogTitle>
+            <DialogDescription>
+              The seller will see this reason. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            placeholder="Reason for rejecting (required)..."
+            value={returnRequestRejectReason}
+            onChange={(e) => setReturnRequestRejectReason(e.target.value)}
+            rows={3}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReturnRequestRejectTarget(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={!returnRequestRejectReason.trim() || rejectReturnRequestMutation.isPending}
+              onClick={submitReturnRequestRejection}
+            >
+              {rejectReturnRequestMutation.isPending ? "Rejecting..." : "Reject Request"}
             </Button>
           </DialogFooter>
         </DialogContent>

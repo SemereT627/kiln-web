@@ -1,20 +1,13 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { logAudit } from "@/lib/audit";
+import { requireAdmin } from "@/lib/auth";
+import { pickSortColumn } from "@/lib/postgrest";
+import { parseBody } from "@/lib/validate";
+import { z } from "zod";
 
-async function requireAdmin() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  return profile?.role === "admin" ? user : null;
-}
+const SORTABLE_COLUMNS = ["name", "created_at"] as const;
+const createFinishSchema = z.object({ name: z.string().trim().min(1, "Name is required") });
 
 export async function GET(request: Request) {
   try {
@@ -22,7 +15,7 @@ export async function GET(request: Request) {
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
     const search = searchParams.get("search") || "";
-    const sortBy = searchParams.get("sortBy") || "name";
+    const sortBy = pickSortColumn(searchParams.get("sortBy") || "name", SORTABLE_COLUMNS, "name");
     const order = searchParams.get("order") || "asc";
 
     const supabase = await createClient();
@@ -53,14 +46,20 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const admin = await requireAdmin();
+  const admin = await requireAdmin(request);
   if (!admin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const parsed = await parseBody(request, createFinishSchema);
+  if ("response" in parsed) return parsed.response;
+
   const supabase = await createClient();
-  const body = await request.json();
-  const { data, error } = await supabase.from("finishes").insert([body]).select().single();
+  const { data, error } = await supabase
+    .from("finishes")
+    .insert([{ name: parsed.data.name }])
+    .select()
+    .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   await logAudit({
