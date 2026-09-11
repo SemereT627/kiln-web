@@ -9,13 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge"; // still used for brand + filter count badges
@@ -124,9 +118,7 @@ export default function InventoryPage() {
       const res = await fetch("/api/ceramic-types?limit=-1");
       if (!res.ok) throw new Error("Failed to fetch sizes");
       const json = await res.json();
-      const all = (json.data || [])
-        .map((t: any) => t.size)
-        .filter(Boolean);
+      const all = (json.data || []).map((t: any) => t.size).filter(Boolean);
       return Array.from(new Set(all)).sort() as string[];
     },
   });
@@ -180,6 +172,9 @@ export default function InventoryPage() {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const summary = response?.summary;
   const byType: any[] = summary?.byType || [];
+  const stockByUnit: Record<string, number> = summary?.stockByUnit || {};
+  const totalStockSqm = stockByUnit["m²"] ?? 0;
+  const totalStockLinear = stockByUnit["m"] ?? 0;
 
   const handleEdit = (e: React.MouseEvent, product: any) => {
     e.stopPropagation();
@@ -274,20 +269,34 @@ export default function InventoryPage() {
 
       {(isLoading || byType.length > 0) && (
         <div className="shrink-0 -mb-2">
-          <div className="flex items-center justify-between mb-2.5 px-0.5">
-            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Stock by Ceramic Type
+          <div className="flex flex-nowrap items-center justify-between gap-2 mb-2.5 px-0.5">
+            <h2 className="shrink-0 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Total Stock
             </h2>
             {!isLoading && (
-              <span className="text-xs text-muted-foreground">
-                {byType.length} type{byType.length === 1 ? "" : "s"}
-              </span>
+              <div className="flex min-w-0 items-center gap-1.5 rounded-full border bg-background px-3 py-1 shadow-xs">
+                <span className="text-xs font-bold tabular-nums">
+                  {totalStockSqm.toFixed(2)}
+                </span>
+                <span className="text-[9px] text-muted-foreground/60">m²</span>
+                {totalStockLinear > 0 && (
+                  <>
+                    <span className="text-muted-foreground/30">+</span>
+                    <span className="text-xs font-bold tabular-nums">
+                      {totalStockLinear.toFixed(2)}
+                    </span>
+                    <span className="text-[9px] text-muted-foreground/60">
+                      m
+                    </span>
+                  </>
+                )}
+              </div>
             )}
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-0.5 px-0.5">
+          <div className="flex gap-3 overflow-x-auto pb-2 px-1 snap-x snap-mandatory">
             {isLoading
               ? Array.from({ length: 5 }).map((_, i) => (
-                  <Card key={i} className="shrink-0 w-52 py-0">
+                  <Card key={i} className="shrink-0 w-52 py-0 snap-start">
                     <CardContent className="p-4 space-y-2">
                       <div className="flex items-start justify-between gap-2">
                         <Skeleton className="h-4 w-32" />
@@ -302,52 +311,55 @@ export default function InventoryPage() {
                   </Card>
                 ))
               : byType.map((t: any) => (
-              <Card
-                key={t.typeId}
-                className="shrink-0 w-52 py-0 gap-0"
-              >
-                <CardContent className="p-4 space-y-2">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-sm font-semibold leading-tight line-clamp-2">
-                      {t.label}
-                    </p>
-                    <Badge variant="secondary" className="shrink-0 text-[10px]">
-                      {t.productCount}
-                    </Badge>
-                  </div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-bold tabular-nums tracking-tight">
-                      {Number(t.currentStock).toFixed(2)}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground/60">
-                      {t.measurementUnit}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-[11px] text-muted-foreground pt-1 border-t border-dashed">
-                    <span className="pt-1.5">
-                      Sold{" "}
-                      <span className="tabular-nums font-medium text-blue-600 dark:text-blue-400">
-                        {Number(t.soldStock).toFixed(2)}
-                      </span>
-                    </span>
-                    <span className="pt-1.5">
-                      Initial{" "}
-                      <span className="tabular-nums font-medium text-foreground">
-                        {Number(t.initialStock).toFixed(2)}
-                      </span>
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
+                  <Card
+                    key={t.typeId}
+                    className="shrink-0 w-52 py-0 gap-0 snap-start"
+                  >
+                    <CardContent className="p-4 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-sm font-semibold leading-tight line-clamp-2">
+                          {t.label}
+                        </p>
+                        <Badge
+                          variant="secondary"
+                          className="shrink-0 text-[10px]"
+                        >
+                          {t.productCount}
+                        </Badge>
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-xl font-bold tabular-nums tracking-tight">
+                          {Number(t.currentStock).toFixed(2)}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground/60">
+                          {t.measurementUnit}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-[11px] text-muted-foreground pt-1 border-t border-dashed">
+                        <span className="pt-1.5">
+                          Sold{" "}
+                          <span className="tabular-nums font-medium text-primary">
+                            {Number(t.soldStock).toFixed(2)}
+                          </span>
+                        </span>
+                        <span className="pt-1.5">
+                          Initial{" "}
+                          <span className="tabular-nums font-medium text-foreground">
+                            {Number(t.initialStock).toFixed(2)}
+                          </span>
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
                 ))}
           </div>
         </div>
       )}
 
-      <Card className="py-0 gap-0 flex-1 flex flex-col overflow-hidden hover:shadow-xs shadow-xs">
-        <CardHeader className="bg-muted/30 border-b shrink-0 py-3.5 gap-0">
+      <div className="flex-1 flex flex-col overflow-hidden rounded-lg border">
+        <div className="bg-muted/30 border-b shrink-0 py-3.5 px-4">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="relative flex-1 min-w-[140px] max-w-sm">
+            <div className="relative flex-1 min-w-25 max-w-sm">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search products..."
@@ -382,9 +394,10 @@ export default function InventoryPage() {
                     "h-9 gap-2",
                     hasActiveFilters && "border-primary bg-primary/5",
                   )}
+                  aria-label="Filters"
                 >
                   <Filter className="h-4 w-4" />
-                  Filters
+                  <span className="hidden sm:inline">Filters</span>
                   {hasActiveFilters && (
                     <Badge
                       variant="secondary"
@@ -508,12 +521,14 @@ export default function InventoryPage() {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
-                    size="sm"
-                    className="h-9 gap-2 rounded-r-none"
+                    size="icon"
+                    className="h-9 w-9 rounded-r-none"
+                    aria-label={`Sort by ${
+                      SORT_OPTIONS.find((o) => o.key === sortConfig.key)
+                        ?.label ?? "Recent"
+                    }`}
                   >
-                    Sort:{" "}
-                    {SORT_OPTIONS.find((o) => o.key === sortConfig.key)?.label ??
-                      "Recent"}
+                    <ArrowUpDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-48">
@@ -540,19 +555,9 @@ export default function InventoryPage() {
                 {getSortIcon(sortConfig.key)}
               </Button>
             </div>
-
-            <div className="ml-auto flex items-center gap-2 rounded-full border bg-background px-3.5 py-1.5 shadow-xs">
-              <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                Total Stock
-              </span>
-              <span className="text-sm font-bold tabular-nums">
-                {(summary?.totalStock ?? 0).toFixed(2)}
-              </span>
-              <span className="text-[10px] text-muted-foreground/60">m²</span>
-            </div>
           </div>
-        </CardHeader>
-        <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
+        </div>
+        <div className="flex-1 flex flex-col overflow-hidden">
           {/* Mobile card list */}
           <div className="md:hidden flex-1 min-h-0 overflow-y-auto p-4">
             {isLoading ? (
@@ -599,7 +604,11 @@ export default function InventoryPage() {
                   isAdmin ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 p-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 p-0"
+                        >
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -732,13 +741,27 @@ export default function InventoryPage() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell><Skeleton className="h-3.5 w-16" /></TableCell>
-                      <TableCell><Skeleton className="h-3.5 w-12" /></TableCell>
-                      <TableCell><Skeleton className="h-3.5 w-14" /></TableCell>
-                      <TableCell><Skeleton className="h-3.5 w-14 ml-auto" /></TableCell>
-                      <TableCell><Skeleton className="h-3.5 w-14 ml-auto" /></TableCell>
-                      <TableCell><Skeleton className="h-4 w-16 ml-auto" /></TableCell>
-                      <TableCell><Skeleton className="h-3 w-3 rounded-full" /></TableCell>
+                      <TableCell>
+                        <Skeleton className="h-3.5 w-16" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-3.5 w-12" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-3.5 w-14" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-3.5 w-14 ml-auto" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-3.5 w-14 ml-auto" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-16 ml-auto" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-3 w-3 rounded-full" />
+                      </TableCell>
                       {isAdmin && <TableCell />}
                     </TableRow>
                   ))
@@ -767,7 +790,9 @@ export default function InventoryPage() {
                 ) : (
                   data.map((item: any) => {
                     const unit = item.measurementUnit || "m²";
-                    const finishDot = item.finish?.toLowerCase().includes("polish")
+                    const finishDot = item.finish
+                      ?.toLowerCase()
+                      .includes("polish")
                       ? "bg-indigo-400"
                       : item.finish?.toLowerCase().includes("decor")
                         ? "bg-violet-400"
@@ -835,7 +860,7 @@ export default function InventoryPage() {
                         </TableCell>
                         {/* Sold */}
                         <TableCell className="text-right">
-                          <span className="text-sm tabular-nums text-blue-600 dark:text-blue-400 font-medium">
+                          <span className="text-sm tabular-nums text-primary font-medium">
                             {item.soldStock.toFixed(2)}
                           </span>
                           <span className="text-[10px] text-muted-foreground/40 ml-0.5">
@@ -926,8 +951,8 @@ export default function InventoryPage() {
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {totalPages > 1 && (
         <div className="flex flex-wrap items-center justify-between gap-2 px-1 shrink-0">
@@ -940,8 +965,7 @@ export default function InventoryPage() {
             <span className="font-medium text-foreground">
               {Math.min(currentPage * itemsPerPage, totalItems)}
             </span>{" "}
-            of{" "}
-            <span className="font-medium text-foreground">{totalItems}</span>{" "}
+            of <span className="font-medium text-foreground">{totalItems}</span>{" "}
             products
           </p>
           <Pagination className="w-auto mx-0">
@@ -1001,7 +1025,9 @@ export default function InventoryPage() {
 
       <ConfirmDialog
         open={!!confirmDeleteId}
-        onOpenChange={(open) => { if (!open) setConfirmDeleteId(null); }}
+        onOpenChange={(open) => {
+          if (!open) setConfirmDeleteId(null);
+        }}
         title="Delete Product"
         description="This will permanently delete the product and all associated stock entries. This action cannot be undone."
         confirmLabel="Delete"

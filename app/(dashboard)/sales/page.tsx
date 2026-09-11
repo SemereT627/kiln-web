@@ -1,8 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -45,6 +52,7 @@ import {
 import { cn } from "@/lib/utils";
 import { ProductImage } from "@/components/product-image";
 import { EmptyState } from "@/components/empty-state";
+import { StockBadge } from "@/components/stock-badge";
 import {
   useQuery,
   useMutation,
@@ -171,22 +179,18 @@ export default function SalesPage() {
 
   if (userProfile && !isAdmin) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center gap-4 animate-in fade-in duration-500">
-        <div className="bg-amber-100 dark:bg-amber-900/30 p-5 rounded-full ring-8 ring-amber-500/5">
-          <ShieldAlert className="h-10 w-10 text-amber-600 dark:text-amber-400" />
-        </div>
-        <div className="max-w-md">
-          <h2 className="text-xl font-bold tracking-tight">
-            Access Restricted
-          </h2>
-          <p className="text-muted-foreground text-sm mt-1.5">
-            Only administrators are authorized to record sales transactions. If
-            you need to log a sale, please contact the store owner.
-          </p>
-        </div>
-        <Button asChild variant="outline" size="sm" className="mt-2">
-          <a href="/dashboard">Return to Dashboard</a>
-        </Button>
+      <div className="flex h-full items-center justify-center animate-in fade-in duration-500">
+        <EmptyState
+          icon={ShieldAlert}
+          variant="warning"
+          title="Access Restricted"
+          description="Only administrators are authorized to record sales transactions. If you need to log a sale, please contact the store owner."
+          action={
+            <Button asChild variant="outline" size="sm">
+              <a href="/dashboard">Return to Dashboard</a>
+            </Button>
+          }
+        />
       </div>
     );
   }
@@ -305,172 +309,190 @@ export default function SalesPage() {
 
   return (
     <div className="flex flex-col gap-6 pr-1 h-full overflow-hidden animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
-        <div>
-          <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
-            Point of Sale
-          </p>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mt-0.5">
-            Sales
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Select products to add them to the transaction.
-          </p>
-        </div>
-
-        <div className="relative w-full md:w-96">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by name, ID, or brand..."
-            className="pl-10 h-10 rounded-xl"
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
-          {searchTerm && (
-            <button
-              type="button"
-              aria-label="Clear search"
-              onClick={() => {
-                setSearchTerm("");
-                setCurrentPage(1);
-              }}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
+      <div className="shrink-0">
+        <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
+          Sales
+        </p>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mt-0.5">
+          New Sale
+        </h1>
+        <p className="text-muted-foreground text-sm mt-0.5">
+          Select products to add them to the transaction.
+        </p>
       </div>
 
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-6 pb-2">
-        {/* Product Catalog */}
+        {/* Product Catalog — takes the full width until something's in the
+            cart, so the Transaction panel doesn't reserve empty space up front. */}
         <div
           className={cn(
-            "lg:col-span-8 flex flex-col min-h-0 gap-4",
+            "flex flex-col min-h-0 gap-4",
+            cart.length > 0 ? "lg:col-span-8" : "lg:col-span-12",
             cart.length > 0 && "pb-20 lg:pb-0",
           )}
         >
-          <Card className="py-0 gap-0 flex-1 flex flex-col overflow-hidden hover:shadow-xs shadow-xs">
-            <CardHeader className="py-3.5 px-5 shrink-0 border-b bg-muted/30 gap-0">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base">Product Catalog</CardTitle>
-                <Badge variant="outline" className="font-normal">
-                  {totalItems} items
-                </Badge>
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 shrink-0">
+            <div className="flex items-center gap-2 flex-1 min-w-0">
+              <h2 className="text-base font-semibold">Products</h2>
+              <Badge variant="outline" className="font-normal shrink-0">
+                {totalItems} items
+              </Badge>
+            </div>
+            <div className="relative w-full sm:w-72 shrink-0">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, ID, or brand..."
+                className="pl-10 h-9 rounded-xl"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setCurrentPage(1);
+                  }}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div
+            className={cn(
+              "flex-1 min-h-0 flex flex-col rounded-lg border overflow-hidden transition-opacity duration-200",
+              isFetching && !isLoading && "opacity-50 pointer-events-none",
+            )}
+          >
+            {isLoading ? (
+              <div className="flex flex-col gap-2 p-3">
+                {Array.from({ length: skeletonCount }).map((_, i) => (
+                  <Skeleton key={i} className="rounded-lg h-14" />
+                ))}
               </div>
-            </CardHeader>
-            <CardContent className="flex-1 overflow-auto p-4 flex flex-col">
-              <div
-                className={cn(
-                  "grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 content-start transition-opacity duration-200",
-                  isFetching && !isLoading && "opacity-50 pointer-events-none",
-                )}
-              >
-                {isLoading ? (
-                  Array.from({ length: skeletonCount }).map((_, i) => (
-                    <Skeleton key={i} className="rounded-xl h-[88px]" />
-                  ))
-                ) : data.length === 0 ? (
-                  <div className="col-span-full">
-                    <EmptyState
-                      icon={Package}
-                      title="No products found"
-                      description="Try a different search term."
-                    />
-                  </div>
-                ) : (
-                  data.map((item: any) => {
+            ) : data.length === 0 ? (
+              <EmptyState
+                icon={Package}
+                title="No products found"
+                description="Try a different search term."
+              />
+            ) : (
+              <Table containerClassName="flex-1 min-h-0 overflow-auto">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="sticky top-0 z-10 bg-background pl-4">
+                      Product
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-10 bg-background">
+                      Brand · Size
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-10 bg-background text-right">
+                      Stock
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-10 bg-background text-right pr-4">
+                      Price
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {data.map((item: any) => {
                     const inCartQty = existingCartQtyFor(item._id);
                     const isOutOfStock = item.currentStock <= 0;
                     const isLow = !isOutOfStock && item.currentStock <= 5;
                     const isInCart = inCartQty > 0;
                     return (
-                      <button
-                        type="button"
+                      <TableRow
                         key={item._id}
-                        disabled={isOutOfStock}
                         onClick={() => {
                           if (isOutOfStock) return;
                           openProductDialog(item);
                         }}
                         className={cn(
-                          "group relative flex text-left rounded-xl border transition-all duration-150 p-3 gap-3 items-center",
+                          "transition-colors",
                           isOutOfStock
-                            ? "opacity-40 cursor-not-allowed bg-muted border-transparent"
+                            ? "opacity-40 cursor-not-allowed"
                             : isInCart
-                              ? "bg-primary/5 border-primary/40 ring-1 ring-primary/20 shadow-xs cursor-pointer active:scale-[0.98]"
-                              : "bg-card border-border hover:border-primary/40 hover:shadow-md shadow-xs cursor-pointer active:scale-[0.98]",
+                              ? "bg-primary/5 hover:bg-primary/10 cursor-pointer"
+                              : "cursor-pointer hover:bg-muted/40",
                         )}
                       >
-                        {isInCart && (
-                          <span className="absolute -top-1.5 -right-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground shadow">
-                            {inCartQty}
-                          </span>
-                        )}
-                        <ProductImage
-                          src={item.imageUrl}
-                          alt={item.name}
-                          className="h-12 w-12 shrink-0 rounded-lg ring-1 ring-border"
-                          iconSize="sm"
-                          sizes="48px"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-semibold truncate text-sm leading-tight text-foreground">
-                            {item.name}
-                          </p>
-                          <p className="text-[10px] uppercase tracking-wide font-medium mt-0.5 text-muted-foreground">
-                            {item.brand} · {item.size}
-                          </p>
-                          <div className="mt-1.5 flex items-center gap-1.5">
-                            {isOutOfStock ? (
-                              <span className="text-[11px] font-semibold text-destructive">
-                                Out of Stock
-                              </span>
-                            ) : (
-                              <>
-                                <span className="text-[11px] font-bold tabular-nums text-foreground">
-                                  {item.currentStock.toFixed(2)}
-                                </span>
-                                <span className="text-[10px] text-muted-foreground">
-                                  {item.measurementUnit || "m²"}
-                                </span>
-                                {isLow && (
-                                  <span className="ml-auto text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400">
-                                    Low
-                                  </span>
+                        <TableCell className="pl-4">
+                          <div className="flex items-center gap-3">
+                            <ProductImage
+                              src={item.imageUrl}
+                              alt={item.name}
+                              className="h-10 w-10 shrink-0 rounded-lg ring-1 ring-border"
+                              iconSize="sm"
+                              sizes="40px"
+                            />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="font-semibold text-sm truncate">
+                                  {item.name}
+                                </p>
+                                {isInCart && (
+                                  <Badge className="shrink-0 bg-primary text-primary-foreground hover:bg-primary">
+                                    {inCartQty} in cart
+                                  </Badge>
                                 )}
-                              </>
-                            )}
+                              </div>
+                              <p className="text-[11px] text-muted-foreground font-mono mt-0.5">
+                                {item.productId}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                        {item.pricePerUnit != null && (
-                          <div className="shrink-0 text-right">
-                            <p className="text-[11px] font-semibold tabular-nums text-muted-foreground">
-                              {Number(item.pricePerUnit).toFixed(0)}
-                            </p>
-                            <p className="text-[9px] uppercase text-muted-foreground/60">
-                              ETB/{item.measurementUnit || "m²"}
-                            </p>
-                          </div>
-                        )}
-                      </button>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {item.brand} · {item.size}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {isOutOfStock ? (
+                            <StockBadge stock={item.currentStock} size="sm" />
+                          ) : (
+                            <div className="flex items-center justify-end gap-1.5">
+                              <span className="text-sm font-bold tabular-nums text-foreground">
+                                {item.currentStock.toFixed(2)}
+                              </span>
+                              <span className="text-[11px] text-muted-foreground">
+                                {item.measurementUnit || "m²"}
+                              </span>
+                              {isLow && (
+                                <StockBadge
+                                  stock={item.currentStock}
+                                  size="sm"
+                                />
+                              )}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="pr-4 text-right">
+                          {item.pricePerUnit != null ? (
+                            <>
+                              <span className="text-sm font-semibold tabular-nums text-foreground">
+                                {Number(item.pricePerUnit).toFixed(0)}
+                              </span>
+                              <span className="text-[11px] text-muted-foreground ml-1">
+                                ETB/{item.measurementUnit || "m²"}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
                     );
-                  })
-                )}
-              </div>
-
-              {!isLoading && data.length > 0 && (
-                <div className="mt-auto flex items-center justify-center gap-2 pt-8 pb-2 text-xs text-muted-foreground">
-                  <span className="h-px w-8 bg-border" />
-                  Showing {data.length} of {totalItems} products
-                  <span className="h-px w-8 bg-border" />
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </div>
 
           {totalPages > 1 && (
             <div className="flex flex-wrap items-center justify-between gap-2 px-1 shrink-0">
@@ -518,38 +540,37 @@ export default function SalesPage() {
           )}
         </div>
 
-        {/* Transaction Panel — persistent sidebar on desktop */}
-        <Card className="py-0 gap-0 hidden lg:flex lg:col-span-4 flex-col bg-card h-full overflow-hidden shadow-md border-primary/10">
-          <CardHeader className="border-b bg-muted/30 shrink-0 py-3.5 gap-0">
-            <CardTitle className="text-base flex items-center justify-between">
-              <span className="flex items-center gap-2.5">
+        {/* Transaction Panel — only takes up space once there's something to
+            check out, sliding in from the right instead of sitting empty. */}
+        {cart.length > 0 && (
+          <div className="hidden lg:col-span-4 lg:flex flex-col min-h-0 animate-in slide-in-from-right-8 fade-in duration-300">
+            <div className="flex items-center justify-between border-b pb-3 shrink-0">
+              <span className="flex items-center gap-2.5 text-base font-semibold">
                 <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10">
                   <ShoppingCart className="h-4 w-4 text-primary" />
                 </span>
                 Transaction
               </span>
-              {cart.length > 0 && (
-                <Badge variant="outline" className="font-normal">
-                  {cart.length} item{cart.length !== 1 ? "s" : ""}
-                </Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
+              <Badge variant="outline" className="font-normal">
+                {cart.length} item{cart.length !== 1 ? "s" : ""}
+              </Badge>
+            </div>
 
-          <CardContent className="flex-1 p-4 flex flex-col min-h-0">
-            <CartPanelBody
-              cart={cart}
-              cartTotal={cartTotal}
-              cartHasIssues={cartHasIssues}
-              status={status}
-              pending={checkoutMutation.isPending}
-              onQtyChange={updateCartQty}
-              onPriceChange={updateCartPrice}
-              onRemove={removeCartLine}
-              onCheckout={handleCheckout}
-            />
-          </CardContent>
-        </Card>
+            <div className="flex-1 pt-4 flex flex-col min-h-0">
+              <CartPanelBody
+                cart={cart}
+                cartTotal={cartTotal}
+                cartHasIssues={cartHasIssues}
+                status={status}
+                pending={checkoutMutation.isPending}
+                onQtyChange={updateCartQty}
+                onPriceChange={updateCartPrice}
+                onRemove={removeCartLine}
+                onCheckout={handleCheckout}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Floating transaction bar — below lg, mirrors the tylio-mobile cart bar */}
@@ -574,7 +595,7 @@ export default function SalesPage() {
 
       {/* Transaction review sheet — below lg */}
       <Sheet open={cartSheetOpen} onOpenChange={setCartSheetOpen}>
-        <SheetContent className="sm:max-w-md flex flex-col gap-0 p-0">
+        <SheetContent className="data-[side=right]:w-full data-[side=right]:sm:max-w-md flex flex-col gap-0 p-0">
           <SheetHeader className="border-b p-4 shrink-0">
             <SheetTitle className="flex items-center gap-2.5">
               <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10">
@@ -760,7 +781,7 @@ function CartPanelBody({
             className={cn(
               "flex items-center gap-2 p-3 rounded-xl text-xs font-medium animate-in slide-in-from-bottom-2",
               status.type === "success"
-                ? "bg-emerald-500/10 text-emerald-600"
+                ? "bg-success/10 text-success"
                 : "bg-destructive/10 text-destructive",
             )}
           >
@@ -799,89 +820,96 @@ function CartLineItem({
   const exceedsStock = line.quantity > line.stock;
 
   return (
-    <div className="flex items-start gap-3 rounded-xl border p-3 animate-in fade-in duration-200">
-      <ProductImage
-        src={line.imageUrl}
-        alt={line.name}
-        className="h-12 w-12 shrink-0 rounded-lg ring-1 ring-border"
-        iconSize="sm"
-        sizes="48px"
-      />
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm truncate">{line.name}</p>
-        <p className="text-[10px] uppercase tracking-wide font-medium text-muted-foreground">
-          {line.brand} · {line.size}
-        </p>
+    <div className="flex flex-col gap-3 rounded-xl border p-3 animate-in fade-in duration-200">
+      {/* Top row: identity, full width for name/brand + a remove action */}
+      <div className="flex items-start gap-3">
+        <ProductImage
+          src={line.imageUrl}
+          alt={line.name}
+          className="h-12 w-12 shrink-0 rounded-lg ring-1 ring-border"
+          iconSize="sm"
+          sizes="48px"
+        />
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-sm truncate">{line.name}</p>
+          <p className="text-[10px] uppercase tracking-wide font-medium text-muted-foreground">
+            {line.brand} · {line.size}
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-9 w-9 shrink-0 text-muted-foreground hover:text-destructive"
+          onClick={onRemove}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
 
-        <div className="flex items-center gap-1.5 mt-2">
+      {/* Bottom row: quantity stepper and price/total each get their own
+          half instead of cramming into the identity row's leftover width. */}
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5">
           <Button
             variant="outline"
             size="icon"
-            className="h-6 w-6 rounded-full shrink-0"
+            className="h-9 w-9 rounded-full shrink-0"
             onClick={() =>
               onQtyChange(parseFloat((line.quantity - 1).toFixed(2)))
             }
           >
-            <Minus className="h-3 w-3" />
+            <Minus className="h-3.5 w-3.5" />
           </Button>
           <Input
             type="number"
             step="0.01"
             value={line.quantity}
             onChange={(e) => onQtyChange(parseFloat(e.target.value) || 0)}
-            className="w-16 h-6 text-center text-xs px-1 tabular-nums"
+            className="w-16 h-9 shrink-0 text-center text-sm px-1 tabular-nums"
           />
           <Button
             variant="outline"
             size="icon"
-            className="h-6 w-6 rounded-full shrink-0"
+            className="h-9 w-9 rounded-full shrink-0"
             onClick={() =>
               onQtyChange(parseFloat((line.quantity + 1).toFixed(2)))
             }
           >
-            <Plus className="h-3 w-3" />
+            <Plus className="h-3.5 w-3.5" />
           </Button>
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-[10px] text-muted-foreground shrink-0">
             {line.measurementUnit}
           </span>
         </div>
 
-        {exceedsStock && (
-          <p className="text-[10px] text-destructive mt-1">
-            Exceeds stock ({line.stock.toFixed(2)} {line.measurementUnit})
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          <div className="flex items-center gap-1">
+            <Input
+              type="number"
+              step="0.01"
+              value={line.priceAtSale}
+              onChange={(e) => onPriceChange(parseFloat(e.target.value) || 0)}
+              className="w-16 h-8 text-right text-xs px-1 tabular-nums"
+            />
+            <span className="text-[9px] text-muted-foreground">ETB</span>
+          </div>
+          <p className="text-xs font-bold tabular-nums">
+            {(line.quantity * line.priceAtSale).toFixed(2)}
           </p>
-        )}
-        {line.error && (
-          <p className="text-[10px] text-destructive mt-1 flex items-center gap-1">
-            <AlertCircle className="h-3 w-3 shrink-0" />
-            {line.error}
-          </p>
-        )}
+        </div>
       </div>
 
-      <div className="flex flex-col items-end gap-1 shrink-0">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-6 w-6 text-muted-foreground hover:text-destructive"
-          onClick={onRemove}
-        >
-          <Trash2 className="h-3.5 w-3.5" />
-        </Button>
-        <div className="flex items-center gap-1">
-          <Input
-            type="number"
-            step="0.01"
-            value={line.priceAtSale}
-            onChange={(e) => onPriceChange(parseFloat(e.target.value) || 0)}
-            className="w-16 h-6 text-right text-[10px] px-1 tabular-nums"
-          />
-          <span className="text-[9px] text-muted-foreground">ETB</span>
-        </div>
-        <p className="text-xs font-bold tabular-nums">
-          {(line.quantity * line.priceAtSale).toFixed(2)}
+      {exceedsStock && (
+        <p className="text-[10px] text-destructive -mt-1">
+          Exceeds stock ({line.stock.toFixed(2)} {line.measurementUnit})
         </p>
-      </div>
+      )}
+      {line.error && (
+        <p className="text-[10px] text-destructive -mt-1 flex items-center gap-1">
+          <AlertCircle className="h-3 w-3 shrink-0" />
+          {line.error}
+        </p>
+      )}
     </div>
   );
 }

@@ -119,7 +119,7 @@ export function CeramicDetailsDrawer({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="flex flex-col gap-0 p-4 overflow-y-auto data-[side=right]:w-[calc(100%-2rem)] data-[side=right]:sm:w-full data-[side=right]:sm:max-w-175">
+        <SheetContent className="flex flex-col gap-0 p-4 overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-175">
           <SheetHeader className="p-0 space-y-4 pr-6">
             <div className="flex items-center justify-between">
               <Badge variant="outline" className="font-mono text-[10px]">
@@ -366,7 +366,7 @@ export function CeramicDetailsDrawer({
 
       {/* ── Sold History Sheet ── */}
       <Sheet open={soldHistoryOpen} onOpenChange={setSoldHistoryOpen}>
-        <SheetContent className="flex flex-col gap-0 p-0 data-[side=right]:w-[calc(100%-2.5rem)] data-[side=right]:sm:w-full data-[side=right]:sm:max-w-175">
+        <SheetContent className="flex flex-col gap-0 p-0 data-[side=right]:w-full data-[side=right]:sm:max-w-175">
           <SheetHeader className="p-6 pb-4 border-b shrink-0">
             <SheetTitle className="flex items-center gap-2">
               <ShoppingCart className="h-4 w-4 text-primary" />

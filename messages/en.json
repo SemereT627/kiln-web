@@ -1,0 +1,85 @@
+{
+  "Sidebar": {
+    "groups": {
+      "catalog": "Catalog",
+      "sales": "Sales",
+      "administration": "Administration"
+    },
+    "items": {
+      "dashboard": "Dashboard",
+      "brands": "Brands",
+      "finishes": "Finishes",
+      "ceramicTypes": "Ceramic Types",
+      "inventory": "Inventory",
+      "newSale": "New Sale",
+      "salesLog": "Sales Log",
+      "orderApprovals": "Order Approvals",
+      "users": "Users",
+      "auditLogs": "Audit Logs"
+    }
+  },
+  "Dashboard": {
+    "liveDashboard": "Live Dashboard",
+    "welcomeBack": "Welcome back, {name}",
+    "greetingFallback": "Dashboard",
+    "subtitle": "Here's the state of your ceramic inventory right now.",
+    "overview": {
+      "eyebrow": "Overview",
+      "title": "Key metrics",
+      "description": "Snapshot of stock levels and catalog health across all products."
+    },
+    "trends": {
+      "eyebrow": "Trends",
+      "title": "Stock movement & activity",
+      "description": "How your top tile products are moving, plus what changed most recently."
+    },
+    "health": {
+      "eyebrow": "Inventory Health",
+      "title": "Distribution & alerts",
+      "description": "Where your stock sits, and what needs restocking soon."
+    },
+    "topTileProducts": {
+      "title": "Top Tile Products",
+      "description": "Stock vs. sold for the 8 highest-stock tile products (m²). Skirting excluded.",
+      "productsCount": "{count} products",
+      "currentStock": "Current Stock",
+      "totalSold": "Total Sold"
+    },
+    "recentInventory": {
+      "title": "Recent Inventory",
+      "description": "Latest products added or updated.",
+      "viewAll": "View all"
+    },
+    "stockByTileSize": {
+      "title": "Stock by Tile Size",
+      "description": "Current m² stock distribution across tile sizes.",
+      "total": "m² total"
+    },
+    "attentionRequired": {
+      "title": "Attention Required",
+      "description": "Products that are low or out of stock.",
+      "allGood": "All products are well-stocked",
+      "allGoodDescription": "Nothing needs restocking right now."
+    },
+    "lowStockModal": {
+      "title": "Low Stock Alerts",
+      "description": "{count, plural, one {# product} other {# products}} at 5 units or below."
+    }
+  },
+  "BentoStatGrid": {
+    "totalProducts": {
+      "label": "Total Products",
+      "description": "Unique items in catalog"
+    },
+    "tileStock": { "label": "Tile Stock" },
+    "skirtingStock": { "label": "Skirting Stock" },
+    "lowStockAlerts": {
+      "label": "Low Stock Alerts",
+      "attention": "Attention",
+      "allWellStocked": "All products well-stocked"
+    },
+    "stockByBrand": { "label": "Stock by Brand" },
+    "totalSold": { "label": "Total Sold" },
+    "totalStockValue": { "label": "Total Stock Value" }
+  }
+}

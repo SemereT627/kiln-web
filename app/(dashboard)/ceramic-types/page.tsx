@@ -1,13 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -46,7 +39,6 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-import { createClient } from "@/lib/supabase/client";
 import {
   Select,
   SelectContent,
@@ -56,7 +48,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useUser } from "@/components/user-provider";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DataCardList } from "@/components/data-card-list";
@@ -69,7 +61,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const supabase = createClient();
 
 export default function CeramicTypesPage() {
   const user = useUser();
@@ -87,7 +78,6 @@ export default function CeramicTypesPage() {
   const [finishId, setFinishId] = useState("");
   const [unit, setUnit] = useState("m²");
   const [price, setPrice] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Sorting state
@@ -181,69 +171,79 @@ export default function CeramicTypesPage() {
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Both create and update go through the API routes (not the browser
+  // Supabase client directly) so admin actions are audit-logged — the
+  // route handlers call logAudit() on every write.
+  const saveMutation = useMutation({
+    mutationFn: async (payload: {
+      brand_id: string;
+      size: string;
+      finish_id: string;
+      measurement_unit: string;
+      price_per_unit: number | null;
+    }) => {
+      const url = editingType
+        ? `/api/ceramic-types/${editingType.id}`
+        : "/api/ceramic-types";
+      const res = await fetch(url, {
+        method: editingType ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(
+          data.error ||
+            (editingType ? "Failed to update type" : "Failed to add type"),
+        );
+      }
+      return data;
+    },
+    onSuccess: () => {
+      toast.success(editingType ? "Ceramic type updated" : "Ceramic type added");
+      setIsModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["ceramic-types"] });
+    },
+    onError: (err: Error) => {
+      toast.error(`Error: ${err.message}`);
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/ceramic-types/${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete type");
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Ceramic type deleted");
+      queryClient.invalidateQueries({ queryKey: ["ceramic-types"] });
+    },
+    onError: (err: Error) => {
+      toast.error(`Error: ${err.message}`);
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!brandId || !size || !finishId) {
       toast.error("Please fill in all required fields");
       return;
     }
-
-    setSubmitting(true);
-
-    const payload = {
+    saveMutation.mutate({
       brand_id: brandId,
       size,
       finish_id: finishId,
       measurement_unit: unit,
       price_per_unit: price ? parseFloat(price) : null,
-    };
-
-    try {
-      let error;
-      if (editingType) {
-        const res = await fetch(`/api/ceramic-types/${editingType.id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) {
-          const data = await res.json();
-          error = { message: data.error || "Failed to update type" };
-        }
-      } else {
-        const { error: insertError } = await supabase
-          .from("ceramic_types")
-          .insert([payload]);
-        error = insertError;
-      }
-
-      if (error) {
-        toast.error(`Error: ${error.message}`);
-      } else {
-        toast.success(
-          editingType ? "Ceramic type updated" : "Ceramic type added",
-        );
-        setIsModalOpen(false);
-        queryClient.invalidateQueries({ queryKey: ["ceramic-types"] });
-      }
-    } catch (err: any) {
-      toast.error(`Error: ${err.message}`);
-    } finally {
-      setSubmitting(false);
-    }
+    });
   };
 
-  const handleDelete = async (id: string) => {
-    const { error } = await supabase
-      .from("ceramic_types")
-      .delete()
-      .eq("id", id);
-    if (error) {
-      toast.error(`Error: ${error.message}`);
-    } else {
-      toast.success("Ceramic type deleted");
-      queryClient.invalidateQueries({ queryKey: ["ceramic-types"] });
-    }
+  const handleDelete = (id: string) => {
+    deleteMutation.mutate(id);
   };
 
   const SORT_OPTIONS: { key: string; label: string }[] = [
@@ -273,8 +273,8 @@ export default function CeramicTypesPage() {
         )}
       </div>
 
-      <Card className="py-0 gap-0 flex-1 flex flex-col overflow-hidden">
-        <CardHeader className="py-3.5 px-5 border-b shrink-0 bg-muted/30 gap-0">
+      <div className="flex-1 flex flex-col overflow-hidden rounded-lg border">
+        <div className="py-3.5 px-5 border-b shrink-0 bg-muted/30">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-[140px] max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -294,12 +294,14 @@ export default function CeramicTypesPage() {
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="outline"
-                    size="sm"
-                    className="h-9 gap-2 rounded-r-none"
+                    size="icon"
+                    className="h-9 w-9 rounded-r-none"
+                    aria-label={`Sort by ${
+                      SORT_OPTIONS.find((o) => o.key === sortConfig.key)
+                        ?.label ?? "Recent"
+                    }`}
                   >
-                    Sort:{" "}
-                    {SORT_OPTIONS.find((o) => o.key === sortConfig.key)?.label ??
-                      "Recent"}
+                    <ArrowUpDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-48">
@@ -327,8 +329,8 @@ export default function CeramicTypesPage() {
               </Button>
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
+        </div>
+        <div className="flex-1 flex flex-col overflow-hidden">
           {/* Mobile card list */}
           <div className="md:hidden flex-1 min-h-0 overflow-y-auto p-4">
             {isLoading ? (
@@ -396,7 +398,7 @@ export default function CeramicTypesPage() {
                     label: "Price",
                     render: (t: any) =>
                       t.price_per_unit != null
-                        ? Number(t.price_per_unit).toFixed(2)
+                        ? `${Number(t.price_per_unit).toFixed(2)} ETB`
                         : "—",
                   },
                 ]}
@@ -507,12 +509,12 @@ export default function CeramicTypesPage() {
                         </TableCell>
                         <TableCell className="text-right tabular-nums text-sm text-muted-foreground">
                           {t.price_per_unit != null
-                            ? Number(t.price_per_unit).toFixed(2)
+                            ? `${Number(t.price_per_unit).toFixed(2)} ETB`
                             : "—"}
                         </TableCell>
                         {isAdmin && (
                           <TableCell>
-                            <div className="flex items-center justify-end gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="flex items-center justify-end gap-0.5">
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -539,8 +541,8 @@ export default function CeramicTypesPage() {
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {totalPages > 1 && (
         <div className="flex flex-wrap items-center justify-between gap-2 px-1 shrink-0">
@@ -553,8 +555,7 @@ export default function CeramicTypesPage() {
             <span className="font-medium text-foreground">
               {Math.min(currentPage * itemsPerPage, totalItems)}
             </span>{" "}
-            of <span className="font-medium text-foreground">{totalItems}</span>{" "}
-            ceramic types
+            of <span className="font-medium text-foreground">{totalItems}</span>
           </p>
           <Pagination className="w-auto mx-0">
             <PaginationContent className="gap-1.5">
@@ -693,8 +694,8 @@ export default function CeramicTypesPage() {
               </div>
             </div>
             <DialogFooter>
-              <Button type="submit" disabled={submitting}>
-                {submitting && (
+              <Button type="submit" disabled={saveMutation.isPending}>
+                {saveMutation.isPending && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
                 {editingType ? "Update Type" : "Add Type"}

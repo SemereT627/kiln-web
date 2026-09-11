@@ -24,7 +24,7 @@ import { EmptyState } from "@/components/empty-state";
 import { DataCardList } from "@/components/data-card-list";
 import { AuditDiffDialog, type CeramicLookup } from "@/components/audit-diff-dialog";
 import { AlertCircle, Calendar, User } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 
 type AuditLog = {
   id: string;
@@ -176,7 +176,7 @@ export default function AuditLogsPage() {
                   </span>
                 )}
                 renderTitle={(log) => log.targetTable}
-                renderSubtitle={(log) => new Date(log.createdAt).toLocaleString()}
+                renderSubtitle={(log) => formatDateTime(log.createdAt)}
                 renderTrailing={(log) => (
                   <Badge
                     className={cn(
@@ -276,7 +276,7 @@ export default function AuditLogsPage() {
                       <TableCell className="pl-4">
                         <div className="flex items-center gap-2 text-muted-foreground text-sm">
                           <Calendar className="size-3 opacity-50" />
-                          {new Date(log.createdAt).toLocaleString()}
+                          {formatDateTime(log.createdAt)}
                         </div>
                       </TableCell>
                       <TableCell>

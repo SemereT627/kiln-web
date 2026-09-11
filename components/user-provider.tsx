@@ -7,8 +7,26 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useSessionTimeout } from "@/hooks/use-session-timeout";
+import { normalizeLocale } from "@/i18n/locale";
+
+/**
+ * next-intl reads the active locale from this cookie (see i18n/request.ts) —
+ * the app has no [locale] URL segment, so this is the only thing that
+ * actually drives which message file gets served.
+ */
+function setLocaleCookie(locale: string) {
+  document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=31536000; samesite=lax`;
+}
+
+function readLocaleCookie(): string | undefined {
+  return document.cookie
+    .split("; ")
+    .find((row) => row.startsWith("NEXT_LOCALE="))
+    ?.split("=")[1];
+}
 
 type UserProfile = {
   id: string;
@@ -49,6 +67,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
+  const router = useRouter();
 
   /**
    * Fetch the current user's profile from Supabase.
@@ -76,13 +95,27 @@ export function UserProvider({ children }: { children: ReactNode }) {
       .eq("id", user.id)
       .single();
 
+    const locale = data?.locale ?? "en-US";
     setProfile({
       id: user.id,
       full_name: data?.full_name ?? null,
       role: data?.role ?? "viewer",
-      locale: data?.locale ?? "en-US",
+      locale,
       email: user.email ?? null,
     });
+
+    // On the initial load, make sure the locale cookie next-intl reads
+    // actually matches what's saved in the DB — otherwise a returning user
+    // on a fresh browser would silently see English until they manually
+    // reselect their language.
+    if (showLoading) {
+      const wanted = normalizeLocale(locale);
+      const current = normalizeLocale(readLocaleCookie());
+      if (wanted !== current) {
+        setLocaleCookie(wanted);
+        router.refresh();
+      }
+    }
 
     // Always clear the loading indicator once we have data.
     setIsLoading(false);
@@ -128,6 +161,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     if (!error) {
       setProfile((prev) => (prev ? { ...prev, locale } : null));
+      // Server components (including this one's messages) only re-resolve
+      // the locale on next request — set the cookie next-intl reads, then
+      // force that request.
+      setLocaleCookie(normalizeLocale(locale));
+      router.refresh();
     } else {
       console.error("Failed to update locale:", error);
       throw error;

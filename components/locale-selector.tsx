@@ -16,7 +16,7 @@ const locales = [
   { value: "am-ET", label: "አማርኛ" },
 ];
 
-export function LocaleSelector() {
+export function LocaleSelector({ className }: { className?: string }) {
   const user = useUser();
   const { updateLocale } = useUserActions();
 
@@ -25,7 +25,12 @@ export function LocaleSelector() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" aria-label="Select locale">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label="Select locale"
+          className={className}
+        >
           <Languages className="size-4" />
         </Button>
       </DropdownMenuTrigger>

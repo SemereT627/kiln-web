@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useOrdersRealtime } from "@/hooks/use-orders-realtime";
 import { useOrderMutations } from "@/hooks/use-order-mutations";
 import { useUser } from "@/components/user-provider";
+import { cn } from "@/lib/utils";
 
 type PaymentMethod = "cash" | "bank_transfer" | "credit";
 
@@ -34,7 +35,7 @@ const PAYMENT_ICON: Record<PaymentMethod, React.ElementType> = {
   credit: HandCoins,
 };
 
-export function NotificationsBell() {
+export function NotificationsBell({ className }: { className?: string }) {
   const user = useUser();
   const enabled = user?.role === "admin";
   useOrdersRealtime(enabled);
@@ -71,10 +72,22 @@ export function NotificationsBell() {
       }}
     >
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative rounded-full">
+        <Button
+          variant="ghost"
+          size="icon"
+          aria-label={
+            total > 0
+              ? `Notifications, ${total} pending order${total !== 1 ? "s" : ""}`
+              : "Notifications"
+          }
+          className={cn("relative rounded-full", className)}
+        >
           <Bell className="h-[18px] w-[18px]" />
           {total > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground">
+            <span
+              aria-hidden="true"
+              className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground"
+            >
               {total}
             </span>
           )}

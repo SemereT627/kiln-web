@@ -1,0 +1,85 @@
+{
+  "Sidebar": {
+    "groups": {
+      "catalog": "ካታሎግ",
+      "sales": "ሽያጭ",
+      "administration": "አስተዳደር"
+    },
+    "items": {
+      "dashboard": "ዳሽቦርድ",
+      "brands": "ብራንዶች",
+      "finishes": "አጨራረሶች",
+      "ceramicTypes": "የሴራሚክ አይነቶች",
+      "inventory": "ክምችት",
+      "newSale": "አዲስ ሽያጭ",
+      "salesLog": "የሽያጭ መዝገብ",
+      "orderApprovals": "የትዕዛዝ ማጽደቂያ",
+      "users": "ተጠቃሚዎች",
+      "auditLogs": "የኦዲት መዝገቦች"
+    }
+  },
+  "Dashboard": {
+    "liveDashboard": "የቀጥታ ዳሽቦርድ",
+    "welcomeBack": "እንኳን ደህና ተመለሱ፣ {name}",
+    "greetingFallback": "ዳሽቦርድ",
+    "subtitle": "የሴራሚክ ክምችትዎ የአሁኑ ሁኔታ እነሆ።",
+    "overview": {
+      "eyebrow": "አጠቃላይ እይታ",
+      "title": "ቁልፍ መለኪያዎች",
+      "description": "በሁሉም ምርቶች ላይ የክምችት መጠን እና የካታሎግ ጤንነት አጭር እይታ።"
+    },
+    "trends": {
+      "eyebrow": "አዝማሚያዎች",
+      "title": "የክምችት እንቅስቃሴ እና ተግባር",
+      "description": "ከፍተኛ ሽያጭ ያላቸው ንጣፍ ምርቶችዎ እንዴት እየተንቀሳቀሱ እንዳሉ፣ እና በቅርብ ጊዜ የተለወጠውን ያሳያል።"
+    },
+    "health": {
+      "eyebrow": "የክምችት ጤንነት",
+      "title": "ስርጭት እና ማንቂያዎች",
+      "description": "ክምችትዎ የት እንዳለ እና በቅርቡ መሞላት ያለበትን ያሳያል።"
+    },
+    "topTileProducts": {
+      "title": "ከፍተኛ የንጣፍ ምርቶች",
+      "description": "ለ8ቱ ከፍተኛ ክምችት ላላቸው የንጣፍ ምርቶች ክምችት እና የተሸጠ መጠን (m²)። ስክርቲንግ አልተካተተም።",
+      "productsCount": "{count} ምርቶች",
+      "currentStock": "የአሁኑ ክምችት",
+      "totalSold": "ጠቅላላ የተሸጠ"
+    },
+    "recentInventory": {
+      "title": "የቅርብ ጊዜ ክምችት",
+      "description": "በቅርቡ የተጨመሩ ወይም የተስተካከሉ ምርቶች።",
+      "viewAll": "ሁሉንም ይመልከቱ"
+    },
+    "stockByTileSize": {
+      "title": "በንጣፍ መጠን የተከፋፈለ ክምችት",
+      "description": "የአሁኑ m² ክምችት በንጣፍ መጠኖች ስርጭት።",
+      "total": "m² ጠቅላላ"
+    },
+    "attentionRequired": {
+      "title": "ትኩረት ያስፈልጋል",
+      "description": "ዝቅተኛ ወይም ያለቀባቸው ምርቶች።",
+      "allGood": "ሁሉም ምርቶች በበቂ ሁኔታ ተከማችተዋል",
+      "allGoodDescription": "አሁን ምንም መሞላት የሚያስፈልገው ነገር የለም።"
+    },
+    "lowStockModal": {
+      "title": "ዝቅተኛ ክምችት ማንቂያዎች",
+      "description": "{count, plural, one {# ምርት} other {# ምርቶች}} ከ5 ክፍል በታች።"
+    }
+  },
+  "BentoStatGrid": {
+    "totalProducts": {
+      "label": "ጠቅላላ ምርቶች",
+      "description": "በካታሎግ ውስጥ ልዩ ዕቃዎች"
+    },
+    "tileStock": { "label": "የንጣፍ ክምችት" },
+    "skirtingStock": { "label": "የስክርቲንግ ክምችት" },
+    "lowStockAlerts": {
+      "label": "ዝቅተኛ ክምችት ማንቂያዎች",
+      "attention": "ትኩረት",
+      "allWellStocked": "ሁሉም ምርቶች በበቂ ሁኔታ አሉ"
+    },
+    "stockByBrand": { "label": "በብራንድ የተከፋፈለ ክምችት" },
+    "totalSold": { "label": "ጠቅላላ የተሸጠ" },
+    "totalStockValue": { "label": "ጠቅላላ የክምችት ዋጋ" }
+  }
+}

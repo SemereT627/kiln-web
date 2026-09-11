@@ -137,34 +137,36 @@ export function AddUserForm({ open, onOpenChange, onSuccess }: AddUserFormProps)
               />
             </div>
 
-            <div className="grid gap-2">
-              <Label htmlFor="add-user-password" className="font-semibold">
-                Password <span className="text-destructive">*</span>
-              </Label>
-              <PasswordInput
-                id="add-user-password"
-                name="new-user-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Minimum 6 characters"
-                autoComplete="new-password"
-                minLength={6}
-                required
-              />
-            </div>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
+              <div className="grid gap-2 sm:col-span-3">
+                <Label htmlFor="add-user-password" className="font-semibold">
+                  Password <span className="text-destructive">*</span>
+                </Label>
+                <PasswordInput
+                  id="add-user-password"
+                  name="new-user-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Minimum 6 characters"
+                  autoComplete="new-password"
+                  minLength={6}
+                  required
+                />
+              </div>
 
-            <div className="grid gap-2">
-              <Label className="font-semibold">Role</Label>
-              <Select value={role} onValueChange={(v) => setRole(v as Role)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="viewer">Viewer</SelectItem>
-                  <SelectItem value="seller">Seller</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="grid gap-2 sm:col-span-1">
+                <Label className="font-semibold">Role</Label>
+                <Select value={role} onValueChange={(v) => setRole(v as Role)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="viewer">Viewer</SelectItem>
+                    <SelectItem value="seller">Seller</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {status.type !== "idle" && (

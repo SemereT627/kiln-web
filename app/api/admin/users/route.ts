@@ -113,6 +113,17 @@ export async function PATCH(request: Request) {
   if ("response" in parsed) return parsed.response;
   const { userId, role } = parsed.data;
 
+  // Mirrors the same guard on DELETE below — the UI hides the control for
+  // your own row, but that's not a substitute for enforcing it server-side.
+  // Without this, self-demotion (accidental or via a direct API call) could
+  // leave a sole admin locked out of the only page that can fix it.
+  if (userId === admin.id) {
+    return NextResponse.json(
+      { error: "You can't change your own role" },
+      { status: 400 },
+    );
+  }
+
   const serviceSupabase = await createServiceClient();
 
   const { data: before } = await serviceSupabase

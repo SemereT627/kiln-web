@@ -104,13 +104,20 @@ export async function GET(request: Request) {
     if (summaryError) throw summaryError;
 
     const totals = { initialStock: 0, soldStock: 0, currentStock: 0 };
+    // Stock is only meaningful summed within the same measurement unit —
+    // m² tile stock and linear-meter skirting stock are different physical
+    // quantities, so keep a running total per unit instead of one blended
+    // (and misleadingly-labeled) number.
+    const stockByUnit: Record<string, number> = {};
     const byType = (summaryRows || []).map((row: any) => {
       const rowCurrent = Number(row.current_stock) || 0;
       const rowInitial = Number(row.initial_stock) || 0;
       const rowSold = Number(row.sold_stock) || 0;
+      const rowUnit = row.measurement_unit || "m²";
       totals.initialStock += rowInitial;
       totals.soldStock += rowSold;
       totals.currentStock += rowCurrent;
+      stockByUnit[rowUnit] = (stockByUnit[rowUnit] ?? 0) + rowCurrent;
 
       const label = [row.brand_name, row.size, row.finish_name]
         .filter(Boolean)
@@ -165,6 +172,7 @@ export async function GET(request: Request) {
         totalStock: totals.currentStock,
         totalInitial: totals.initialStock,
         totalSold: totals.soldStock,
+        stockByUnit,
         byType,
       },
     });

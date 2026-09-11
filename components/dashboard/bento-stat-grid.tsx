@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTranslations } from "next-intl";
 import gsap from "gsap";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -15,11 +16,13 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+/** Semantic only — see components/stat-card.tsx for the same convention. */
 const ICON_STYLES: Record<string, string> = {
-  neutral: "bg-slate-500/10 text-slate-600 dark:text-slate-400",
-  emerald: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-  amber: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
-  violet: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
+  neutral: "bg-muted text-muted-foreground",
+  primary: "bg-primary/10 text-primary",
+  success: "bg-success/10 text-success",
+  warning: "bg-warning/15 text-warning-foreground dark:text-warning",
+  info: "bg-info/10 text-info",
 };
 
 function useCardMotion(count: number) {
@@ -133,17 +136,33 @@ function CardShell({
   cardRef,
   className,
   children,
+  onClick,
 }: {
   cardRef: (el: HTMLDivElement | null) => void;
   className?: string;
   children: React.ReactNode;
+  onClick?: () => void;
 }) {
   return (
     <div
       ref={cardRef}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
       className={cn(
         "min-w-0 rounded-2xl border bg-card p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-shadow duration-300",
         "hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.12)]",
+        onClick && "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
         className,
       )}
       style={{ willChange: "transform" }}
@@ -175,6 +194,7 @@ export function BentoStatGrid({
   sparklineData,
   lowStockCount,
   topAlert,
+  onLowStockClick,
   brandShare,
   stockValue,
   stockValueRevealed,
@@ -193,6 +213,7 @@ export function BentoStatGrid({
   sparklineData: { name: string; stock: number }[];
   lowStockCount: number;
   topAlert: { name: string; stock: number; unit: string } | null;
+  onLowStockClick?: () => void;
   brandShare: { name: string; value: number }[];
   stockValue: number;
   stockValueRevealed: boolean;
@@ -204,6 +225,7 @@ export function BentoStatGrid({
   skirtingProductCount: number;
   otherPcs: number;
 }) {
+  const t = useTranslations("BentoStatGrid");
   const cardCount = isAdmin ? 7 : 6;
   const { containerRef, cardRefs } = useCardMotion(cardCount);
   const maxBrand = Math.max(...brandShare.map((b) => b.value), 1);
@@ -222,24 +244,24 @@ export function BentoStatGrid({
       {/* Total Products — simple number */}
       <CardShell cardRef={setRef(idx++)} className="lg:col-span-3">
         <IconChip icon={Box} variant="neutral" />
-        <p className="text-sm text-muted-foreground mt-4">Total Products</p>
+        <p className="text-sm text-muted-foreground mt-4">{t("totalProducts.label")}</p>
         <div className="text-2xl font-semibold tracking-tight mt-1">
           <CountUp value={totalProducts} />
         </div>
         <p className="text-xs text-muted-foreground/80 mt-1.5">
-          Unique items in catalog
+          {t("totalProducts.description")}
         </p>
       </CardShell>
 
       {/* Tile Stock — number + inline sparkline */}
       <CardShell cardRef={setRef(idx++)} className="lg:col-span-3">
         <div className="flex items-start justify-between">
-          <IconChip icon={TrendingUp} variant="emerald" />
+          <IconChip icon={TrendingUp} variant="primary" />
           <div className="flex items-end gap-0.5 h-8">
             {sparklineData.map((s, i) => (
               <div
                 key={i}
-                className="w-1.5 rounded-full bg-emerald-500/30 dark:bg-emerald-400/30"
+                className="w-1.5 rounded-full bg-primary/30"
                 style={{
                   height: `${Math.max(12, (s.stock / maxSpark) * 100)}%`,
                 }}
@@ -248,7 +270,7 @@ export function BentoStatGrid({
             ))}
           </div>
         </div>
-        <p className="text-sm text-muted-foreground mt-4">Tile Stock</p>
+        <p className="text-sm text-muted-foreground mt-4">{t("tileStock.label")}</p>
         <div className="text-2xl font-semibold tracking-tight mt-1">
           <CountUp value={tileStock} decimals={2} suffix=" m²" />
         </div>
@@ -259,8 +281,8 @@ export function BentoStatGrid({
 
       {/* Skirting Stock — simple number */}
       <CardShell cardRef={setRef(idx++)} className="lg:col-span-3">
-        <IconChip icon={Ruler} variant="violet" />
-        <p className="text-sm text-muted-foreground mt-4">Skirting Stock</p>
+        <IconChip icon={Ruler} variant="info" />
+        <p className="text-sm text-muted-foreground mt-4">{t("skirtingStock.label")}</p>
         <div className="text-2xl font-semibold tracking-tight mt-1">
           <CountUp value={skirtingStock} decimals={2} suffix=" m" />
         </div>
@@ -271,32 +293,36 @@ export function BentoStatGrid({
         </p>
       </CardShell>
 
-      {/* Low Stock Alerts — badge style */}
-      <CardShell cardRef={setRef(idx++)} className="lg:col-span-3">
+      {/* Low Stock Alerts — badge style, opens the low-stock list on click */}
+      <CardShell
+        cardRef={setRef(idx++)}
+        className="lg:col-span-3"
+        onClick={lowStockCount > 0 ? onLowStockClick : undefined}
+      >
         <div className="flex items-start justify-between">
-          <IconChip icon={AlertTriangle} variant="amber" />
+          <IconChip icon={AlertTriangle} variant="warning" />
           {lowStockCount > 0 && (
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
-              Attention
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-warning/15 text-warning-foreground dark:text-warning">
+              {t("lowStockAlerts.attention")}
             </span>
           )}
         </div>
-        <p className="text-sm text-muted-foreground mt-4">Low Stock Alerts</p>
+        <p className="text-sm text-muted-foreground mt-4">{t("lowStockAlerts.label")}</p>
         <div className="text-2xl font-semibold tracking-tight mt-1">
           <CountUp value={lowStockCount} />
         </div>
         <p className="text-xs text-muted-foreground/80 mt-1.5 truncate">
           {topAlert
             ? `${topAlert.name} · ${topAlert.stock.toFixed(2)} ${topAlert.unit} left`
-            : "All products well-stocked"}
+            : t("lowStockAlerts.allWellStocked")}
         </p>
       </CardShell>
 
       {/* Stock by Brand — progress bars, wider card */}
       <CardShell cardRef={setRef(idx++)} className="lg:col-span-6">
-        <IconChip icon={Building2} variant="violet" />
+        <IconChip icon={Building2} variant="info" />
         <p className="text-sm text-muted-foreground mt-4 mb-3">
-          Stock by Brand
+          {t("stockByBrand.label")}
         </p>
         <div className="space-y-2.5">
           {brandShare.map((b) => (
@@ -306,7 +332,7 @@ export function BentoStatGrid({
               </span>
               <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
                 <div
-                  className="h-full rounded-full bg-violet-500/60 dark:bg-violet-400/60"
+                  className="h-full rounded-full bg-info/60"
                   style={{ width: `${(b.value / maxBrand) * 100}%` }}
                 />
               </div>
@@ -323,8 +349,8 @@ export function BentoStatGrid({
         cardRef={setRef(idx++)}
         className={isAdmin ? "lg:col-span-3" : "lg:col-span-6"}
       >
-        <IconChip icon={TrendingUp} variant="emerald" />
-        <p className="text-sm text-muted-foreground mt-4">Total Sold</p>
+        <IconChip icon={TrendingUp} variant="success" />
+        <p className="text-sm text-muted-foreground mt-4">{t("totalSold.label")}</p>
         <div className="text-2xl font-semibold tracking-tight mt-1">
           <CountUp value={totalSold} decimals={2} suffix=" m²" />
         </div>
@@ -352,7 +378,7 @@ export function BentoStatGrid({
             </Button>
           </div>
           <p className="text-sm text-muted-foreground mt-4">
-            Total Stock Value
+            {t("totalStockValue.label")}
           </p>
           <div className="relative w-fit">
             <span

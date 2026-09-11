@@ -18,13 +18,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -36,14 +29,16 @@ import {
   Shield,
   UserPlus,
   Trash2,
+  X,
 } from "lucide-react";
 import { useUser } from "@/components/user-provider";
 import { EmptyState } from "@/components/empty-state";
 import { AddUserForm } from "@/components/add-user-form";
+import { UserAvatar } from "@/components/user-avatar";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { DataCardList } from "@/components/data-card-list";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn, formatDate } from "@/lib/utils";
 
 type Role = "admin" | "seller" | "viewer";
 
@@ -137,9 +132,12 @@ export default function AdminUsersPage() {
   const renderRoleAction = (user: UserRow) => {
     if (user.id === currentUser?.id) {
       return (
-        <div className="text-[10px] font-bold text-primary uppercase tracking-tighter opacity-50">
+        <Badge
+          variant="outline"
+          className="h-8 gap-1.5 text-[10px] font-bold uppercase tracking-wide text-primary border-primary/30 bg-primary/5"
+        >
           Current Session
-        </div>
+        </Badge>
       );
     }
     return (
@@ -240,8 +238,8 @@ export default function AdminUsersPage() {
         }
       />
 
-      <Card className="py-0 gap-0 flex-1 flex flex-col overflow-hidden">
-        <CardHeader className="py-3.5 px-5 border-b shrink-0 bg-muted/30 gap-0">
+      <div className="flex-1 flex flex-col overflow-hidden rounded-lg border">
+        <div className="py-3.5 px-5 border-b shrink-0 bg-muted/30">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="relative flex-1 min-w-[160px] max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -251,13 +249,25 @@ export default function AdminUsersPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
+              {searchTerm && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
             <div className="text-xs text-muted-foreground font-medium">
-              {filteredUsers.length} total users
+              {searchTerm
+                ? `${filteredUsers.length} of ${users.length} users`
+                : `${users.length} total users`}
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
+        </div>
+        <div className="flex-1 flex flex-col overflow-hidden">
           {/* Mobile card list */}
           <div className="md:hidden flex-1 min-h-0 overflow-y-auto p-4">
             {isLoading ? (
@@ -281,16 +291,7 @@ export default function AdminUsersPage() {
                 items={filteredUsers}
                 keyFor={(user) => user.id}
                 renderLeading={(user) => (
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                    <span className="text-[11px] font-bold text-primary">
-                      {(user.full_name ?? user.email ?? "?")
-                        .split(" ")
-                        .map((w: string) => w[0])
-                        .join("")
-                        .slice(0, 2)
-                        .toUpperCase()}
-                    </span>
-                  </div>
+                  <UserAvatar name={user.full_name ?? user.email} />
                 )}
                 renderTitle={(user) => (
                   <span className="flex items-center gap-2">
@@ -324,12 +325,10 @@ export default function AdminUsersPage() {
                 fields={[
                   {
                     label: "Joined",
-                    render: (user) =>
-                      new Date(user.created_at).toLocaleDateString(),
+                    render: (user) => formatDate(user.created_at),
                   },
                   {
                     label: "Role",
-                    fullWidth: true,
                     render: (user) => renderRoleAction(user),
                   },
                 ]}
@@ -354,7 +353,7 @@ export default function AdminUsersPage() {
                   <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     Joined
                   </TableHead>
-                  <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-background pr-4 text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     Actions
                   </TableHead>
                 </TableRow>
@@ -404,16 +403,7 @@ export default function AdminUsersPage() {
                     >
                       <TableCell className="pl-4">
                         <div className="flex items-center gap-3">
-                          <div className="h-9 w-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                            <span className="text-[11px] font-bold text-primary">
-                              {(user.full_name ?? user.email ?? "?")
-                                .split(" ")
-                                .map((w: string) => w[0])
-                                .join("")
-                                .slice(0, 2)
-                                .toUpperCase()}
-                            </span>
-                          </div>
+                          <UserAvatar name={user.full_name ?? user.email} />
                           <div className="flex flex-col gap-0.5">
                             <span className="font-semibold text-sm flex items-center gap-2">
                               {user.full_name ?? "—"}
@@ -457,11 +447,11 @@ export default function AdminUsersPage() {
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Calendar className="size-3 opacity-50" />
                           <span className="text-sm">
-                            {new Date(user.created_at).toLocaleDateString()}
+                            {formatDate(user.created_at)}
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="pr-4 text-right">
                         {renderRoleAction(user)}
                       </TableCell>
                     </TableRow>
@@ -470,8 +460,8 @@ export default function AdminUsersPage() {
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <ConfirmDialog
         open={!!deleteTarget}

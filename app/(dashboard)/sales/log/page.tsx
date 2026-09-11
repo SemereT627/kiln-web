@@ -1,8 +1,14 @@
 "use client";
 
-import { Fragment, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Fragment,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useSearchParams } from "next/navigation";
-import { Card } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -43,9 +49,10 @@ import {
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatEthiopian } from "@/lib/ethiopian-calendar";
 import { StatCard } from "@/components/stat-card";
+import { DateRangePicker } from "@/components/date-range-picker";
 import { EmptyState } from "@/components/empty-state";
 import { DataCardList } from "@/components/data-card-list";
-import { cn } from "@/lib/utils";
+import { cn, formatETB, formatNumber, formatQuantity } from "@/lib/utils";
 
 interface SaleRecord {
   id: string;
@@ -168,6 +175,9 @@ function SalesLogPageInner() {
   const [importText, setImportText] = useState("");
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  const hasDateFilter = !!dateFrom || !!dateTo;
 
   const handleImport = async () => {
     const rows = parseTSV(importText);
@@ -207,12 +217,46 @@ function SalesLogPageInner() {
     },
   });
 
+  // Apply the from/to date filter before anything downstream (stats + grouping)
+  // derives from it, so both stay in sync with the selected range.
+  const filteredData = useMemo(() => {
+    if (!data) return [];
+    if (!hasDateFilter) return data;
+    const from = dateFrom
+      ? new Date(
+          dateFrom.getFullYear(),
+          dateFrom.getMonth(),
+          dateFrom.getDate(),
+          0,
+          0,
+          0,
+          0,
+        )
+      : null;
+    const to = dateTo
+      ? new Date(
+          dateTo.getFullYear(),
+          dateTo.getMonth(),
+          dateTo.getDate(),
+          23,
+          59,
+          59,
+          999,
+        )
+      : null;
+    return data.filter((sale) => {
+      const t = new Date(sale.createdAt);
+      if (from && t < from) return false;
+      if (to && t > to) return false;
+      return true;
+    });
+  }, [data, dateFrom, dateTo, hasDateFilter]);
+
   // Group all sales by date
   const dateGroups: DateGroup[] = useMemo(() => {
     const groups: DateGroup[] = [];
-    if (!data) return groups;
     const map = new Map<string, DateGroup>();
-    for (const sale of data) {
+    for (const sale of filteredData) {
       const key = new Date(sale.createdAt).toLocaleDateString();
       if (!map.has(key)) {
         map.set(key, {
@@ -239,10 +283,11 @@ function SalesLogPageInner() {
         new Date(a.items[0].createdAt).getTime(),
     );
     return groups;
-  }, [data]);
+  }, [filteredData]);
 
   useEffect(() => {
-    if (autoOpenedRef.current || !highlightOrderId || dateGroups.length === 0) return;
+    if (autoOpenedRef.current || !highlightOrderId || dateGroups.length === 0)
+      return;
     const match = dateGroups.find((g) =>
       g.items.some((item) => item.orderId === highlightOrderId),
     );
@@ -252,15 +297,13 @@ function SalesLogPageInner() {
     }
   }, [dateGroups, highlightOrderId]);
 
-  const totalTransactions = data?.length ?? 0;
-  const totalTileSold =
-    data
-      ?.filter((r) => (r.measurementUnit || "m²") === "m²")
-      .reduce((s, r) => s + r.quantity, 0) ?? 0;
-  const totalSkirtingSold =
-    data
-      ?.filter((r) => r.measurementUnit === "m")
-      .reduce((s, r) => s + r.quantity, 0) ?? 0;
+  const totalTransactions = filteredData.length;
+  const totalTileSold = filteredData
+    .filter((r) => (r.measurementUnit || "m²") === "m²")
+    .reduce((s, r) => s + r.quantity, 0);
+  const totalSkirtingSold = filteredData
+    .filter((r) => r.measurementUnit === "m")
+    .reduce((s, r) => s + r.quantity, 0);
   const totalQuantity = totalTileSold + totalSkirtingSold;
   const daysCount = dateGroups.length;
 
@@ -270,7 +313,7 @@ function SalesLogPageInner() {
       <div className="flex flex-wrap items-start justify-between gap-4 shrink-0">
         <div>
           <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
-            History
+            Sales
           </p>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mt-0.5">
             Sales Log
@@ -279,34 +322,43 @@ function SalesLogPageInner() {
             Click a date to view that day&apos;s transactions.
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="shrink-0"
-          onClick={() => {
-            setImportOpen(true);
-            setImportResult(null);
-            setImportText("");
-          }}
-        >
-          <Upload className="h-4 w-4" />
-          Import Log
-        </Button>
+        <div className="flex items-center gap-2 shrink-0">
+          <DateRangePicker
+            from={dateFrom}
+            to={dateTo}
+            onChange={({ from, to }) => {
+              setDateFrom(from);
+              setDateTo(to);
+            }}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setImportOpen(true);
+              setImportResult(null);
+              setImportText("");
+            }}
+          >
+            <Upload className="h-4 w-4" />
+            Import Log
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-2 shrink-0 md:gap-4">
+      <div className="grid grid-cols-2 gap-2 shrink-0 sm:grid-cols-3 md:gap-4">
         <StatCard
           title="Total Transactions"
           value={totalTransactions}
           icon={History}
-          variant="blue"
+          variant="info"
         />
         <StatCard
           title="Total Quantity Sold"
           value={
             <>
-              {totalTileSold.toFixed(2)}{" "}
+              {formatNumber(totalTileSold)}{" "}
               <span className="text-base font-medium text-muted-foreground">
                 m²
               </span>
@@ -314,18 +366,20 @@ function SalesLogPageInner() {
           }
           subtext={
             totalSkirtingSold > 0
-              ? `+ ${totalSkirtingSold.toFixed(2)} m skirting`
+              ? `+ ${formatQuantity(totalSkirtingSold, "m")} skirting`
               : undefined
           }
           icon={Package}
-          variant="emerald"
+          variant="success"
         />
-        <StatCard
-          title="Days Recorded"
-          value={daysCount}
-          icon={Calendar}
-          variant="amber"
-        />
+        <div className="col-span-2 flex *:w-full sm:col-span-1">
+          <StatCard
+            title="Days Recorded"
+            value={daysCount}
+            icon={Calendar}
+            variant="neutral"
+          />
+        </div>
       </div>
 
       {/* Dates table */}
@@ -337,13 +391,20 @@ function SalesLogPageInner() {
                 <AlertCircle className="h-5 w-5 text-destructive" />
               </div>
               <p className="font-semibold text-sm">Error Loading Sales Log</p>
-              <p className="text-xs text-muted-foreground mt-1">{(error as Error).message}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {(error as Error).message}
+              </p>
             </div>
           </div>
         ) : (
-          <Card className="p-0 gap-0 h-full flex flex-col overflow-hidden">
+          <div
+            className={cn(
+              "h-full flex flex-col overflow-hidden",
+              "md:rounded-xl md:border md:bg-card md:shadow-xs md:transition-shadow md:duration-200 md:hover:shadow-md",
+            )}
+          >
             {/* Mobile card list */}
-            <div className="md:hidden flex-1 min-h-0 overflow-y-auto p-4">
+            <div className="md:hidden flex-1 min-h-0 overflow-y-auto">
               {isLoading ? (
                 <div className="flex flex-col gap-3">
                   {Array.from({ length: 6 }).map((_, i) => (
@@ -368,16 +429,27 @@ function SalesLogPageInner() {
                     { label: "Transactions", render: (group) => group.count },
                     {
                       label: "Total Sold",
-                      render: (group) => group.total.toFixed(2),
+                      render: (group) => formatQuantity(group.total),
                     },
                     {
                       label: "Revenue",
+                      fullWidth: true,
                       render: (group) =>
-                        group.grossTotal !== null
-                          ? `${group.grossTotal.toFixed(2)} ETB`
-                          : "—",
+                        group.grossTotal !== null ? (
+                          <span className="text-base font-bold text-foreground">
+                            {formatETB(group.grossTotal)}
+                          </span>
+                        ) : (
+                          "—"
+                        ),
                     },
                   ]}
+                />
+              ) : hasDateFilter ? (
+                <EmptyState
+                  icon={ShoppingCart}
+                  title="No sales in this range"
+                  description="Try a wider date range, or clear the filter."
                 />
               ) : (
                 <EmptyState
@@ -391,101 +463,121 @@ function SalesLogPageInner() {
             {/* Desktop table */}
             <div className="hidden md:flex md:flex-1 md:flex-col md:overflow-auto">
               <Table>
-              <TableHeader className="border-b">
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="sticky top-0 z-10 bg-background pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
-                    Date
-                  </TableHead>
-                  <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
-                    Transactions
-                  </TableHead>
-                  <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
-                    Total Sold
-                  </TableHead>
-                  <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
-                    Revenue
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {isLoading ? (
-                  Array.from({ length: 10 }).map((_, i) => (
-                    <TableRow key={i} className="hover:bg-transparent h-[56px]">
-                      <TableCell className="pl-4">
-                        <div className="flex items-center gap-3">
-                          <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
-                          <div className="space-y-1.5">
-                            <Skeleton className="h-3.5 w-28" />
-                            <Skeleton className="h-2.5 w-20" />
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell><Skeleton className="h-5 w-8 ml-auto rounded-full" /></TableCell>
-                      <TableCell><Skeleton className="h-3.5 w-16 ml-auto" /></TableCell>
-                      <TableCell><Skeleton className="h-3.5 w-20 ml-auto" /></TableCell>
-                    </TableRow>
-                  ))
-                ) : dateGroups.length > 0 ? (
-                  dateGroups.map((group) => (
-                    <TableRow
-                      key={group.date}
-                      className="group cursor-pointer border-b transition-colors hover:bg-muted/40 h-[56px] active:bg-muted/60"
-                      onClick={() => setSelectedDate(group)}
-                    >
-                      <TableCell className="pl-4">
-                        <div className="flex items-center gap-3">
-                          <div className="h-8 w-8 rounded-lg bg-blue-500/10 ring-1 ring-blue-500/10 flex items-center justify-center shrink-0">
-                            <Calendar className="h-4 w-4 text-blue-500" />
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="font-semibold text-sm">
-                              {formatGreg(group.items[0].createdAt)}
-                            </span>
-                            <span className="text-[11px] text-muted-foreground">
-                              {formatEthiopian(
-                                new Date(group.items[0].createdAt),
-                              )}
-                            </span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="text-sm font-medium tabular-nums">
-                          {group.count}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className="text-sm font-bold tabular-nums text-blue-600 dark:text-blue-400">
-                          {group.total.toFixed(2)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="pr-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <span className="text-sm text-muted-foreground tabular-nums">
-                            {group.grossTotal !== null
-                              ? `${group.grossTotal.toFixed(2)} ETB`
-                              : "—"}
-                          </span>
-                          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
+                <TableHeader className="border-b">
                   <TableRow className="hover:bg-transparent">
-                    <TableCell colSpan={4}>
-                      <EmptyState
-                        icon={ShoppingCart}
-                        title="No sales records found"
-                        description="Sales you record will show up here, grouped by day."
-                      />
-                    </TableCell>
+                    <TableHead className="sticky top-0 z-10 bg-background pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                      Date
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                      Transactions
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                      Total Sold
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                      Revenue
+                    </TableHead>
                   </TableRow>
-                )}
-              </TableBody>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    Array.from({ length: 10 }).map((_, i) => (
+                      <TableRow
+                        key={i}
+                        className="hover:bg-transparent h-[56px]"
+                      >
+                        <TableCell className="pl-4">
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
+                            <div className="space-y-1.5">
+                              <Skeleton className="h-3.5 w-28" />
+                              <Skeleton className="h-2.5 w-20" />
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-5 w-8 ml-auto rounded-full" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-3.5 w-16 ml-auto" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-3.5 w-20 ml-auto" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : dateGroups.length > 0 ? (
+                    dateGroups.map((group) => (
+                      <TableRow
+                        key={group.date}
+                        className="group cursor-pointer border-b transition-colors hover:bg-muted/40 h-[56px] active:bg-muted/60"
+                        onClick={() => setSelectedDate(group)}
+                      >
+                        <TableCell className="pl-4">
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-lg bg-blue-500/10 ring-1 ring-blue-500/10 flex items-center justify-center shrink-0">
+                              <Calendar className="h-4 w-4 text-blue-500" />
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-sm">
+                                {formatGreg(group.items[0].createdAt)}
+                              </span>
+                              <span className="text-[11px] text-muted-foreground">
+                                {formatEthiopian(
+                                  new Date(group.items[0].createdAt),
+                                )}
+                              </span>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="text-sm font-medium tabular-nums">
+                            {group.count}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="text-sm font-bold tabular-nums text-primary">
+                            {formatNumber(group.total)}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground/50 ml-0.5">
+                            m²
+                          </span>
+                        </TableCell>
+                        <TableCell className="pr-4">
+                          <div className="flex items-center justify-end gap-2">
+                            <span className="text-sm font-semibold text-foreground tabular-nums">
+                              {group.grossTotal !== null
+                                ? formatETB(group.grossTotal)
+                                : "—"}
+                            </span>
+                            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell colSpan={4}>
+                        {hasDateFilter ? (
+                          <EmptyState
+                            icon={ShoppingCart}
+                            title="No sales in this range"
+                            description="Try a wider date range, or clear the filter."
+                          />
+                        ) : (
+                          <EmptyState
+                            icon={ShoppingCart}
+                            title="No sales records found"
+                            description="Sales you record will show up here, grouped by day."
+                          />
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
               </Table>
             </div>
-          </Card>
+          </div>
         )}
       </div>
 
@@ -600,7 +692,7 @@ function SalesLogPageInner() {
               {selectedDate?.count !== 1 ? "s" : ""}
               {selectedDate?.grossTotal !== null &&
               selectedDate?.grossTotal !== undefined
-                ? ` \u2014 ${selectedDate.grossTotal.toFixed(2)} ETB total`
+                ? ` \u2014 ${formatETB(selectedDate.grossTotal)} total`
                 : ""}
             </SheetDescription>
           </SheetHeader>
@@ -615,11 +707,15 @@ function SalesLogPageInner() {
                     {orderGroups.map((group) => {
                       const groupTotal = group.items.reduce(
                         (s, sale) =>
-                          s + (sale.priceAtSale != null ? sale.quantity * sale.priceAtSale : 0),
+                          s +
+                          (sale.priceAtSale != null
+                            ? sale.quantity * sale.priceAtSale
+                            : 0),
                         0,
                       );
                       const isHighlighted =
-                        !!highlightOrderId && group.orderId === highlightOrderId;
+                        !!highlightOrderId &&
+                        group.orderId === highlightOrderId;
                       return (
                         <div
                           key={group.key}
@@ -634,8 +730,8 @@ function SalesLogPageInner() {
                                 ? `Order #${group.orderId!.slice(0, 8)} · ${group.sellerName ?? "Unknown seller"}`
                                 : "Direct sale"}
                             </p>
-                            <p className="text-xs font-bold tabular-nums text-muted-foreground">
-                              {groupTotal.toFixed(2)} ETB
+                            <p className="text-xs font-bold tabular-nums text-foreground">
+                              {formatETB(groupTotal)}
                             </p>
                           </div>
                           <DataCardList
@@ -644,32 +740,40 @@ function SalesLogPageInner() {
                             renderTitle={(sale) => sale.productName}
                             renderSubtitle={(sale) => sale.productCode}
                             renderTrailing={(sale) => (
-                              <span className="font-bold tabular-nums text-sm text-blue-600 dark:text-blue-400">
-                                {sale.quantity.toFixed(2)}{" "}
-                                <span className="text-[10px] font-normal text-muted-foreground/70">
-                                  {sale.measurementUnit || "m²"}
-                                </span>
+                              <span className="font-bold tabular-nums text-sm text-primary">
+                                {formatQuantity(
+                                  sale.quantity,
+                                  sale.measurementUnit || "m²",
+                                )}
                               </span>
                             )}
                             fields={[
                               { label: "Brand", render: (sale) => sale.brand },
                               {
                                 label: "Size / Finish",
-                                render: (sale) => `${sale.size} · ${sale.finish}`,
+                                render: (sale) =>
+                                  `${sale.size} · ${sale.finish}`,
                               },
                               {
                                 label: "Unit Price",
                                 render: (sale) =>
                                   sale.priceAtSale != null
-                                    ? sale.priceAtSale.toFixed(2)
+                                    ? formatNumber(sale.priceAtSale)
                                     : "—",
                               },
                               {
                                 label: "Total",
+                                fullWidth: true,
                                 render: (sale) =>
-                                  sale.priceAtSale != null
-                                    ? (sale.quantity * sale.priceAtSale).toFixed(2)
-                                    : "—",
+                                  sale.priceAtSale != null ? (
+                                    <span className="text-sm font-bold text-foreground">
+                                      {formatETB(
+                                        sale.quantity * sale.priceAtSale,
+                                      )}
+                                    </span>
+                                  ) : (
+                                    "—"
+                                  ),
                               },
                             ]}
                           />
@@ -708,11 +812,14 @@ function SalesLogPageInner() {
                           const groupTotal = group.items.reduce(
                             (s, sale) =>
                               s +
-                              (sale.priceAtSale != null ? sale.quantity * sale.priceAtSale : 0),
+                              (sale.priceAtSale != null
+                                ? sale.quantity * sale.priceAtSale
+                                : 0),
                             0,
                           );
                           const isHighlighted =
-                            !!highlightOrderId && group.orderId === highlightOrderId;
+                            !!highlightOrderId &&
+                            group.orderId === highlightOrderId;
                           return (
                             <Fragment key={group.key}>
                               <TableRow className="hover:bg-transparent border-b">
@@ -720,13 +827,17 @@ function SalesLogPageInner() {
                                   colSpan={6}
                                   className={cn(
                                     "py-2 pl-4",
-                                    isHighlighted ? "bg-primary/10" : "bg-muted/30",
+                                    isHighlighted
+                                      ? "bg-primary/10"
+                                      : "bg-muted/30",
                                   )}
                                 >
                                   <span
                                     className={cn(
                                       "text-xs font-semibold",
-                                      isHighlighted ? "text-primary" : "text-foreground",
+                                      isHighlighted
+                                        ? "text-primary"
+                                        : "text-foreground",
                                     )}
                                   >
                                     {group.orderId
@@ -753,7 +864,9 @@ function SalesLogPageInner() {
                                     className="border-b transition-colors hover:bg-muted/40 h-[52px]"
                                   >
                                     <TableCell className="pl-4">
-                                      <p className="font-semibold text-sm">{sale.productName}</p>
+                                      <p className="font-semibold text-sm">
+                                        {sale.productName}
+                                      </p>
                                       <p className="text-[10px] text-muted-foreground font-mono mt-0.5">
                                         {sale.productCode}
                                       </p>
@@ -772,8 +885,8 @@ function SalesLogPageInner() {
                                       </div>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                      <span className="font-bold tabular-nums text-blue-600 dark:text-blue-400">
-                                        {sale.quantity.toFixed(2)}
+                                      <span className="font-bold tabular-nums text-primary">
+                                        {formatNumber(sale.quantity)}
                                       </span>
                                       <span className="text-[10px] text-muted-foreground/50 ml-0.5">
                                         {sale.measurementUnit || "m²"}
@@ -782,21 +895,26 @@ function SalesLogPageInner() {
                                     <TableCell className="text-right tabular-nums text-muted-foreground text-sm">
                                       {sale.priceAtSale !== null &&
                                       sale.priceAtSale !== undefined
-                                        ? sale.priceAtSale.toFixed(2)
+                                        ? formatNumber(sale.priceAtSale)
                                         : "—"}
                                     </TableCell>
                                     <TableCell className="text-right tabular-nums font-semibold text-sm">
-                                      {lineTotal !== null ? lineTotal.toFixed(2) : "—"}
+                                      {lineTotal !== null
+                                        ? formatETB(lineTotal)
+                                        : "—"}
                                     </TableCell>
                                   </TableRow>
                                 );
                               })}
                               <TableRow className="hover:bg-transparent border-b">
-                                <TableCell colSpan={5} className="text-right text-xs text-muted-foreground pr-3">
+                                <TableCell
+                                  colSpan={5}
+                                  className="text-right text-xs text-muted-foreground pr-3"
+                                >
                                   Subtotal
                                 </TableCell>
                                 <TableCell className="text-right text-xs font-bold tabular-nums pr-4">
-                                  {groupTotal.toFixed(2)} ETB
+                                  {formatETB(groupTotal)}
                                 </TableCell>
                               </TableRow>
                             </Fragment>

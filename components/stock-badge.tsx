@@ -25,11 +25,11 @@ export function StockBadge({ stock, size = "default" }: StockBadgeProps) {
     return (
       <Badge
         className={cn(
-          "gap-1.5 bg-amber-100 text-amber-700 hover:bg-amber-100 dark:bg-amber-900/30 dark:text-amber-400",
+          "gap-1.5 bg-warning/15 text-warning-foreground hover:bg-warning/15 dark:text-warning",
           cls,
         )}
       >
-        <Dot className="bg-amber-500" />
+        <Dot className="bg-warning" />
         Low Stock
       </Badge>
     );
@@ -37,11 +37,11 @@ export function StockBadge({ stock, size = "default" }: StockBadgeProps) {
   return (
     <Badge
       className={cn(
-        "gap-1.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400",
+        "gap-1.5 bg-success/15 text-success hover:bg-success/15",
         cls,
       )}
     >
-      <Dot className="bg-emerald-500" />
+      <Dot className="bg-success" />
       In Stock
     </Badge>
   );

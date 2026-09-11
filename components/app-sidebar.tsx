@@ -16,6 +16,7 @@ import {
   ClipboardCheck,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
 import {
   Sidebar,
   SidebarContent,
@@ -35,40 +36,44 @@ import { cn } from "@/lib/utils";
 import { useOrdersRealtime } from "@/hooks/use-orders-realtime";
 
 type NavItem = {
-  title: string;
+  /** Key into the Sidebar.items message namespace — see NavGroup's t() call. */
+  titleKey: string;
   href: string;
   icon: React.ElementType;
   badge?: number;
 };
 
 const overviewItems: NavItem[] = [
-  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { titleKey: "dashboard", href: "/dashboard", icon: LayoutDashboard },
 ];
 
 const salesItems: NavItem[] = [
-  { title: "New Sale", href: "/sales", icon: ShoppingCart },
-  { title: "Sales Log", href: "/sales/log", icon: ClipboardList },
+  { titleKey: "newSale", href: "/sales", icon: ShoppingCart },
+  { titleKey: "salesLog", href: "/sales/log", icon: ClipboardList },
 ];
 
-const inventoryItems: NavItem[] = [
-  { title: "Stock", href: "/inventory", icon: PackageSearch },
-];
-
+// Taxonomy first, then the stock built on top of it — ceramic_types
+// reference brand/finish, and stock is tracked per ceramic (which
+// references a ceramic_type), so this mirrors the actual dependency chain.
 const catalogItems: NavItem[] = [
-  { title: "Ceramic Types", href: "/ceramic-types", icon: Layers3 },
-  { title: "Brands", href: "/brands", icon: Building2 },
-  { title: "Finishes", href: "/finishes", icon: Palette },
+  { titleKey: "brands", href: "/brands", icon: Building2 },
+  { titleKey: "finishes", href: "/finishes", icon: Palette },
+  { titleKey: "ceramicTypes", href: "/ceramic-types", icon: Layers3 },
+  { titleKey: "inventory", href: "/inventory", icon: PackageSearch },
 ];
 
 function NavGroup({
   label,
   items,
   isActive,
+  t,
   className,
 }: {
   label?: string;
   items: NavItem[];
   isActive: (href: string) => boolean;
+  /** Translates a Sidebar.items key to its display label. */
+  t: (key: string) => string;
   className?: string;
 }) {
   return (
@@ -82,6 +87,7 @@ function NavGroup({
         <SidebarMenu className="gap-1 group-data-[collapsible=icon]:gap-2 px-2 group-data-[collapsible=icon]:px-0">
           {items.map((item) => {
             const active = isActive(item.href);
+            const title = t(item.titleKey);
             return (
               <SidebarMenuItem key={item.href} className="relative">
                 {active && (
@@ -90,7 +96,7 @@ function NavGroup({
                 <SidebarMenuButton
                   asChild
                   isActive={active}
-                  tooltip={item.title}
+                  tooltip={title}
                   className={cn(
                     "h-auto py-2.5 px-3 rounded-xl hover:bg-muted/50 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full",
                     active
@@ -108,7 +114,7 @@ function NavGroup({
                         strokeWidth={active ? 2.5 : 2}
                       />
                       <div className="flex flex-col min-w-0 group-data-[collapsible=icon]:hidden">
-                        <span className="leading-tight">{item.title}</span>
+                        <span className="leading-tight">{title}</span>
                       </div>
                       {!!item.badge && (
                         <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:-top-1 group-data-[collapsible=icon]:-right-1 group-data-[collapsible=icon]:ml-0">
@@ -128,6 +134,8 @@ function NavGroup({
 }
 
 export function AppSidebar() {
+  const tGroups = useTranslations("Sidebar.groups");
+  const tItems = useTranslations("Sidebar.items");
   const pathname = usePathname();
   const user = useUser();
   const isLoading = useUserLoading();
@@ -157,7 +165,8 @@ export function AppSidebar() {
   // Combined "things awaiting your approval" count — return requests are
   // folded into the Orders page itself (not a separate queue), so they
   // share this one badge rather than getting their own.
-  const pendingOrderCount = (pendingOrders?.total ?? 0) + (pendingReturnRequests?.total ?? 0);
+  const pendingOrderCount =
+    (pendingOrders?.total ?? 0) + (pendingReturnRequests?.total ?? 0);
 
   const localelessPath = pathname.replace(/^\/[a-z]{2}(?=\/|$)/, "") || "/";
 
@@ -195,16 +204,23 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="gap-0 px-1 mt-4 group-data-[collapsible=icon]:px-0">
-        <NavGroup items={overviewItems} isActive={isActive} />
+        <NavGroup items={overviewItems} isActive={isActive} t={tItems} />
 
         <NavGroup
-          label="Sales"
+          label={tGroups("catalog")}
+          items={catalogItems}
+          isActive={isActive}
+          t={tItems}
+        />
+
+        <NavGroup
+          label={tGroups("sales")}
           items={
             isAdmin
               ? [
                   ...salesItems,
                   {
-                    title: "Order Approvals",
+                    titleKey: "orderApprovals",
                     href: "/orders",
                     icon: ClipboardCheck,
                     badge: pendingOrderCount,
@@ -213,15 +229,8 @@ export function AppSidebar() {
               : salesItems
           }
           isActive={isActive}
+          t={tItems}
         />
-
-        <NavGroup
-          label="Inventory"
-          items={inventoryItems}
-          isActive={isActive}
-        />
-
-        <NavGroup label="Catalog" items={catalogItems} isActive={isActive} />
 
         {isLoading ? (
           <SidebarGroup className="animate-pulse py-2 border-t border-border/60 mt-2 pt-3">
@@ -238,16 +247,17 @@ export function AppSidebar() {
           </SidebarGroup>
         ) : isAdmin ? (
           <NavGroup
-            label="Administration"
+            label={tGroups("administration")}
             items={[
-              { title: "Users", href: "/admin/users", icon: ShieldCheck },
+              { titleKey: "users", href: "/admin/users", icon: ShieldCheck },
               {
-                title: "Audit Logs",
+                titleKey: "auditLogs",
                 href: "/admin/audit-logs",
                 icon: ScrollText,
               },
             ]}
             isActive={isActive}
+            t={tItems}
             className="animate-in fade-in duration-300 border-t border-border/60 mt-2 pt-3"
           />
         ) : null}

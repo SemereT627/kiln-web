@@ -59,7 +59,7 @@ export function UserMenu() {
             side="top"
             align="end"
             sideOffset={8}
-            className="w-(--radix-dropdown-menu-trigger-width) rounded-xl p-1 mb-2"
+            className="w-(--radix-dropdown-menu-trigger-width) rounded-xl p-1 mb-2 shadow-xs"
           >
             <div className="px-2 py-1.5">
               <p className="text-xs font-semibold truncate">
