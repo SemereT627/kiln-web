@@ -51,7 +51,6 @@ import { formatEthiopian } from "@/lib/ethiopian-calendar";
 import { StatCard } from "@/components/stat-card";
 import { DateRangePicker } from "@/components/date-range-picker";
 import { EmptyState } from "@/components/empty-state";
-import { DataCardList } from "@/components/data-card-list";
 import { cn, formatETB, formatNumber, formatQuantity } from "@/lib/utils";
 
 interface SaleRecord {
@@ -403,66 +402,8 @@ function SalesLogPageInner() {
               "md:rounded-xl md:border md:bg-card md:shadow-xs md:transition-shadow md:duration-200 md:hover:shadow-md",
             )}
           >
-            {/* Mobile card list */}
-            <div className="md:hidden flex-1 min-h-0 overflow-y-auto">
-              {isLoading ? (
-                <div className="flex flex-col gap-3">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <Skeleton key={i} className="h-24 rounded-xl" />
-                  ))}
-                </div>
-              ) : dateGroups.length > 0 ? (
-                <DataCardList
-                  items={dateGroups}
-                  keyFor={(group) => group.date}
-                  onRowClick={(group) => setSelectedDate(group)}
-                  renderLeading={() => (
-                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 ring-1 ring-blue-500/10">
-                      <Calendar className="h-4 w-4 text-blue-500" />
-                    </span>
-                  )}
-                  renderTitle={(group) => formatGreg(group.items[0].createdAt)}
-                  renderSubtitle={(group) =>
-                    formatEthiopian(new Date(group.items[0].createdAt))
-                  }
-                  fields={[
-                    { label: "Transactions", render: (group) => group.count },
-                    {
-                      label: "Total Sold",
-                      render: (group) => formatQuantity(group.total),
-                    },
-                    {
-                      label: "Revenue",
-                      fullWidth: true,
-                      render: (group) =>
-                        group.grossTotal !== null ? (
-                          <span className="text-base font-bold text-foreground">
-                            {formatETB(group.grossTotal)}
-                          </span>
-                        ) : (
-                          "—"
-                        ),
-                    },
-                  ]}
-                />
-              ) : hasDateFilter ? (
-                <EmptyState
-                  icon={ShoppingCart}
-                  title="No sales in this range"
-                  description="Try a wider date range, or clear the filter."
-                />
-              ) : (
-                <EmptyState
-                  icon={ShoppingCart}
-                  title="No sales records found"
-                  description="Sales you record will show up here, grouped by day."
-                />
-              )}
-            </div>
-
-            {/* Desktop table */}
-            <div className="hidden md:flex md:flex-1 md:flex-col md:overflow-auto">
-              <Table>
+            <div className="flex-1 flex flex-col overflow-auto">
+              <Table className="min-w-125">
                 <TableHeader className="border-b">
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="sticky top-0 z-10 bg-background pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
@@ -702,89 +643,8 @@ function SalesLogPageInner() {
               const orderGroups = groupByOrder(selectedDate?.items ?? []);
               return (
                 <>
-                  {/* Mobile card list */}
-                  <div className="p-4 md:hidden flex flex-col gap-5">
-                    {orderGroups.map((group) => {
-                      const groupTotal = group.items.reduce(
-                        (s, sale) =>
-                          s +
-                          (sale.priceAtSale != null
-                            ? sale.quantity * sale.priceAtSale
-                            : 0),
-                        0,
-                      );
-                      const isHighlighted =
-                        !!highlightOrderId &&
-                        group.orderId === highlightOrderId;
-                      return (
-                        <div
-                          key={group.key}
-                          className={cn(
-                            "flex flex-col gap-2 rounded-xl",
-                            isHighlighted && "ring-2 ring-primary/50 p-2 -m-2",
-                          )}
-                        >
-                          <div className="flex items-center justify-between px-0.5">
-                            <p className="text-xs font-semibold text-foreground">
-                              {group.orderId
-                                ? `Order #${group.orderId!.slice(0, 8)} · ${group.sellerName ?? "Unknown seller"}`
-                                : "Direct sale"}
-                            </p>
-                            <p className="text-xs font-bold tabular-nums text-foreground">
-                              {formatETB(groupTotal)}
-                            </p>
-                          </div>
-                          <DataCardList
-                            items={group.items}
-                            keyFor={(sale) => sale.id}
-                            renderTitle={(sale) => sale.productName}
-                            renderSubtitle={(sale) => sale.productCode}
-                            renderTrailing={(sale) => (
-                              <span className="font-bold tabular-nums text-sm text-primary">
-                                {formatQuantity(
-                                  sale.quantity,
-                                  sale.measurementUnit || "m²",
-                                )}
-                              </span>
-                            )}
-                            fields={[
-                              { label: "Brand", render: (sale) => sale.brand },
-                              {
-                                label: "Size / Finish",
-                                render: (sale) =>
-                                  `${sale.size} · ${sale.finish}`,
-                              },
-                              {
-                                label: "Unit Price",
-                                render: (sale) =>
-                                  sale.priceAtSale != null
-                                    ? formatNumber(sale.priceAtSale)
-                                    : "—",
-                              },
-                              {
-                                label: "Total",
-                                fullWidth: true,
-                                render: (sale) =>
-                                  sale.priceAtSale != null ? (
-                                    <span className="text-sm font-bold text-foreground">
-                                      {formatETB(
-                                        sale.quantity * sale.priceAtSale,
-                                      )}
-                                    </span>
-                                  ) : (
-                                    "—"
-                                  ),
-                              },
-                            ]}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Desktop table */}
-                  <div className="hidden w-175 md:block">
-                    <Table>
+                  <div className="overflow-x-auto">
+                    <Table className="min-w-150">
                       <TableHeader className="border-b">
                         <TableRow className="hover:bg-transparent">
                           <TableHead className="sticky top-0 z-10 bg-background pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">

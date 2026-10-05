@@ -44,7 +44,10 @@ function formatOrder(order: any) {
     };
   });
 
-  const total = items.reduce((sum: number, item: any) => sum + item.quantity * item.priceAtSale, 0);
+  const total = items.reduce(
+    (sum: number, item: any) => sum + item.quantity * item.priceAtSale,
+    0,
+  );
   const returnedTotal = items.reduce(
     (sum: number, item: any) => sum + item.returnedQuantity * item.priceAtSale,
     0,
@@ -104,6 +107,8 @@ export async function GET(request: Request) {
     const status = searchParams.get("status");
     const paymentMethod = searchParams.get("paymentMethod");
     const paymentStatus = searchParams.get("paymentStatus");
+    const dateFrom = searchParams.get("dateFrom");
+    const dateTo = searchParams.get("dateTo");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
     const mineOnly = searchParams.get("mine") === "1";
@@ -124,6 +129,12 @@ export async function GET(request: Request) {
     if (paymentStatus) {
       query = query.eq("payment_status", paymentStatus);
     }
+    if (dateFrom) {
+      query = query.gte("created_at", `${dateFrom}T00:00:00.000Z`);
+    }
+    if (dateTo) {
+      query = query.lte("created_at", `${dateTo}T23:59:59.999Z`);
+    }
     if (mineOnly || !isAdmin) {
       query = query.eq("seller_id", user.id);
     }
@@ -132,7 +143,9 @@ export async function GET(request: Request) {
       query = query.range(offset, offset + limit - 1);
     }
 
-    const { data, error, count } = await query.order("created_at", { ascending: false });
+    const { data, error, count } = await query.order("created_at", {
+      ascending: false,
+    });
     if (error) throw error;
 
     return NextResponse.json({
@@ -162,7 +175,10 @@ export async function POST(request: Request) {
     const notes = parsed.data.notes ?? null;
 
     if (paymentMethod === "bank_transfer" && !bankAccount) {
-      return NextResponse.json({ error: "Bank account is required for bank transfers" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Bank account is required for bank transfers" },
+        { status: 400 },
+      );
     }
 
     const supabase = await createServiceClient();
@@ -175,7 +191,12 @@ export async function POST(request: Request) {
     if (ceramicsError) throw ceramicsError;
 
     const priceMap = new Map<string, number>(
-      (ceramics || []).map((c: { id: string; price_per_unit: number | null }) => [c.id, c.price_per_unit ?? 0]),
+      (ceramics || []).map(
+        (c: { id: string; price_per_unit: number | null }) => [
+          c.id,
+          c.price_per_unit ?? 0,
+        ],
+      ),
     );
 
     const unknownId = ceramicIds.find((cid) => !priceMap.has(cid));
@@ -220,11 +241,17 @@ export async function POST(request: Request) {
       after: {
         paymentMethod,
         bankAccount: order.bank_account,
-        items: items.map((i) => ({ ceramicId: i.ceramicId, quantity: i.quantity })),
+        items: items.map((i) => ({
+          ceramicId: i.ceramicId,
+          quantity: i.quantity,
+        })),
       },
     });
 
-    return NextResponse.json({ id: order.id, status: order.status }, { status: 201 });
+    return NextResponse.json(
+      { id: order.id, status: order.status },
+      { status: 201 },
+    );
   } catch (error: any) {
     console.error("POST Order Error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

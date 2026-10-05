@@ -25,6 +25,7 @@ export async function GET(request: Request) {
     const sortBy = pickSortColumn(searchParams.get("sortBy") || "size", SORTABLE_COLUMNS, "size");
     const order = searchParams.get("order") || "asc";
     const brandId = searchParams.get("brandId");
+    const finishId = searchParams.get("finishId");
 
     const supabase = await createClient();
     let query = supabase
@@ -33,6 +34,10 @@ export async function GET(request: Request) {
 
     if (brandId) {
       query = query.eq("brand_id", brandId);
+    }
+
+    if (finishId) {
+      query = query.eq("finish_id", finishId);
     }
 
     if (search) {

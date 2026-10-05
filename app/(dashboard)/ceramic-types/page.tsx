@@ -22,6 +22,8 @@ import {
   ArrowUp,
   ArrowDown,
   Search,
+  Filter,
+  X,
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import {
@@ -51,7 +53,7 @@ import { useUser } from "@/components/user-provider";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DataCardList } from "@/components/data-card-list";
+import { cn, formatETB } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,6 +72,8 @@ export default function CeramicTypesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  const [finishFilter, setFinishFilter] = useState("all");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingType, setEditingType] = useState<any | null>(null);
@@ -112,7 +116,12 @@ export default function CeramicTypesPage() {
   const { data: response, isLoading } = useQuery({
     queryKey: [
       "ceramic-types",
-      { page: currentPage, search: searchTerm, sort: sortConfig },
+      {
+        page: currentPage,
+        search: searchTerm,
+        sort: sortConfig,
+        finish: finishFilter,
+      },
     ],
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -122,6 +131,7 @@ export default function CeramicTypesPage() {
         sortBy: sortConfig.key,
         order: sortConfig.direction,
       });
+      if (finishFilter !== "all") params.append("finishId", finishFilter);
       const res = await fetch(`/api/ceramic-types?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch ceramic types");
       return res.json();
@@ -252,7 +262,7 @@ export default function CeramicTypesPage() {
   ];
 
   return (
-    <div className="flex flex-col gap-6 h-full overflow-hidden animate-in fade-in duration-500">
+    <div className="flex flex-col gap-6 h-full overflow-y-auto animate-in fade-in duration-500">
       <div className="flex flex-wrap items-center justify-between shrink-0 gap-4">
         <div>
           <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
@@ -273,7 +283,7 @@ export default function CeramicTypesPage() {
         )}
       </div>
 
-      <div className="flex-1 flex flex-col overflow-hidden rounded-lg border">
+      <div className="flex flex-col overflow-hidden rounded-lg border">
         <div className="py-3.5 px-5 border-b shrink-0 bg-muted/30">
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-[140px] max-w-sm">
@@ -288,6 +298,62 @@ export default function CeramicTypesPage() {
                 }}
               />
             </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "h-9 gap-2",
+                    finishFilter !== "all" && "border-primary bg-primary/5",
+                  )}
+                  aria-label="Filter by finish"
+                >
+                  <Filter className="h-4 w-4" />
+                  <span className="hidden sm:inline">
+                    {finishFilter === "all"
+                      ? "Finish"
+                      : finishes.find((f: any) => f.id === finishFilter)
+                          ?.name}
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuLabel>Finish</DropdownMenuLabel>
+                <DropdownMenuRadioGroup
+                  value={finishFilter}
+                  onValueChange={(value) => {
+                    setFinishFilter(value);
+                    setCurrentPage(1);
+                  }}
+                >
+                  <DropdownMenuRadioItem value="all">
+                    All Finishes
+                  </DropdownMenuRadioItem>
+                  {finishes.map((f: any) => (
+                    <DropdownMenuRadioItem key={f.id} value={f.id}>
+                      {f.name}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {finishFilter !== "all" && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setFinishFilter("all");
+                  setCurrentPage(1);
+                }}
+                className="h-9 px-2 text-muted-foreground"
+              >
+                <X className="h-4 w-4" />
+                Clear
+              </Button>
+            )}
 
             <div className="flex md:hidden">
               <DropdownMenu>
@@ -331,84 +397,8 @@ export default function CeramicTypesPage() {
           </div>
         </div>
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Mobile card list */}
-          <div className="md:hidden flex-1 min-h-0 overflow-y-auto p-4">
-            {isLoading ? (
-              <div className="flex flex-col gap-3">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <Skeleton key={i} className="h-32 rounded-xl" />
-                ))}
-              </div>
-            ) : types.length === 0 ? (
-              <EmptyState
-                icon={Layers}
-                title="No ceramic types found"
-                description={
-                  searchTerm
-                    ? "Try a different search term."
-                    : "Define your first brand + size + finish combo."
-                }
-                action={
-                  isAdmin && !searchTerm ? (
-                    <Button size="sm" onClick={handleAddClick}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Type
-                    </Button>
-                  ) : undefined
-                }
-              />
-            ) : (
-              <DataCardList
-                items={types}
-                keyFor={(t: any) => t.id}
-                renderTitle={(t: any) => t.size}
-                renderSubtitle={(t: any) => t.brand?.name || "Unknown"}
-                renderTrailing={(t: any) =>
-                  isAdmin ? (
-                    <div className="flex items-center gap-0.5">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => handleEditClick(t)}
-                      >
-                        <Pencil className="h-4 w-4 text-primary" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => setConfirmDeleteId(t.id)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  ) : undefined
-                }
-                fields={[
-                  {
-                    label: "Finish",
-                    render: (t: any) => t.finish?.name || "Normal",
-                  },
-                  {
-                    label: "Unit",
-                    render: (t: any) => t.measurement_unit || "m²",
-                  },
-                  {
-                    label: "Price",
-                    render: (t: any) =>
-                      t.price_per_unit != null
-                        ? `${Number(t.price_per_unit).toFixed(2)} ETB`
-                        : "—",
-                  },
-                ]}
-              />
-            )}
-          </div>
-
-          {/* Desktop table */}
-          <div className="hidden md:flex md:flex-1 md:flex-col md:overflow-auto">
-            <Table>
+          <div className="flex flex-col overflow-auto">
+            <Table className="min-w-175">
               <TableHeader className="border-b">
                 <TableRow className="hover:bg-transparent">
                   <TableHead
@@ -437,7 +427,7 @@ export default function CeramicTypesPage() {
                     </div>
                   </TableHead>
                   {isAdmin && (
-                    <TableHead className="sticky top-0 z-10 w-20 bg-background" />
+                    <TableHead className="sticky top-0 right-0 z-20 w-20 bg-background border-l" />
                   )}
                 </TableRow>
               </TableHeader>
@@ -450,7 +440,9 @@ export default function CeramicTypesPage() {
                       <TableCell><Skeleton className="h-3.5 w-16" /></TableCell>
                       <TableCell><Skeleton className="h-3.5 w-8" /></TableCell>
                       <TableCell><Skeleton className="h-3.5 w-16 ml-auto" /></TableCell>
-                      {isAdmin && <TableCell />}
+                      {isAdmin && (
+                        <TableCell className="sticky right-0 z-10 bg-background border-l" />
+                      )}
                     </TableRow>
                   ))
                 ) : types.length === 0 ? (
@@ -509,11 +501,11 @@ export default function CeramicTypesPage() {
                         </TableCell>
                         <TableCell className="text-right tabular-nums text-sm text-muted-foreground">
                           {t.price_per_unit != null
-                            ? `${Number(t.price_per_unit).toFixed(2)} ETB`
+                            ? formatETB(Number(t.price_per_unit))
                             : "—"}
                         </TableCell>
                         {isAdmin && (
-                          <TableCell>
+                          <TableCell className="sticky right-0 z-10 bg-background border-l transition-colors group-hover:bg-muted/40">
                             <div className="flex items-center justify-end gap-0.5">
                               <Button
                                 variant="ghost"

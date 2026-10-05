@@ -9,7 +9,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge"; // still used for brand + filter count badges
@@ -26,7 +25,17 @@ import {
   ArrowDown,
   X,
   PackageSearch,
+  ChevronRight,
+  ChevronLeft,
+  Layers,
 } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,16 +58,16 @@ import {
 import { CeramicForm } from "@/components/ceramic-form";
 import { CeramicDetailsDrawer } from "@/components/ceramic-details-drawer";
 import { ProductImage } from "@/components/product-image";
-import { StockBadge } from "@/components/stock-badge";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
-import { DataCardList } from "@/components/data-card-list";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 import { useUser } from "@/components/user-provider";
+import { useTranslations } from "next-intl";
 
 export default function InventoryPage() {
+  const t = useTranslations("Inventory");
   const userProfile = useUser();
   const isAdmin = userProfile?.role === "admin";
 
@@ -69,6 +78,10 @@ export default function InventoryPage() {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [isStockDrawerOpen, setIsStockDrawerOpen] = useState(false);
+  const [stockDrawerBrand, setStockDrawerBrand] = useState<string | null>(
+    null,
+  );
 
   // Filter state
   const [selectedBrand, setSelectedBrand] = useState<string>("all");
@@ -176,6 +189,32 @@ export default function InventoryPage() {
   const totalStockSqm = stockByUnit["m²"] ?? 0;
   const totalStockLinear = stockByUnit["m"] ?? 0;
 
+  // byType is already sorted brand -> size by the API. Group it into
+  // Brand -> Size -> Finish for the stock breakdown drawer.
+  const stockByBrand = byType.reduce(
+    (acc: Record<string, any[]>, row: any) => {
+      (acc[row.brand] ??= []).push(row);
+      return acc;
+    },
+    {},
+  );
+  const brandNames = Object.keys(stockByBrand).sort((a, b) =>
+    a.localeCompare(b),
+  );
+
+  function groupBySize(rows: any[]) {
+    const bySize = rows.reduce((acc: Record<string, any[]>, row: any) => {
+      (acc[row.size] ??= []).push(row);
+      return acc;
+    }, {});
+    return Object.entries(bySize).map(([size, finishRows]) => ({
+      size,
+      subtotal: finishRows.reduce((s, r) => s + Number(r.currentStock), 0),
+      measurementUnit: finishRows[0]?.measurementUnit || "m²",
+      finishRows,
+    }));
+  }
+
   const handleEdit = (e: React.MouseEvent, product: any) => {
     e.stopPropagation();
     setEditingProduct(product);
@@ -230,13 +269,13 @@ export default function InventoryPage() {
   };
 
   const SORT_OPTIONS: { key: string; label: string }[] = [
-    { key: "name", label: "Product" },
-    { key: "brand_name", label: "Brand" },
-    { key: "size", label: "Size" },
-    { key: "finish_name", label: "Finish" },
-    { key: "initial_stock", label: "Initial" },
-    { key: "sold_stock", label: "Sold" },
-    { key: "current_stock", label: "Stock" },
+    { key: "name", label: t("columns.product") },
+    { key: "brand_name", label: t("columns.brand") },
+    { key: "size", label: t("columns.size") },
+    { key: "finish_name", label: t("columns.finish") },
+    { key: "initial_stock", label: t("columns.initial") },
+    { key: "sold_stock", label: t("columns.sold") },
+    { key: "current_stock", label: t("columns.stock") },
   ];
 
   return (
@@ -244,115 +283,61 @@ export default function InventoryPage() {
       <div className="flex flex-wrap items-center justify-between shrink-0 gap-4">
         <div>
           <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
-            Catalog
+            {t("eyebrow")}
           </p>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mt-0.5">
-            Inventory
+            {t("title")}
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">
-            Manage your ceramic stock and product catalog.
+            {t("subtitle")}
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
           <Button variant="outline" size="sm">
             <Download className="h-4 w-4" />
-            Export
+            {t("export")}
           </Button>
           {isAdmin && (
             <Button size="sm" onClick={handleAdd}>
               <Plus className="h-4 w-4" />
-              Add Product
+              {t("addProduct")}
             </Button>
           )}
         </div>
       </div>
 
       {(isLoading || byType.length > 0) && (
-        <div className="shrink-0 -mb-2">
-          <div className="flex flex-nowrap items-center justify-between gap-2 mb-2.5 px-0.5">
-            <h2 className="shrink-0 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Total Stock
-            </h2>
+        <div className="shrink-0">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            disabled={isLoading}
+            onClick={() => {
+              setStockDrawerBrand(null);
+              setIsStockDrawerOpen(true);
+            }}
+          >
+            <Layers className="h-4 w-4" />
+            {t("showTotalStock")}
             {!isLoading && (
-              <div className="flex min-w-0 items-center gap-1.5 rounded-full border bg-background px-3 py-1 shadow-xs">
-                <span className="text-xs font-bold tabular-nums">
-                  {totalStockSqm.toFixed(2)}
+              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-bold tabular-nums">
+                {totalStockSqm.toFixed(2)}
+                <span className="text-[9px] font-medium text-muted-foreground">
+                  m²
                 </span>
-                <span className="text-[9px] text-muted-foreground/60">m²</span>
                 {totalStockLinear > 0 && (
                   <>
-                    <span className="text-muted-foreground/30">+</span>
-                    <span className="text-xs font-bold tabular-nums">
-                      {totalStockLinear.toFixed(2)}
-                    </span>
-                    <span className="text-[9px] text-muted-foreground/60">
+                    <span className="text-muted-foreground/40">+</span>
+                    {totalStockLinear.toFixed(2)}
+                    <span className="text-[9px] font-medium text-muted-foreground">
                       m
                     </span>
                   </>
                 )}
-              </div>
+              </span>
             )}
-          </div>
-          <div className="flex gap-3 overflow-x-auto pb-2 px-1 snap-x snap-mandatory">
-            {isLoading
-              ? Array.from({ length: 5 }).map((_, i) => (
-                  <Card key={i} className="shrink-0 w-52 py-0 snap-start">
-                    <CardContent className="p-4 space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <Skeleton className="h-4 w-32" />
-                        <Skeleton className="h-4 w-6 rounded-full" />
-                      </div>
-                      <Skeleton className="h-6 w-20" />
-                      <div className="flex justify-between">
-                        <Skeleton className="h-3 w-16" />
-                        <Skeleton className="h-3 w-16" />
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              : byType.map((t: any) => (
-                  <Card
-                    key={t.typeId}
-                    className="shrink-0 w-52 py-0 gap-0 snap-start"
-                  >
-                    <CardContent className="p-4 space-y-2">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-semibold leading-tight line-clamp-2">
-                          {t.label}
-                        </p>
-                        <Badge
-                          variant="secondary"
-                          className="shrink-0 text-[10px]"
-                        >
-                          {t.productCount}
-                        </Badge>
-                      </div>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-xl font-bold tabular-nums tracking-tight">
-                          {Number(t.currentStock).toFixed(2)}
-                        </span>
-                        <span className="text-[11px] text-muted-foreground/60">
-                          {t.measurementUnit}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-[11px] text-muted-foreground pt-1 border-t border-dashed">
-                        <span className="pt-1.5">
-                          Sold{" "}
-                          <span className="tabular-nums font-medium text-primary">
-                            {Number(t.soldStock).toFixed(2)}
-                          </span>
-                        </span>
-                        <span className="pt-1.5">
-                          Initial{" "}
-                          <span className="tabular-nums font-medium text-foreground">
-                            {Number(t.initialStock).toFixed(2)}
-                          </span>
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-          </div>
+          </Button>
         </div>
       )}
 
@@ -362,7 +347,7 @@ export default function InventoryPage() {
             <div className="relative flex-1 min-w-25 max-w-sm">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search products..."
+                placeholder={t("searchPlaceholder")}
                 className="pl-8 bg-background h-9"
                 value={searchTerm}
                 onChange={(e) => {
@@ -373,7 +358,7 @@ export default function InventoryPage() {
               {searchTerm && (
                 <button
                   type="button"
-                  aria-label="Clear search"
+                  aria-label={t("clearSearch")}
                   onClick={() => {
                     setSearchTerm("");
                     setCurrentPage(1);
@@ -394,10 +379,10 @@ export default function InventoryPage() {
                     "h-9 gap-2",
                     hasActiveFilters && "border-primary bg-primary/5",
                   )}
-                  aria-label="Filters"
+                  aria-label={t("filters")}
                 >
                   <Filter className="h-4 w-4" />
-                  <span className="hidden sm:inline">Filters</span>
+                  <span className="hidden sm:inline">{t("filters")}</span>
                   {hasActiveFilters && (
                     <Badge
                       variant="secondary"
@@ -420,13 +405,13 @@ export default function InventoryPage() {
                 className="w-56"
                 portal={false}
               >
-                <DropdownMenuLabel>Brand</DropdownMenuLabel>
+                <DropdownMenuLabel>{t("filterBrand")}</DropdownMenuLabel>
                 <DropdownMenuRadioGroup
                   value={selectedBrand}
                   onValueChange={setSelectedBrand}
                 >
                   <DropdownMenuRadioItem value="all">
-                    All Brands
+                    {t("allBrands")}
                   </DropdownMenuRadioItem>
                   {brands.map((brand: any) => (
                     <DropdownMenuRadioItem key={brand.id} value={brand.id}>
@@ -437,13 +422,13 @@ export default function InventoryPage() {
 
                 <DropdownMenuSeparator />
 
-                <DropdownMenuLabel>Finish</DropdownMenuLabel>
+                <DropdownMenuLabel>{t("filterFinish")}</DropdownMenuLabel>
                 <DropdownMenuRadioGroup
                   value={selectedFinish}
                   onValueChange={setSelectedFinish}
                 >
                   <DropdownMenuRadioItem value="all">
-                    All Finishes
+                    {t("allFinishes")}
                   </DropdownMenuRadioItem>
                   {finishes.map((finish: any) => (
                     <DropdownMenuRadioItem key={finish.id} value={finish.id}>
@@ -454,13 +439,13 @@ export default function InventoryPage() {
 
                 <DropdownMenuSeparator />
 
-                <DropdownMenuLabel>Size</DropdownMenuLabel>
+                <DropdownMenuLabel>{t("filterSize")}</DropdownMenuLabel>
                 <DropdownMenuRadioGroup
                   value={selectedSize}
                   onValueChange={setSelectedSize}
                 >
                   <DropdownMenuRadioItem value="all">
-                    All Sizes
+                    {t("allSizes")}
                   </DropdownMenuRadioItem>
                   {sizes.map((size: string) => (
                     <DropdownMenuRadioItem key={size} value={size}>
@@ -471,22 +456,22 @@ export default function InventoryPage() {
 
                 <DropdownMenuSeparator />
 
-                <DropdownMenuLabel>Status</DropdownMenuLabel>
+                <DropdownMenuLabel>{t("filterStatus")}</DropdownMenuLabel>
                 <DropdownMenuRadioGroup
                   value={selectedStatus}
                   onValueChange={setSelectedStatus}
                 >
                   <DropdownMenuRadioItem value="all">
-                    All Status
+                    {t("allStatus")}
                   </DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="in">
-                    In Stock
+                    {t("statusIn")}
                   </DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="low">
-                    Low Stock
+                    {t("statusLow")}
                   </DropdownMenuRadioItem>
                   <DropdownMenuRadioItem value="out">
-                    Out of Stock
+                    {t("statusOut")}
                   </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
 
@@ -497,7 +482,7 @@ export default function InventoryPage() {
                       className="justify-center text-primary font-medium"
                       onClick={clearFilters}
                     >
-                      Clear Filters
+                      {t("clearFilters")}
                     </DropdownMenuItem>
                   </>
                 )}
@@ -512,7 +497,7 @@ export default function InventoryPage() {
                 className="h-9 px-2 text-muted-foreground"
               >
                 <X className="h-4 w-4" />
-                Clear
+                {t("clear")}
               </Button>
             )}
 
@@ -523,16 +508,17 @@ export default function InventoryPage() {
                     variant="outline"
                     size="icon"
                     className="h-9 w-9 rounded-r-none"
-                    aria-label={`Sort by ${
-                      SORT_OPTIONS.find((o) => o.key === sortConfig.key)
-                        ?.label ?? "Recent"
-                    }`}
+                    aria-label={t("sortAriaLabel", {
+                      label:
+                        SORT_OPTIONS.find((o) => o.key === sortConfig.key)
+                          ?.label ?? "",
+                    })}
                   >
                     <ArrowUpDown className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-48">
-                  <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+                  <DropdownMenuLabel>{t("sortBy")}</DropdownMenuLabel>
                   <DropdownMenuRadioGroup
                     value={sortConfig.key}
                     onValueChange={handleSort}
@@ -549,7 +535,7 @@ export default function InventoryPage() {
                 variant="outline"
                 size="sm"
                 className="h-9 w-9 rounded-l-none border-l-0 p-0"
-                aria-label="Toggle sort direction"
+                aria-label={t("toggleSortDirection")}
                 onClick={() => handleSort(sortConfig.key)}
               >
                 {getSortIcon(sortConfig.key)}
@@ -558,110 +544,8 @@ export default function InventoryPage() {
           </div>
         </div>
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Mobile card list */}
-          <div className="md:hidden flex-1 min-h-0 overflow-y-auto p-4">
-            {isLoading ? (
-              <div className="flex flex-col gap-3">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <Skeleton key={i} className="h-40 rounded-xl" />
-                ))}
-              </div>
-            ) : data.length === 0 ? (
-              <EmptyState
-                icon={PackageSearch}
-                title="No products found"
-                description={
-                  hasActiveFilters || searchTerm
-                    ? "Try adjusting your search or filters."
-                    : "Add your first product to get started."
-                }
-                action={
-                  isAdmin && !hasActiveFilters && !searchTerm ? (
-                    <Button size="sm" onClick={handleAdd}>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Product
-                    </Button>
-                  ) : undefined
-                }
-              />
-            ) : (
-              <DataCardList
-                items={data}
-                keyFor={(item: any) => item._id}
-                onRowClick={handleRowClick}
-                renderLeading={(item: any) => (
-                  <ProductImage
-                    src={item.imageUrl}
-                    alt={item.name}
-                    className="h-10 w-10 rounded-lg ring-1 ring-border"
-                    iconSize="sm"
-                    sizes="40px"
-                  />
-                )}
-                renderTitle={(item: any) => item.name}
-                renderSubtitle={(item: any) => item.productId}
-                renderTrailing={(item: any) =>
-                  isAdmin ? (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 p-0"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={(e) => handleEdit(e, item)}>
-                          <Edit className="mr-2 h-4 w-4" /> Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={(e) => handleDelete(e, item._id)}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  ) : undefined
-                }
-                fields={[
-                  { label: "Brand", render: (item: any) => item.brand },
-                  { label: "Size", render: (item: any) => item.size },
-                  { label: "Finish", render: (item: any) => item.finish },
-                  {
-                    label: "Unit",
-                    render: (item: any) => item.measurementUnit || "m²",
-                  },
-                  {
-                    label: "Initial",
-                    render: (item: any) => item.initialStock.toFixed(2),
-                  },
-                  {
-                    label: "Sold",
-                    render: (item: any) => item.soldStock.toFixed(2),
-                  },
-                  {
-                    label: "Stock",
-                    render: (item: any) => item.currentStock.toFixed(2),
-                  },
-                  {
-                    label: "Status",
-                    render: (item: any) => (
-                      <StockBadge stock={item.currentStock} size="sm" />
-                    ),
-                  },
-                ]}
-              />
-            )}
-          </div>
-
-          {/* Desktop table */}
-          <div className="hidden md:flex md:flex-1 md:flex-col md:overflow-auto">
-            <Table>
+          <div className="flex flex-col overflow-auto">
+            <Table className="min-w-200">
               <TableHeader className="border-b">
                 <TableRow className="hover:bg-transparent">
                   <TableHead
@@ -669,7 +553,7 @@ export default function InventoryPage() {
                     onClick={() => handleSort("name")}
                   >
                     <div className="flex items-center gap-1">
-                      Product {getSortIcon("name")}
+                      {t("columns.product")} {getSortIcon("name")}
                     </div>
                   </TableHead>
                   <TableHead
@@ -677,7 +561,7 @@ export default function InventoryPage() {
                     onClick={() => handleSort("brand_name")}
                   >
                     <div className="flex items-center gap-1">
-                      Brand {getSortIcon("brand_name")}
+                      {t("columns.brand")} {getSortIcon("brand_name")}
                     </div>
                   </TableHead>
                   <TableHead
@@ -685,7 +569,7 @@ export default function InventoryPage() {
                     onClick={() => handleSort("size")}
                   >
                     <div className="flex items-center gap-1">
-                      Size {getSortIcon("size")}
+                      {t("columns.size")} {getSortIcon("size")}
                     </div>
                   </TableHead>
                   <TableHead
@@ -693,7 +577,7 @@ export default function InventoryPage() {
                     onClick={() => handleSort("finish_name")}
                   >
                     <div className="flex items-center gap-1">
-                      Finish {getSortIcon("finish_name")}
+                      {t("columns.finish")} {getSortIcon("finish_name")}
                     </div>
                   </TableHead>
                   <TableHead
@@ -701,7 +585,7 @@ export default function InventoryPage() {
                     onClick={() => handleSort("initial_stock")}
                   >
                     <div className="flex items-center justify-end gap-1">
-                      Initial {getSortIcon("initial_stock")}
+                      {t("columns.initial")} {getSortIcon("initial_stock")}
                     </div>
                   </TableHead>
                   <TableHead
@@ -709,7 +593,7 @@ export default function InventoryPage() {
                     onClick={() => handleSort("sold_stock")}
                   >
                     <div className="flex items-center justify-end gap-1">
-                      Sold {getSortIcon("sold_stock")}
+                      {t("columns.sold")} {getSortIcon("sold_stock")}
                     </div>
                   </TableHead>
                   <TableHead
@@ -717,14 +601,14 @@ export default function InventoryPage() {
                     onClick={() => handleSort("current_stock")}
                   >
                     <div className="flex items-center justify-end gap-1">
-                      Stock {getSortIcon("current_stock")}
+                      {t("columns.stock")} {getSortIcon("current_stock")}
                     </div>
                   </TableHead>
                   <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
-                    Status
+                    {t("columns.status")}
                   </TableHead>
                   {isAdmin && (
-                    <TableHead className="sticky top-0 z-10 w-12 bg-background" />
+                    <TableHead className="sticky top-0 right-0 z-20 w-12 bg-background border-l" />
                   )}
                 </TableRow>
               </TableHeader>
@@ -762,7 +646,9 @@ export default function InventoryPage() {
                       <TableCell>
                         <Skeleton className="h-3 w-3 rounded-full" />
                       </TableCell>
-                      {isAdmin && <TableCell />}
+                      {isAdmin && (
+                        <TableCell className="sticky right-0 z-10 bg-background border-l" />
+                      )}
                     </TableRow>
                   ))
                 ) : data.length === 0 ? (
@@ -770,17 +656,17 @@ export default function InventoryPage() {
                     <TableCell colSpan={isAdmin ? 9 : 8}>
                       <EmptyState
                         icon={PackageSearch}
-                        title="No products found"
+                        title={t("emptyTitle")}
                         description={
                           hasActiveFilters || searchTerm
-                            ? "Try adjusting your search or filters."
-                            : "Add your first product to get started."
+                            ? t("emptyFiltered")
+                            : t("emptyDefault")
                         }
                         action={
                           isAdmin && !hasActiveFilters && !searchTerm ? (
                             <Button size="sm" onClick={handleAdd}>
                               <Plus className="mr-2 h-4 w-4" />
-                              Add Product
+                              {t("addProduct")}
                             </Button>
                           ) : undefined
                         }
@@ -900,15 +786,15 @@ export default function InventoryPage() {
                               )}
                             >
                               {item.currentStock <= 0
-                                ? "Out"
+                                ? t("dotOut")
                                 : item.currentStock <= 5
-                                  ? "Low"
-                                  : "Good"}
+                                  ? t("dotLow")
+                                  : t("dotGood")}
                             </span>
                           </div>
                         </TableCell>
                         {isAdmin && (
-                          <TableCell>
+                          <TableCell className="sticky right-0 z-10 bg-background border-l transition-colors group-hover:bg-muted/40">
                             <DropdownMenu>
                               <DropdownMenuTrigger
                                 asChild
@@ -917,7 +803,7 @@ export default function InventoryPage() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  className="h-8 w-8 p-0"
                                 >
                                   <MoreHorizontal className="h-4 w-4" />
                                 </Button>
@@ -926,19 +812,19 @@ export default function InventoryPage() {
                                 align="end"
                                 onClick={(e) => e.stopPropagation()}
                               >
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuLabel>{t("actions")}</DropdownMenuLabel>
                                 <DropdownMenuItem
                                   className="flex items-center"
                                   onClick={(e) => handleEdit(e, item)}
                                 >
-                                  <Edit className="mr-2 h-4 w-4" /> Edit
+                                  <Edit className="mr-2 h-4 w-4" /> {t("edit")}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   className="text-destructive flex items-center"
                                   onClick={(e) => handleDelete(e, item._id)}
                                 >
-                                  <Trash2 className="mr-2 h-4 w-4" /> Delete
+                                  <Trash2 className="mr-2 h-4 w-4" /> {t("delete")}
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>
@@ -957,16 +843,11 @@ export default function InventoryPage() {
       {totalPages > 1 && (
         <div className="flex flex-wrap items-center justify-between gap-2 px-1 shrink-0">
           <p className="text-xs text-muted-foreground">
-            Showing{" "}
-            <span className="font-medium text-foreground">
-              {(currentPage - 1) * itemsPerPage + 1}
-            </span>{" "}
-            to{" "}
-            <span className="font-medium text-foreground">
-              {Math.min(currentPage * itemsPerPage, totalItems)}
-            </span>{" "}
-            of <span className="font-medium text-foreground">{totalItems}</span>{" "}
-            products
+            {t("showing", {
+              from: (currentPage - 1) * itemsPerPage + 1,
+              to: Math.min(currentPage * itemsPerPage, totalItems),
+              total: totalItems,
+            })}
           </p>
           <Pagination className="w-auto mx-0">
             <PaginationContent className="gap-1.5">
@@ -1023,14 +904,108 @@ export default function InventoryPage() {
         onOpenChange={setIsDrawerOpen}
       />
 
+      <Sheet
+        open={isStockDrawerOpen}
+        onOpenChange={(open) => {
+          setIsStockDrawerOpen(open);
+          if (!open) setStockDrawerBrand(null);
+        }}
+      >
+        <SheetContent className="data-[side=right]:w-full data-[side=right]:sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            {stockDrawerBrand ? (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0 -ml-1.5"
+                  onClick={() => setStockDrawerBrand(null)}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <SheetTitle>{stockDrawerBrand}</SheetTitle>
+              </div>
+            ) : (
+              <SheetTitle>{t("totalStock")}</SheetTitle>
+            )}
+            <SheetDescription>
+              {stockDrawerBrand
+                ? t("stockDrawer.brandSubtitle")
+                : t("stockDrawer.brandListSubtitle")}
+            </SheetDescription>
+          </SheetHeader>
+
+          <div className="px-4 flex flex-col gap-2">
+            {!stockDrawerBrand
+              ? brandNames.map((brand) => (
+                  <button
+                    key={brand}
+                    onClick={() => setStockDrawerBrand(brand)}
+                    className="flex items-center justify-between rounded-lg border p-3.5 text-left transition-colors hover:border-primary/40 hover:bg-muted/30"
+                  >
+                    <span className="font-medium text-sm">{brand}</span>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                  </button>
+                ))
+              : groupBySize(stockByBrand[stockDrawerBrand] || []).map(
+                  (group) => (
+                    <div key={group.size} className="flex flex-col gap-2">
+                      <div className="flex items-baseline justify-between px-0.5 pt-2">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                          {group.size}
+                        </span>
+                        <span className="text-xs font-bold tabular-nums">
+                          {group.subtotal.toFixed(2)}{" "}
+                          <span className="text-[10px] font-medium text-muted-foreground">
+                            {group.measurementUnit}
+                          </span>
+                        </span>
+                      </div>
+                      {group.finishRows.map((row: any) => (
+                        <div
+                          key={row.typeId}
+                          className="rounded-lg border p-3 text-sm"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-medium">{row.finish}</span>
+                            <span className="font-bold tabular-nums">
+                              {Number(row.currentStock).toFixed(2)}{" "}
+                              <span className="text-[10px] font-medium text-muted-foreground">
+                                {row.measurementUnit}
+                              </span>
+                            </span>
+                          </div>
+                          <div className="flex justify-between text-[11px] text-muted-foreground pt-1.5 mt-1.5 border-t border-dashed">
+                            <span>
+                              {t("sold")}{" "}
+                              <span className="tabular-nums font-medium text-primary">
+                                {Number(row.soldStock).toFixed(2)}
+                              </span>
+                            </span>
+                            <span>
+                              {t("initial")}{" "}
+                              <span className="tabular-nums font-medium text-foreground">
+                                {Number(row.initialStock).toFixed(2)}
+                              </span>
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ),
+                )}
+          </div>
+        </SheetContent>
+      </Sheet>
+
       <ConfirmDialog
         open={!!confirmDeleteId}
         onOpenChange={(open) => {
           if (!open) setConfirmDeleteId(null);
         }}
-        title="Delete Product"
-        description="This will permanently delete the product and all associated stock entries. This action cannot be undone."
-        confirmLabel="Delete"
+        title={t("deleteDialog.title")}
+        description={t("deleteDialog.description")}
+        confirmLabel={t("deleteDialog.confirmLabel")}
         destructive
         onConfirm={() => {
           if (confirmDeleteId) deleteMutation.mutate(confirmDeleteId);

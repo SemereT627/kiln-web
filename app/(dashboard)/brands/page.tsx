@@ -5,9 +5,26 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Trash2, Building2, Loader2, Search } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Building2,
+  Loader2,
+  Search,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+} from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -40,18 +57,28 @@ export default function BrandsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
+  const [sortConfig, setSortConfig] = useState<{
+    key: string;
+    direction: "asc" | "desc";
+  }>({ key: "name", direction: "asc" });
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newBrand, setNewBrand] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const { data: response, isLoading } = useQuery({
-    queryKey: ["brands", { page: currentPage, search: searchTerm }],
+    queryKey: [
+      "brands",
+      { page: currentPage, search: searchTerm, sort: sortConfig },
+    ],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: itemsPerPage.toString(),
         search: searchTerm,
+        sortBy: sortConfig.key,
+        order: sortConfig.direction,
       });
       const res = await fetch(`/api/brands?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch brands");
@@ -62,6 +89,39 @@ export default function BrandsPage() {
   const brands = response?.data || [];
   const totalItems = response?.total || 0;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  const handleSort = (key: string) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        return { key, direction: prev.direction === "asc" ? "desc" : "asc" };
+      }
+      return { key, direction: "asc" };
+    });
+    setCurrentPage(1);
+  };
+
+  const getSortIcon = (key: string) => {
+    if (sortConfig.key !== key)
+      return <ArrowUpDown className="ml-2 h-3 w-3 opacity-50" />;
+    if (sortConfig.direction === "asc")
+      return <ArrowUp className="ml-2 h-3 w-3 text-primary" />;
+    return <ArrowDown className="ml-2 h-3 w-3 text-primary" />;
+  };
+
+  const formatDate = (iso: string) =>
+    new Date(iso).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+
+  const initialsFor = (name: string) =>
+    name
+      .split(" ")
+      .map((w: string) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
 
   const handleAddBrand = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,7 +152,7 @@ export default function BrandsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 h-full overflow-hidden animate-in fade-in duration-500">
+    <div className="flex flex-col gap-6 h-full overflow-y-auto animate-in fade-in duration-500">
       <div className="flex flex-wrap items-center justify-between shrink-0 gap-4">
         <div>
           <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
@@ -113,7 +173,7 @@ export default function BrandsPage() {
         )}
       </div>
 
-      <Card className="py-0 gap-0 flex-1 flex flex-col overflow-hidden">
+      <Card className="py-0 gap-0 flex flex-col overflow-hidden">
         <CardHeader className="py-3.5 px-5 border-b shrink-0 bg-muted/30 gap-0">
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -128,68 +188,113 @@ export default function BrandsPage() {
             />
           </div>
         </CardHeader>
-        <CardContent className="flex-1 overflow-y-auto overflow-x-hidden p-4">
-          {isLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <Skeleton key={i} className="h-16 rounded-xl" />
-              ))}
-            </div>
-          ) : brands.length === 0 ? (
-            <EmptyState
-              icon={Building2}
-              title="No brands found"
-              description={
-                searchTerm
-                  ? "Try a different search term."
-                  : "Add your first brand to get started."
-              }
-              action={
-                isAdmin && !searchTerm ? (
-                  <Button size="sm" onClick={() => setIsModalOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Brand
-                  </Button>
-                ) : undefined
-              }
-            />
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-              {brands.map((b: any) => {
-                const initials = b.name
-                  .split(" ")
-                  .map((w: string) => w[0])
-                  .join("")
-                  .slice(0, 2)
-                  .toUpperCase();
-                return (
-                  <div
-                    key={b.id}
-                    className="group relative flex items-center gap-3 rounded-xl border bg-card p-3.5 shadow-xs transition-all hover:shadow-md hover:border-primary/30"
+        <CardContent className="flex-1 flex flex-col overflow-hidden p-0">
+          <div className="flex flex-col overflow-auto">
+            <Table className="min-w-125">
+              <TableHeader className="border-b">
+                <TableRow className="hover:bg-transparent">
+                  <TableHead
+                    className="pl-4 sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    onClick={() => handleSort("name")}
                   >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/10">
-                      <span className="text-xs font-bold text-primary">
-                        {initials}
-                      </span>
+                    <div className="flex items-center gap-1">
+                      Name {getSortIcon("name")}
                     </div>
-                    <span className="font-medium text-sm truncate">
-                      {b.name}
-                    </span>
-                    {isAdmin && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute top-1.5 right-1.5 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={() => setConfirmDeleteId(b.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                      </Button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  </TableHead>
+                  <TableHead
+                    className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    onClick={() => handleSort("created_at")}
+                  >
+                    <div className="flex items-center gap-1">
+                      Created {getSortIcon("created_at")}
+                    </div>
+                  </TableHead>
+                  {isAdmin && (
+                    <TableHead className="sticky top-0 right-0 z-20 w-12 bg-background border-l" />
+                  )}
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <TableRow key={i} className="hover:bg-transparent h-[52px]">
+                      <TableCell className="pl-4">
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="h-8 w-8 rounded-lg shrink-0" />
+                          <Skeleton className="h-3.5 w-28" />
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-3.5 w-20" />
+                      </TableCell>
+                      {isAdmin && (
+                        <TableCell className="sticky right-0 z-10 bg-background border-l" />
+                      )}
+                    </TableRow>
+                  ))
+                ) : brands.length === 0 ? (
+                  <TableRow className="hover:bg-transparent">
+                    <TableCell colSpan={isAdmin ? 3 : 2}>
+                      <EmptyState
+                        icon={Building2}
+                        title="No brands found"
+                        description={
+                          searchTerm
+                            ? "Try a different search term."
+                            : "Add your first brand to get started."
+                        }
+                        action={
+                          isAdmin && !searchTerm ? (
+                            <Button size="sm" onClick={() => setIsModalOpen(true)}>
+                              <Plus className="mr-2 h-4 w-4" />
+                              Add Brand
+                            </Button>
+                          ) : undefined
+                        }
+                      />
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  brands.map((b: any) => (
+                    <TableRow
+                      key={b.id}
+                      className="group border-b transition-colors hover:bg-muted/40 h-[52px]"
+                    >
+                      <TableCell className="pl-4">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/10">
+                            <span className="text-[10px] font-bold text-primary">
+                              {initialsFor(b.name)}
+                            </span>
+                          </div>
+                          <span className="font-medium text-sm truncate">
+                            {b.name}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm text-muted-foreground">
+                          {formatDate(b.created_at)}
+                        </span>
+                      </TableCell>
+                      {isAdmin && (
+                        <TableCell className="sticky right-0 z-10 bg-background border-l transition-colors group-hover:bg-muted/40">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => setConfirmDeleteId(b.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 

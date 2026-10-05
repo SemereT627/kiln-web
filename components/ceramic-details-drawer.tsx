@@ -137,18 +137,6 @@ export function CeramicDetailsDrawer({
           </SheetHeader>
 
           <div className="mt-8 space-y-8 pb-8">
-            {/* Product Image */}
-            {ceramic.imageUrl && (
-              <ProductImage
-                src={ceramic.imageUrl}
-                alt={ceramic.name}
-                className="w-full rounded-2xl border border-border/60"
-                iconSize="lg"
-                sizes="(max-width: 640px) 100vw, 580px"
-                fit="contain"
-              />
-            )}
-
             {/* Key Stats */}
             <div className="grid grid-cols-2 gap-4">
               {/* Current Stock */}
@@ -202,50 +190,60 @@ export function CeramicDetailsDrawer({
                 <Info className="size-4 text-primary" />
                 Specifications
               </h4>
-              <div className="grid gap-3">
-                <div className="flex items-center justify-between py-2 border-b border-dashed">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Tag className="size-4" />
-                    <span>Brand</span>
-                  </div>
-                  <span className="font-medium">{ceramic.brand}</span>
-                </div>
-                <div className="flex items-center justify-between py-2 border-b border-dashed">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Layers className="size-4" />
-                    <span>Size</span>
-                  </div>
-                  <span className="font-medium">{ceramic.size}</span>
-                </div>
-                <div className="flex items-center justify-between py-2 border-b border-dashed">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Sparkles className="size-4" />
-                    <span>Finish</span>
-                  </div>
-                  <Badge variant="secondary" className="font-normal">
-                    {ceramic.finish}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between py-2 border-b border-dashed">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <TrendingUp className="size-4" />
-                    <span>Initial Stock</span>
-                  </div>
-                  <span className="font-medium">
-                    {ceramic.initialStock.toFixed(2)} {unit}
-                  </span>
-                </div>
-                {ceramic.pricePerUnit != null && (
+              <div className="flex gap-4 items-stretch">
+                <ProductImage
+                  src={ceramic.imageUrl}
+                  alt={ceramic.name}
+                  className="w-2/5 shrink-0 rounded-2xl border border-border/60"
+                  iconSize="lg"
+                  sizes="220px"
+                  fit="cover"
+                />
+                <div className="flex-1 min-w-0 flex flex-col justify-between">
                   <div className="flex items-center justify-between py-2 border-b border-dashed">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Tag className="size-4" />
-                      <span>Price / {unit}</span>
+                      <span>Brand</span>
+                    </div>
+                    <span className="font-medium">{ceramic.brand}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-dashed">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Layers className="size-4" />
+                      <span>Size</span>
+                    </div>
+                    <span className="font-medium">{ceramic.size}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-dashed">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Sparkles className="size-4" />
+                      <span>Finish</span>
+                    </div>
+                    <Badge variant="secondary" className="font-normal">
+                      {ceramic.finish}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center justify-between py-2 border-b border-dashed">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <TrendingUp className="size-4" />
+                      <span>Initial Stock</span>
                     </div>
                     <span className="font-medium">
-                      {Number(ceramic.pricePerUnit).toFixed(2)} ETB
+                      {ceramic.initialStock.toFixed(2)} {unit}
                     </span>
                   </div>
-                )}
+                  {ceramic.pricePerUnit != null && (
+                    <div className="flex items-center justify-between py-2">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Tag className="size-4" />
+                        <span>Price / {unit}</span>
+                      </div>
+                      <span className="font-medium">
+                        {Number(ceramic.pricePerUnit).toFixed(2)} ETB
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

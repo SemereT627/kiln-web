@@ -21,7 +21,6 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { EmptyState } from "@/components/empty-state";
-import { DataCardList } from "@/components/data-card-list";
 import { AuditDiffDialog, type CeramicLookup } from "@/components/audit-diff-dialog";
 import { AlertCircle, Calendar, User } from "lucide-react";
 import { cn, formatDateTime } from "@/lib/utils";
@@ -149,74 +148,8 @@ export default function AuditLogsPage() {
 
       <Card className="py-0 gap-0 flex-1 flex flex-col overflow-hidden">
         <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
-          {/* Mobile card list */}
-          <div className="md:hidden flex-1 min-h-0 overflow-y-auto p-4">
-            {isLoading ? (
-              <div className="flex flex-col gap-3">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <Skeleton key={i} className="h-28 rounded-xl" />
-                ))}
-              </div>
-            ) : logs.length === 0 ? (
-              <EmptyState
-                icon={AlertCircle}
-                title="No audit events recorded yet"
-                description="System activity will show up here as it happens."
-              />
-            ) : (
-              <DataCardList
-                items={logs}
-                keyFor={(log) => log.id}
-                onRowClick={(log) =>
-                  (log.before || log.after) && setSelectedLog(log)
-                }
-                renderLeading={() => (
-                  <span className="flex size-8 items-center justify-center rounded-lg bg-muted">
-                    <Calendar className="size-3.5 text-muted-foreground" />
-                  </span>
-                )}
-                renderTitle={(log) => log.targetTable}
-                renderSubtitle={(log) => formatDateTime(log.createdAt)}
-                renderTrailing={(log) => (
-                  <Badge
-                    className={cn(
-                      "font-bold text-[10px] h-5 shrink-0",
-                      actionColor(log.action),
-                    )}
-                  >
-                    {log.action}
-                  </Badge>
-                )}
-                fields={[
-                  {
-                    label: "Actor",
-                    render: (log) => log.actorName ?? "System",
-                  },
-                  {
-                    label: "Target ID",
-                    render: (log) =>
-                      log.targetId ? log.targetId.slice(0, 8) : "—",
-                  },
-                  {
-                    label: "Diff",
-                    fullWidth: true,
-                    render: (log) =>
-                      log.before || log.after ? (
-                        <span className="font-mono text-[11px] text-primary underline underline-offset-2">
-                          Tap card to view full diff
-                        </span>
-                      ) : (
-                        "—"
-                      ),
-                  },
-                ]}
-              />
-            )}
-          </div>
-
-          {/* Desktop table */}
-          <div className="hidden md:flex md:flex-1 md:flex-col md:overflow-auto">
-            <Table>
+          <div className="flex-1 flex flex-col overflow-auto">
+            <Table className="min-w-175">
               <TableHeader className="border-b">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="sticky top-0 z-10 bg-background pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">

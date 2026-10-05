@@ -10,6 +10,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   Sheet,
   SheetContent,
   SheetHeader,
@@ -26,6 +41,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/empty-state";
+import { DateRangePicker } from "@/components/date-range-picker";
 import {
   ClipboardCheck,
   CheckCircle2,
@@ -34,7 +50,6 @@ import {
   Banknote,
   Landmark,
   HandCoins,
-  ChevronRight,
   ShieldAlert,
   Undo2,
   Wallet,
@@ -119,11 +134,75 @@ const PAYMENT_ICON: Record<Order["paymentMethod"], React.ElementType> = {
   credit: HandCoins,
 };
 
-function ordersUrl(filterMode: FilterMode) {
-  if (filterMode === "unpaid_credit") {
-    return "/api/orders?status=approved&paymentMethod=credit&paymentStatus=unpaid&limit=50";
+function renderOrderBadges(order: Order) {
+  const badges: React.ReactNode[] = [];
+  if (order.paymentMethod === "credit" && order.paymentStatus === "unpaid") {
+    badges.push(
+      <Badge
+        key="unpaid"
+        className="text-[10px] bg-warning/15 text-warning-foreground dark:text-warning hover:bg-warning/15"
+      >
+        Payment not yet received
+      </Badge>,
+    );
   }
-  return `/api/orders?status=${filterMode}&limit=50`;
+  if (order.hasReturns) {
+    badges.push(
+      <Badge key="returns" variant="outline" className="text-[10px] gap-1">
+        <Undo2 className="h-3 w-3" />
+        Has returns
+      </Badge>,
+    );
+  }
+  if (order.pendingReturnRequestCount) {
+    badges.push(
+      <Badge
+        key="return-requested"
+        className="text-[10px] gap-1 bg-warning/15 text-warning-foreground dark:text-warning hover:bg-warning/15"
+      >
+        <Undo2 className="h-3 w-3" />
+        Return requested
+      </Badge>,
+    );
+  }
+  if (order.status === "rejected") {
+    badges.push(
+      <Badge
+        key="rejected"
+        variant="outline"
+        className="text-[10px] text-destructive"
+      >
+        Rejected
+      </Badge>,
+    );
+  }
+  return badges;
+}
+
+/** yyyy-mm-dd in local time — matches the <input type=date>-style format the
+ * API's dateFrom/dateTo params expect, without UTC day-shift from toISOString. */
+function toDateParam(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function ordersUrl(
+  filterMode: FilterMode,
+  page: number,
+  limit: number,
+  dateFrom?: Date,
+  dateTo?: Date,
+) {
+  const base =
+    filterMode === "unpaid_credit"
+      ? "/api/orders?status=approved&paymentMethod=credit&paymentStatus=unpaid"
+      : `/api/orders?status=${filterMode}`;
+  let url = `${base}&page=${page}&limit=${limit}`;
+  if (dateFrom) url += `&dateFrom=${toDateParam(dateFrom)}`;
+  if (dateTo) url += `&dateTo=${toDateParam(dateTo)}`;
+  return url;
 }
 
 export default function OrdersPage() {
@@ -131,6 +210,22 @@ export default function OrdersPage() {
   const isAdmin = userProfile?.role === "admin";
   useOrdersRealtime(isAdmin);
   const [filterMode, setFilterMode] = useState<FilterMode>("pending");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  const changeFilterMode = (mode: FilterMode) => {
+    setFilterMode(mode);
+    setCurrentPage(1);
+  };
+  const changeDateRange = (range: {
+    from: Date | undefined;
+    to: Date | undefined;
+  }) => {
+    setDateFrom(range.from);
+    setDateTo(range.to);
+    setCurrentPage(1);
+  };
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -153,12 +248,40 @@ export default function OrdersPage() {
     useState("");
 
   const { data: response, isLoading } = useQuery({
-    queryKey: ["orders", filterMode],
+    queryKey: [
+      "orders",
+      filterMode,
+      currentPage,
+      dateFrom?.getTime(),
+      dateTo?.getTime(),
+    ],
     queryFn: async () => {
-      const res = await fetch(ordersUrl(filterMode));
+      const res = await fetch(
+        ordersUrl(filterMode, currentPage, itemsPerPage, dateFrom, dateTo),
+      );
       if (!res.ok) throw new Error("Failed to fetch orders");
       return res.json();
     },
+  });
+
+  // Per-tab counts for the segmented control's badges — cheap (limit=1,
+  // Supabase still returns the exact total count regardless of page size).
+  // Respects the active date filter so counts always match what each tab
+  // would actually show if clicked.
+  const { data: tabCounts } = useQuery({
+    queryKey: ["orders", "tab-counts", dateFrom?.getTime(), dateTo?.getTime()],
+    queryFn: async () => {
+      const entries = await Promise.all(
+        STATUS_TABS.map(async (tab) => {
+          const res = await fetch(ordersUrl(tab.value, 1, 1, dateFrom, dateTo));
+          if (!res.ok) throw new Error("Failed to fetch order counts");
+          const json = await res.json();
+          return [tab.value, json.total ?? 0] as const;
+        }),
+      );
+      return Object.fromEntries(entries) as Record<FilterMode, number>;
+    },
+    enabled: isAdmin,
   });
 
   // Outstanding credit total is independent of the active tab, so admins can
@@ -185,6 +308,8 @@ export default function OrdersPage() {
   } = useOrderMutations();
 
   const orders: Order[] = response?.data || [];
+  const totalItems: number = response?.total || 0;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
   const outstandingOrders: Order[] = outstandingResponse?.data || [];
   const outstandingTotal = outstandingOrders.reduce(
     (sum, o) => sum + o.outstandingTotal,
@@ -400,113 +525,230 @@ export default function OrdersPage() {
         </CardContent>
       </Card>
 
-      <div className="flex gap-2 shrink-0 overflow-x-auto no-scrollbar -mx-1 px-1 sm:flex-wrap sm:overflow-visible">
-        {STATUS_TABS.map((tab) => (
-          <Button
-            key={tab.value}
-            variant={filterMode === tab.value ? "default" : "outline"}
-            size="sm"
-            className="rounded-full shrink-0"
-            onClick={() => setFilterMode(tab.value)}
-          >
-            {tab.label}
-          </Button>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-2 shrink-0">
+        <div className="inline-flex gap-1 rounded-lg border bg-muted/30 p-1 overflow-x-auto no-scrollbar -mx-1 px-1 sm:mx-0">
+          {STATUS_TABS.map((tab) => {
+            const active = filterMode === tab.value;
+            const count = tabCounts?.[tab.value];
+            return (
+              <button
+                key={tab.value}
+                onClick={() => changeFilterMode(tab.value)}
+                className={cn(
+                  "flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                  active
+                    ? "bg-background text-foreground shadow-xs"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {tab.label}
+                {count !== undefined && (
+                  <span
+                    className={cn(
+                      "rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums",
+                      active
+                        ? "bg-primary/10 text-primary"
+                        : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    {count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <DateRangePicker
+          from={dateFrom}
+          to={dateTo}
+          onChange={changeDateRange}
+        />
       </div>
 
       <div className="flex-1 flex flex-col min-h-0 gap-3">
-        <h2 className="text-base font-semibold border-b pb-3 shrink-0">
-          {STATUS_TABS.find((t) => t.value === filterMode)?.label} Orders
-        </h2>
-        <div className="flex-1 overflow-auto">
-          {isLoading ? (
-            <div className="flex flex-col gap-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-20 rounded-xl" />
-              ))}
-            </div>
-          ) : orders.length === 0 ? (
-            <EmptyState
-              icon={ClipboardCheck}
-              title="No orders here"
-              description="There are no orders matching this filter right now."
-            />
-          ) : (
-            <div className="flex flex-col gap-3">
-              {orders.map((order) => {
-                const PaymentIcon = PAYMENT_ICON[order.paymentMethod];
-                return (
-                  <button
-                    key={order.id}
-                    onClick={() => openOrder(order.id)}
-                    className="flex flex-col gap-3 rounded-xl border p-4 text-left transition-colors hover:border-primary/40 hover:bg-muted/30 sm:flex-row sm:items-center sm:gap-4"
-                  >
-                    {/* sm:contents drops this wrapper from layout at sm+, so
-                        the icon and details rejoin the single-row flex like
-                        before — on mobile it's its own row instead of
-                        sharing height with the price block below. */}
-                    <div className="flex items-start gap-4 sm:contents">
-                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                        <PaymentIcon className="h-5 w-5 text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="font-semibold truncate">
-                            {order.sellerName || "Unknown seller"}
-                          </p>
-                          <Badge variant="outline" className="text-[10px]">
-                            {order.items.length} item
-                            {order.items.length !== 1 ? "s" : ""}
-                          </Badge>
-                          {order.paymentMethod === "credit" &&
-                            order.paymentStatus === "unpaid" && (
-                              <Badge className="text-[10px] bg-warning/15 text-warning-foreground dark:text-warning hover:bg-warning/15">
-                                Payment not yet received
-                              </Badge>
+        <div className="flex-1 flex flex-col overflow-hidden rounded-lg border">
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-auto">
+              <Table className="min-w-175">
+                <TableHeader className="border-b">
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="pl-4 sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                      Seller
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                      Items
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                      Payment
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                      Date
+                    </TableHead>
+                    <TableHead className="text-right sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                      Amount
+                    </TableHead>
+                    <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                      Status
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <TableRow
+                        key={i}
+                        className="hover:bg-transparent h-[60px]"
+                      >
+                        <TableCell className="pl-4">
+                          <Skeleton className="h-3.5 w-28" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-3.5 w-12" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-3.5 w-20" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-3.5 w-24" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-3.5 w-16 ml-auto" />
+                        </TableCell>
+                        <TableCell>
+                          <Skeleton className="h-4 w-20" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : orders.length === 0 ? (
+                    <TableRow className="hover:bg-transparent">
+                      <TableCell colSpan={6}>
+                        <EmptyState
+                          icon={ClipboardCheck}
+                          title="No orders here"
+                          description="There are no orders matching this filter right now."
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    orders.map((order) => {
+                      const PaymentIcon = PAYMENT_ICON[order.paymentMethod];
+                      const badges = renderOrderBadges(order);
+                      return (
+                        <TableRow
+                          key={order.id}
+                          className="cursor-pointer border-b transition-colors hover:bg-muted/40 h-[60px]"
+                          onClick={() => openOrder(order.id)}
+                        >
+                          <TableCell className="pl-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                                <PaymentIcon className="h-4 w-4 text-primary" />
+                              </div>
+                              <span className="font-semibold text-sm truncate">
+                                {order.sellerName || "Unknown seller"}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground tabular-nums">
+                              {order.items.length}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground">
+                              {PAYMENT_LABEL[order.paymentMethod]}
+                              {order.bankAccount
+                                ? ` · ${order.bankAccount}`
+                                : ""}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground">
+                              {new Date(order.createdAt).toLocaleString()}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <span className="text-sm font-bold tabular-nums">
+                              {order.outstandingTotal.toFixed(2)}
+                            </span>
+                            <span className="text-[10px] text-muted-foreground/40 ml-0.5">
+                              ETB
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            {badges.length > 0 ? (
+                              <div className="flex flex-wrap gap-1">
+                                {badges}
+                              </div>
+                            ) : (
+                              <span className="text-sm text-muted-foreground">
+                                —
+                              </span>
                             )}
-                          {order.hasReturns && (
-                            <Badge
-                              variant="outline"
-                              className="text-[10px] gap-1"
-                            >
-                              <Undo2 className="h-3 w-3" />
-                              Has returns
-                            </Badge>
-                          )}
-                          {!!order.pendingReturnRequestCount && (
-                            <Badge className="text-[10px] gap-1 bg-warning/15 text-warning-foreground dark:text-warning hover:bg-warning/15">
-                              <Undo2 className="h-3 w-3" />
-                              Return requested
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {PAYMENT_LABEL[order.paymentMethod]}
-                          {order.bankAccount
-                            ? ` · ${order.bankAccount}`
-                            : ""} · {new Date(order.createdAt).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-end gap-3 sm:contents">
-                      <div className="text-right shrink-0">
-                        <p className="font-bold tabular-nums">
-                          {order.outstandingTotal.toFixed(2)} ETB
-                        </p>
-                        {order.status === "rejected" && (
-                          <p className="text-[10px] text-destructive mt-0.5">
-                            Rejected
-                          </p>
-                        )}
-                      </div>
-                      <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                    </div>
-                  </button>
-                );
-              })}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
             </div>
-          )}
+          </div>
         </div>
+
+        {totalPages > 1 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 px-1 shrink-0">
+            <p className="text-xs text-muted-foreground">
+              Showing{" "}
+              <span className="font-medium text-foreground">
+                {(currentPage - 1) * itemsPerPage + 1}
+              </span>{" "}
+              to{" "}
+              <span className="font-medium text-foreground">
+                {Math.min(currentPage * itemsPerPage, totalItems)}
+              </span>{" "}
+              of{" "}
+              <span className="font-medium text-foreground">{totalItems}</span>{" "}
+              orders
+            </p>
+            <Pagination className="w-auto mx-0">
+              <PaginationContent className="gap-1.5">
+                <PaginationItem>
+                  <PaginationPrevious
+                    size="sm"
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(1, prev - 1))
+                    }
+                    className={
+                      currentPage === 1
+                        ? "pointer-events-none opacity-40"
+                        : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
+                <PaginationItem>
+                  <span className="flex h-8 items-center rounded-lg border bg-background px-3 text-xs font-medium tabular-nums">
+                    {currentPage} / {totalPages}
+                  </span>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext
+                    size="sm"
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                    }
+                    className={
+                      currentPage === totalPages
+                        ? "pointer-events-none opacity-40"
+                        : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
       </div>
 
       <Sheet

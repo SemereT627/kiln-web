@@ -21,7 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ChevronDown,
+  MoreHorizontal,
   AlertCircle,
   Search,
   Mail,
@@ -36,7 +36,6 @@ import { EmptyState } from "@/components/empty-state";
 import { AddUserForm } from "@/components/add-user-form";
 import { UserAvatar } from "@/components/user-avatar";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { DataCardList } from "@/components/data-card-list";
 import { toast } from "sonner";
 import { cn, formatDate } from "@/lib/utils";
 
@@ -132,37 +131,30 @@ export default function AdminUsersPage() {
   const renderRoleAction = (user: UserRow) => {
     if (user.id === currentUser?.id) {
       return (
-        <Badge
-          variant="outline"
-          className="h-8 gap-1.5 text-[10px] font-bold uppercase tracking-wide text-primary border-primary/30 bg-primary/5"
+        <div
+          className="inline-flex h-8 w-8 items-center justify-center"
+          title="Current session"
         >
-          Current Session
-        </Badge>
+          <span className="size-2 rounded-full bg-emerald-500" />
+        </div>
       );
     }
+    const isUpdating =
+      changeRoleMutation.isPending &&
+      changeRoleMutation.variables?.userId === user.id;
     return (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
-            variant="outline"
-            size="sm"
-            disabled={
-              changeRoleMutation.isPending &&
-              changeRoleMutation.variables?.userId === user.id
-            }
-            className="h-8 gap-1.5 text-xs"
+            variant="ghost"
+            size="icon"
+            disabled={isUpdating}
+            className="h-8 w-8"
           >
-            {changeRoleMutation.isPending &&
-            changeRoleMutation.variables?.userId === user.id ? (
-              <span className="flex items-center gap-1.5">
-                <div className="size-2 rounded-full bg-primary animate-pulse" />
-                Updating
-              </span>
+            {isUpdating ? (
+              <div className="size-2 rounded-full bg-primary animate-pulse" />
             ) : (
-              <>
-                Manage Role
-                <ChevronDown className="size-3 opacity-50" />
-              </>
+              <MoreHorizontal className="h-4 w-4" />
             )}
           </Button>
         </DropdownMenuTrigger>
@@ -268,77 +260,8 @@ export default function AdminUsersPage() {
           </div>
         </div>
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Mobile card list */}
-          <div className="md:hidden flex-1 min-h-0 overflow-y-auto p-4">
-            {isLoading ? (
-              <div className="flex flex-col gap-3">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <Skeleton key={i} className="h-32 rounded-xl" />
-                ))}
-              </div>
-            ) : filteredUsers.length === 0 ? (
-              <EmptyState
-                icon={UserPlus}
-                title="No users found"
-                description={
-                  searchTerm
-                    ? "Try a different search term."
-                    : "Add your first user to get started."
-                }
-              />
-            ) : (
-              <DataCardList
-                items={filteredUsers}
-                keyFor={(user) => user.id}
-                renderLeading={(user) => (
-                  <UserAvatar name={user.full_name ?? user.email} />
-                )}
-                renderTitle={(user) => (
-                  <span className="flex items-center gap-2">
-                    {user.full_name ?? "—"}
-                    {user.id === currentUser?.id && (
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] h-4 px-1 font-bold bg-primary/10 text-primary border-primary/20"
-                      >
-                        YOU
-                      </Badge>
-                    )}
-                  </span>
-                )}
-                renderSubtitle={(user) => user.email ?? "—"}
-                renderTrailing={(user) => (
-                  <Badge
-                    className={cn(
-                      "capitalize font-bold text-[10px] h-5 shrink-0",
-                      user.role === "admin"
-                        ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                        : user.role === "seller"
-                          ? "bg-primary/10 text-primary"
-                          : "bg-muted text-muted-foreground",
-                    )}
-                  >
-                    <Shield className="size-2.5 mr-1" />
-                    {user.role}
-                  </Badge>
-                )}
-                fields={[
-                  {
-                    label: "Joined",
-                    render: (user) => formatDate(user.created_at),
-                  },
-                  {
-                    label: "Role",
-                    render: (user) => renderRoleAction(user),
-                  },
-                ]}
-              />
-            )}
-          </div>
-
-          {/* Desktop table */}
-          <div className="hidden md:flex md:flex-1 md:flex-col md:overflow-auto">
-            <Table>
+          <div className="flex-1 flex flex-col overflow-auto">
+            <Table className="min-w-200">
               <TableHeader className="border-b">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="sticky top-0 z-10 bg-background pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
@@ -353,7 +276,7 @@ export default function AdminUsersPage() {
                   <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     Joined
                   </TableHead>
-                  <TableHead className="sticky top-0 z-10 bg-background pr-4 text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 right-0 z-20 bg-background pr-4 text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground border-l">
                     Actions
                   </TableHead>
                 </TableRow>
@@ -374,7 +297,9 @@ export default function AdminUsersPage() {
                       <TableCell><Skeleton className="h-3.5 w-40" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-14 rounded-full" /></TableCell>
                       <TableCell><Skeleton className="h-3.5 w-20" /></TableCell>
-                      <TableCell><Skeleton className="h-8 w-24 ml-auto rounded-md" /></TableCell>
+                      <TableCell className="sticky right-0 z-10 bg-background border-l">
+                        <Skeleton className="h-8 w-8 ml-auto rounded-md" />
+                      </TableCell>
                     </TableRow>
                   ))
                 ) : filteredUsers.length === 0 ? (
@@ -451,7 +376,7 @@ export default function AdminUsersPage() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="pr-4 text-right">
+                      <TableCell className="sticky right-0 z-10 bg-background border-l pr-4 text-right transition-colors group-hover:bg-muted/40">
                         {renderRoleAction(user)}
                       </TableCell>
                     </TableRow>
