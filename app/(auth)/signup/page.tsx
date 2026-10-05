@@ -56,9 +56,9 @@ export default function SignupPage() {
 
         {/* Logo */}
         <div className="relative z-10 flex items-center gap-3">
-          <Image src="/logo-192.png" alt="Tylio" width={36} height={36} className="rounded-lg" />
+          <Image src="/logo-192.png" alt="Kiln" width={36} height={36} className="rounded-lg" />
           <div>
-            <p className="text-white font-bold text-lg leading-none">Tylio</p>
+            <p className="text-white font-bold text-lg leading-none">Kiln</p>
             <p className="text-white/40 text-xs mt-0.5">Stock Management</p>
           </div>
         </div>
@@ -90,7 +90,7 @@ export default function SignupPage() {
 
         {/* Bottom */}
         <p className="relative z-10 text-white/20 text-xs">
-          © {new Date().getFullYear()} Tylio
+          © {new Date().getFullYear()} Kiln
         </p>
       </div>
 
@@ -99,8 +99,8 @@ export default function SignupPage() {
         <div className="w-full max-w-sm space-y-8">
           {/* Mobile logo */}
           <div className="flex items-center gap-2 lg:hidden">
-            <Image src="/logo-192.png" alt="Tylio" width={32} height={32} className="rounded-md" />
-            <span className="font-bold text-lg">Tylio</span>
+            <Image src="/logo-192.png" alt="Kiln" width={32} height={32} className="rounded-md" />
+            <span className="font-bold text-lg">Kiln</span>
           </div>
 
           {success ? (

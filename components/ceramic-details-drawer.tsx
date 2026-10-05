@@ -456,7 +456,7 @@ export function CeramicDetailsDrawer({
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <span className="font-bold tabular-nums text-blue-600 dark:text-blue-400">
+                          <span className="font-bold tabular-nums text-primary">
                             {sale.quantity.toFixed(2)}
                           </span>
                           <span className="text-[10px] text-muted-foreground/50 ml-0.5">

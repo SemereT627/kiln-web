@@ -456,8 +456,8 @@ function SalesLogPageInner() {
                       >
                         <TableCell className="pl-4">
                           <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-lg bg-blue-500/10 ring-1 ring-blue-500/10 flex items-center justify-center shrink-0">
-                              <Calendar className="h-4 w-4 text-blue-500" />
+                            <div className="h-8 w-8 rounded-lg bg-primary/10 ring-1 ring-primary/10 flex items-center justify-center shrink-0">
+                              <Calendar className="h-4 w-4 text-primary" />
                             </div>
                             <div className="flex flex-col">
                               <span className="font-semibold text-sm">

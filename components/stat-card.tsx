@@ -46,11 +46,14 @@ export function StatCard({
       <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
         {title}
       </p>
-      {subtext && (
-        <p className="hidden text-xs text-muted-foreground/80 mt-1 leading-snug md:block">
-          {subtext}
-        </p>
-      )}
+      <p
+        className={cn(
+          "hidden text-xs text-muted-foreground/80 mt-0.5 leading-snug md:block",
+          !subtext && "invisible",
+        )}
+      >
+        {subtext ?? " "}
+      </p>
     </div>
   );
 }

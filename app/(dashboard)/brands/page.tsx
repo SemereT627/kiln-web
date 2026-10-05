@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -173,8 +172,8 @@ export default function BrandsPage() {
         )}
       </div>
 
-      <Card className="py-0 gap-0 flex flex-col overflow-hidden">
-        <CardHeader className="py-3.5 px-5 border-b shrink-0 bg-muted/30 gap-0">
+      <div className="flex flex-col overflow-hidden rounded-lg border">
+        <div className="py-3.5 px-5 border-b shrink-0 bg-muted/30">
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -187,8 +186,8 @@ export default function BrandsPage() {
               }}
             />
           </div>
-        </CardHeader>
-        <CardContent className="flex-1 flex flex-col overflow-hidden p-0">
+        </div>
+        <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex flex-col overflow-auto">
             <Table className="min-w-125">
               <TableHeader className="border-b">
@@ -295,8 +294,8 @@ export default function BrandsPage() {
               </TableBody>
             </Table>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {totalPages > 1 && (
         <div className="flex flex-wrap items-center justify-between gap-2 px-1 shrink-0">

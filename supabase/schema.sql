@@ -1,5 +1,5 @@
 -- ============================================================
--- Tylio — Full Database Schema (single source of truth)
+-- Kiln — Full Database Schema (single source of truth)
 -- Run this in the Supabase SQL editor on a fresh project.
 -- ============================================================
 -- 1. Brands

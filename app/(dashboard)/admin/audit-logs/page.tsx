@@ -11,7 +11,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Pagination,
@@ -146,8 +145,8 @@ export default function AuditLogsPage() {
         </p>
       </div>
 
-      <Card className="py-0 gap-0 flex-1 flex flex-col overflow-hidden">
-        <CardContent className="p-0 flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden rounded-lg border">
+        <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 flex flex-col overflow-auto">
             <Table className="min-w-175">
               <TableHeader className="border-b">
@@ -253,7 +252,7 @@ export default function AuditLogsPage() {
               </TableBody>
             </Table>
           </div>
-        </CardContent>
+        </div>
         <div className="flex items-center justify-between border-t px-4 py-3 shrink-0 bg-muted/30">
           <span className="text-xs text-muted-foreground">
             <span className="font-medium text-foreground">{total}</span> events
@@ -290,7 +289,7 @@ export default function AuditLogsPage() {
             </PaginationContent>
           </Pagination>
         </div>
-      </Card>
+      </div>
 
       <AuditDiffDialog
         open={!!selectedLog}

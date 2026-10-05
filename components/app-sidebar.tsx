@@ -183,19 +183,19 @@ export function AppSidebar() {
           <div className="flex items-center gap-2.5 group-data-[collapsible=icon]:hidden">
             <Image
               src="/logo-192.png"
-              alt="Tylio"
+              alt="Kiln"
               width={28}
               height={28}
               className="rounded-md shrink-0"
             />
             <p className="font-bold text-xl leading-tight tracking-tight">
-              Tylio
+              Kiln
             </p>
           </div>
           <SidebarTrigger className="hidden h-8 w-8 shrink-0 md:flex group-data-[collapsible=icon]:-mt-1" />
           <Image
             src="/logo-192.png"
-            alt="Tylio"
+            alt="Kiln"
             width={28}
             height={28}
             className="rounded-md hidden group-data-[collapsible=icon]:block"

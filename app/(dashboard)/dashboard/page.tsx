@@ -293,7 +293,7 @@ export default function Dashboard() {
                 {t("liveDashboard")}
               </p>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
               {firstName ? t("welcomeBack", { name: firstName }) : t("greetingFallback")}
             </h1>
             <p className="text-sm text-muted-foreground hidden sm:block">

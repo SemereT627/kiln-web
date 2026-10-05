@@ -16,7 +16,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Tylio - Inventory Management",
+  title: "Kiln - Inventory Management",
   description: "Aesthetically pleasing ceramic store management system",
   icons: {
     icon: [
@@ -24,7 +24,6 @@ export const metadata: Metadata = {
       { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
       { url: "/favicon-48x48.png", sizes: "48x48", type: "image/png" },
     ],
-    shortcut: "/favicon.ico",
     apple: "/apple-touch-icon.png",
   },
 };

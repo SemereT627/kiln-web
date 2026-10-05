@@ -40,9 +40,9 @@ export default function LandingPage() {
         {/* Header */}
         <header className="flex items-center justify-between px-6 py-6 sm:px-10">
           <div className="flex items-center gap-3">
-            <Image src="/logo-192.png" alt="Tylio" width={36} height={36} className="rounded-lg" />
+            <Image src="/logo-192.png" alt="Kiln" width={36} height={36} className="rounded-lg" />
             <div>
-              <p className="font-bold text-lg leading-none">Tylio</p>
+              <p className="font-bold text-lg leading-none">Kiln</p>
               <p className="text-muted-foreground text-xs mt-0.5">Stock Management</p>
             </div>
           </div>
@@ -100,7 +100,7 @@ export default function LandingPage() {
 
         {/* Footer */}
         <footer className="px-6 py-8 text-center sm:px-10">
-          <p className="text-xs text-muted-foreground/60">© {new Date().getFullYear()} Tylio</p>
+          <p className="text-xs text-muted-foreground/60">© {new Date().getFullYear()} Kiln</p>
         </footer>
       </div>
     </div>
