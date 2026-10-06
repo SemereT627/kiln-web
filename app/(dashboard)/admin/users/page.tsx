@@ -144,20 +144,22 @@ export default function AdminUsersPage() {
       changeRoleMutation.variables?.userId === user.id;
     return (
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            size="icon"
-            disabled={isUpdating}
-            className="h-8 w-8"
-          >
-            {isUpdating ? (
-              <div className="size-2 rounded-full bg-primary animate-pulse" />
-            ) : (
-              <MoreHorizontal className="h-4 w-4" />
-            )}
-          </Button>
-        </DropdownMenuTrigger>
+        <div className="flex justify-center">
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              disabled={isUpdating}
+              className="h-8 w-8"
+            >
+              {isUpdating ? (
+                <div className="size-2 rounded-full bg-primary animate-pulse" />
+              ) : (
+                <MoreHorizontal className="h-4 w-4" />
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+        </div>
         <DropdownMenuContent align="end" className="w-44">
           {ROLE_OPTIONS.filter((role) => role !== user.role).map((role) => (
             <DropdownMenuItem
@@ -276,7 +278,7 @@ export default function AdminUsersPage() {
                   <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
                     Joined
                   </TableHead>
-                  <TableHead className="sticky top-0 right-0 z-20 bg-background pr-4 text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground border-l">
+                  <TableHead className="sticky top-0 right-0 z-20 w-12 bg-background text-center text-[11px] uppercase tracking-wider font-semibold text-muted-foreground border-l">
                     Actions
                   </TableHead>
                 </TableRow>
@@ -298,7 +300,7 @@ export default function AdminUsersPage() {
                       <TableCell><Skeleton className="h-5 w-14 rounded-full" /></TableCell>
                       <TableCell><Skeleton className="h-3.5 w-20" /></TableCell>
                       <TableCell className="sticky right-0 z-10 bg-background border-l">
-                        <Skeleton className="h-8 w-8 ml-auto rounded-md" />
+                        <Skeleton className="h-8 w-8 mx-auto rounded-md" />
                       </TableCell>
                     </TableRow>
                   ))
@@ -376,7 +378,7 @@ export default function AdminUsersPage() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="sticky right-0 z-10 bg-background border-l pr-4 text-right transition-colors group-hover:bg-muted/40">
+                      <TableCell className="sticky right-0 z-10 bg-background border-l text-center transition-colors group-hover:bg-muted/40">
                         {renderRoleAction(user)}
                       </TableCell>
                     </TableRow>

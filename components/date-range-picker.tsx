@@ -17,9 +17,17 @@ interface DateRangePickerProps {
   to: Date | undefined;
   onChange: (range: { from: Date | undefined; to: Date | undefined }) => void;
   className?: string;
+  /** Trigger label shown when no range is selected. Defaults to "Filter by date". */
+  placeholder?: string;
 }
 
-export function DateRangePicker({ from, to, onChange, className }: DateRangePickerProps) {
+export function DateRangePicker({
+  from,
+  to,
+  onChange,
+  className,
+  placeholder = "Filter by date",
+}: DateRangePickerProps) {
   const [open, setOpen] = useState(false);
   const hasRange = !!from || !!to;
 
@@ -27,7 +35,7 @@ export function DateRangePicker({ from, to, onChange, className }: DateRangePick
     ? to && to.getTime() !== from.getTime()
       ? `${formatShort(from)} – ${formatShort(to)}`
       : formatShort(from)
-    : "Filter by date";
+    : placeholder;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

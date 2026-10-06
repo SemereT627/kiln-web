@@ -201,6 +201,84 @@ GROUP BY v.type_id,
   v.measurement_unit,
   v.price_per_unit;
 $$;
+-- Paginated day-level summary for the Sales Log page — groups sales by
+-- calendar day in Addis Ababa local time (the business's only timezone),
+-- so the Sales Log page never has to fetch every sale ever recorded just to
+-- render its day list. Returns total_days (for pagination) and grand_*
+-- totals across the WHOLE filtered range (not just the current page) as
+-- repeated columns, via a cross join, so the header stat cards stay
+-- accurate without a second round trip.
+-- ceramic_types is LEFT JOINed (not INNER) because ceramics.type_id can be
+-- NULL — its ceramic_type may have been deleted (ON DELETE SET NULL) while
+-- the ceramic and its sale history remain.
+CREATE OR REPLACE FUNCTION public.get_sales_day_summary(
+    p_date_from TIMESTAMPTZ DEFAULT NULL,
+    p_date_to TIMESTAMPTZ DEFAULT NULL,
+    p_page INT DEFAULT 1,
+    p_limit INT DEFAULT 10
+  ) RETURNS TABLE (
+    sale_date DATE,
+    transaction_count BIGINT,
+    total_sqm NUMERIC,
+    total_linear NUMERIC,
+    gross_total NUMERIC,
+    total_days BIGINT,
+    grand_transaction_count BIGINT,
+    grand_total_sqm NUMERIC,
+    grand_total_linear NUMERIC
+  ) LANGUAGE sql STABLE AS $$
+WITH days AS (
+  SELECT
+    (s.sold_at AT TIME ZONE 'Africa/Addis_Ababa')::date AS sale_date,
+    COUNT(*) AS transaction_count,
+    COALESCE(
+      SUM(s.quantity) FILTER (
+        WHERE COALESCE(ct.measurement_unit, 'm²') = 'm²'
+      ),
+      0
+    ) AS total_sqm,
+    COALESCE(
+      SUM(s.quantity) FILTER (WHERE ct.measurement_unit = 'm'),
+      0
+    ) AS total_linear,
+    SUM(s.quantity * s.price_at_sale) FILTER (
+      WHERE s.price_at_sale IS NOT NULL
+    ) AS gross_total
+  FROM sales s
+    JOIN ceramics c ON c.id = s.ceramic_id
+    LEFT JOIN ceramic_types ct ON ct.id = c.type_id
+  WHERE (
+      p_date_from IS NULL
+      OR s.sold_at >= p_date_from
+    )
+    AND (
+      p_date_to IS NULL
+      OR s.sold_at <= p_date_to
+    )
+  GROUP BY 1
+),
+totals AS (
+  SELECT
+    COUNT(*) AS total_days,
+    COALESCE(SUM(transaction_count), 0) AS grand_transaction_count,
+    COALESCE(SUM(total_sqm), 0) AS grand_total_sqm,
+    COALESCE(SUM(total_linear), 0) AS grand_total_linear
+  FROM days
+)
+SELECT d.sale_date,
+  d.transaction_count,
+  d.total_sqm,
+  d.total_linear,
+  d.gross_total,
+  t.total_days,
+  t.grand_transaction_count,
+  t.grand_total_sqm,
+  t.grand_total_linear
+FROM days d
+  CROSS JOIN totals t
+ORDER BY d.sale_date DESC
+LIMIT p_limit OFFSET GREATEST(p_page - 1, 0) * p_limit;
+$$;
 -- Block oversell: a Sale can never exceed current_stock.
 CREATE OR REPLACE FUNCTION public.check_sale_stock() RETURNS TRIGGER AS $$
 DECLARE available NUMERIC;

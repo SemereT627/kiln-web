@@ -13,9 +13,17 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  MoreHorizontal,
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -209,7 +217,9 @@ export default function BrandsPage() {
                     </div>
                   </TableHead>
                   {isAdmin && (
-                    <TableHead className="sticky top-0 right-0 z-20 w-12 bg-background border-l" />
+                    <TableHead className="sticky top-0 right-0 z-20 w-12 bg-background border-l text-center text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                      Actions
+                    </TableHead>
                   )}
                 </TableRow>
               </TableHeader>
@@ -278,14 +288,24 @@ export default function BrandsPage() {
                       </TableCell>
                       {isAdmin && (
                         <TableCell className="sticky right-0 z-10 bg-background border-l transition-colors group-hover:bg-muted/40">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => setConfirmDeleteId(b.id)}
-                          >
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </Button>
+                          <DropdownMenu>
+                            <div className="flex justify-center">
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-8 w-8">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                            </div>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => setConfirmDeleteId(b.id)}
+                              >
+                                <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       )}
                     </TableRow>

@@ -608,7 +608,9 @@ export default function InventoryPage() {
                     {t("columns.status")}
                   </TableHead>
                   {isAdmin && (
-                    <TableHead className="sticky top-0 right-0 z-20 w-12 bg-background border-l" />
+                    <TableHead className="sticky top-0 right-0 z-20 w-12 bg-background border-l text-center text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                      {t("actions")}
+                    </TableHead>
                   )}
                 </TableRow>
               </TableHeader>
@@ -796,18 +798,20 @@ export default function InventoryPage() {
                         {isAdmin && (
                           <TableCell className="sticky right-0 z-10 bg-background border-l transition-colors group-hover:bg-muted/40">
                             <DropdownMenu>
-                              <DropdownMenuTrigger
-                                asChild
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 p-0"
+                              <div className="flex justify-center">
+                                <DropdownMenuTrigger
+                                  asChild
+                                  onClick={(e) => e.stopPropagation()}
                                 >
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                              </div>
                               <DropdownMenuContent
                                 align="end"
                                 onClick={(e) => e.stopPropagation()}

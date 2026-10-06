@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -24,6 +25,7 @@ import {
   Search,
   Filter,
   X,
+  MoreHorizontal,
 } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
 import {
@@ -57,9 +59,11 @@ import { cn, formatETB } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -308,15 +312,18 @@ export default function CeramicTypesPage() {
                     "h-9 gap-2",
                     finishFilter !== "all" && "border-primary bg-primary/5",
                   )}
-                  aria-label="Filter by finish"
+                  aria-label="Filters"
                 >
                   <Filter className="h-4 w-4" />
-                  <span className="hidden sm:inline">
-                    {finishFilter === "all"
-                      ? "Finish"
-                      : finishes.find((f: any) => f.id === finishFilter)
-                          ?.name}
-                  </span>
+                  <span className="hidden sm:inline">Filters</span>
+                  {finishFilter !== "all" && (
+                    <Badge
+                      variant="secondary"
+                      className="ml-1 h-5 px-1.5 text-[10px] font-bold"
+                    >
+                      1
+                    </Badge>
+                  )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-48">
@@ -427,7 +434,9 @@ export default function CeramicTypesPage() {
                     </div>
                   </TableHead>
                   {isAdmin && (
-                    <TableHead className="sticky top-0 right-0 z-20 w-20 bg-background border-l" />
+                    <TableHead className="sticky top-0 right-0 z-20 w-20 bg-background border-l text-center text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                      Actions
+                    </TableHead>
                   )}
                 </TableRow>
               </TableHeader>
@@ -506,24 +515,28 @@ export default function CeramicTypesPage() {
                         </TableCell>
                         {isAdmin && (
                           <TableCell className="sticky right-0 z-10 bg-background border-l transition-colors group-hover:bg-muted/40">
-                            <div className="flex items-center justify-end gap-0.5">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleEditClick(t)}
-                              >
-                                <Pencil className="h-4 w-4 text-primary" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => setConfirmDeleteId(t.id)}
-                              >
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </div>
+                            <DropdownMenu>
+                              <div className="flex justify-center">
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                              </div>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem onClick={() => handleEditClick(t)}>
+                                  <Pencil className="mr-2 h-3.5 w-3.5" /> Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive focus:text-destructive"
+                                  onClick={() => setConfirmDeleteId(t.id)}
+                                >
+                                  <Trash2 className="mr-2 h-3.5 w-3.5" /> Delete
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </TableCell>
                         )}
                       </TableRow>
@@ -616,7 +629,7 @@ export default function CeramicTypesPage() {
                 <Label className="sm:text-right">Brand</Label>
                 <div className="sm:col-span-3">
                   <Select value={brandId} onValueChange={setBrandId} required>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select Brand" />
                     </SelectTrigger>
                     <SelectContent>
@@ -644,7 +657,7 @@ export default function CeramicTypesPage() {
                 <Label className="sm:text-right">Finish</Label>
                 <div className="sm:col-span-3">
                   <Select value={finishId} onValueChange={setFinishId} required>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select Finish" />
                     </SelectTrigger>
                     <SelectContent>
@@ -659,7 +672,7 @@ export default function CeramicTypesPage() {
                 <Label className="sm:text-right">Unit</Label>
                 <div className="sm:col-span-3">
                   <Select value={unit} onValueChange={setUnit}>
-                    <SelectTrigger>
+                    <SelectTrigger className="w-full">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Fragment,
-  Suspense,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { Fragment, Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Table,
@@ -17,7 +10,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,6 +28,13 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 import {
   ShoppingCart,
   Calendar,
@@ -110,12 +109,12 @@ function groupByOrder(items: SaleRecord[]): OrderGroup[] {
   return groups;
 }
 
-interface DateGroup {
-  date: string;
-  total: number;
-  count: number;
+interface DaySummary {
+  date: string; // "YYYY-MM-DD", Addis Ababa calendar day
+  transactionCount: number;
+  totalSqm: number;
+  totalLinear: number;
   grossTotal: number | null;
-  items: SaleRecord[];
 }
 
 interface ImportResult {
@@ -127,13 +126,29 @@ interface ImportResult {
   }[];
 }
 
-function formatGreg(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("en-US", {
+/** Parses a plain "YYYY-MM-DD" string as a local-time Date, avoiding the
+ * UTC-midnight shift `new Date("YYYY-MM-DD")` would apply in timezones
+ * west of UTC. */
+function parseDateOnly(dateStr: string): Date {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function formatGreg(date: Date): string {
+  return date.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
+}
+
+/** yyyy-mm-dd in local time — matches the day-picker's intended calendar
+ * day, sent to the API's dateFrom/dateTo params. */
+function toDateParam(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function parseTSV(raw: string) {
@@ -168,8 +183,8 @@ function SalesLogPageInner() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const highlightOrderId = searchParams.get("order");
-  const autoOpenedRef = useRef(false);
-  const [selectedDate, setSelectedDate] = useState<DateGroup | null>(null);
+  const [autoOpened, setAutoOpened] = useState(false);
+  const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
   const [importing, setImporting] = useState(false);
@@ -177,6 +192,17 @@ function SalesLogPageInner() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const hasDateFilter = !!dateFrom || !!dateTo;
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
+  const changeDateRange = (range: {
+    from: Date | undefined;
+    to: Date | undefined;
+  }) => {
+    setDateFrom(range.from);
+    setDateTo(range.to);
+    setCurrentPage(1);
+  };
 
   const handleImport = async () => {
     const rows = parseTSV(importText);
@@ -206,143 +232,94 @@ function SalesLogPageInner() {
     }
   };
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["sales", "all"],
+  const { data: summaryResponse, isLoading, error } = useQuery({
+    queryKey: [
+      "sales",
+      "summary",
+      currentPage,
+      dateFrom?.getTime(),
+      dateTo?.getTime(),
+    ],
     queryFn: async () => {
-      const res = await fetch("/api/sales?limit=-1");
-      if (!res.ok) throw new Error("Failed to fetch sales");
-      const json = await res.json();
-      return (json.data || []) as SaleRecord[];
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+      });
+      if (dateFrom) params.set("dateFrom", toDateParam(dateFrom));
+      if (dateTo) params.set("dateTo", toDateParam(dateTo));
+      const res = await fetch(`/api/sales/summary?${params.toString()}`);
+      if (!res.ok) throw new Error("Failed to fetch sales summary");
+      return res.json();
     },
   });
 
-  // Apply the from/to date filter before anything downstream (stats + grouping)
-  // derives from it, so both stay in sync with the selected range.
-  const filteredData = useMemo(() => {
-    if (!data) return [];
-    if (!hasDateFilter) return data;
-    const from = dateFrom
-      ? new Date(
-          dateFrom.getFullYear(),
-          dateFrom.getMonth(),
-          dateFrom.getDate(),
-          0,
-          0,
-          0,
-          0,
-        )
-      : null;
-    const to = dateTo
-      ? new Date(
-          dateTo.getFullYear(),
-          dateTo.getMonth(),
-          dateTo.getDate(),
-          23,
-          59,
-          59,
-          999,
-        )
-      : null;
-    return data.filter((sale) => {
-      const t = new Date(sale.createdAt);
-      if (from && t < from) return false;
-      if (to && t > to) return false;
-      return true;
-    });
-  }, [data, dateFrom, dateTo, hasDateFilter]);
+  const dayRows: DaySummary[] = summaryResponse?.data ?? [];
+  const totalDays: number = summaryResponse?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalDays / itemsPerPage));
+  const totalTransactions = summaryResponse?.summary?.totalTransactions ?? 0;
+  const totalTileSold = summaryResponse?.summary?.totalSqm ?? 0;
+  const totalSkirtingSold = summaryResponse?.summary?.totalLinear ?? 0;
+  const daysCount = summaryResponse?.summary?.totalDays ?? 0;
 
-  // Group all sales by date
-  const dateGroups: DateGroup[] = useMemo(() => {
-    const groups: DateGroup[] = [];
-    const map = new Map<string, DateGroup>();
-    for (const sale of filteredData) {
-      const key = new Date(sale.createdAt).toLocaleDateString();
-      if (!map.has(key)) {
-        map.set(key, {
-          date: key, // keep as locale string (used as map key)
-          total: 0,
-          count: 0,
-          grossTotal: null,
-          items: [],
-        });
-      }
-      const group = map.get(key)!;
-      group.total += sale.quantity;
-      group.count += 1;
-      if (sale.priceAtSale !== null) {
-        group.grossTotal =
-          (group.grossTotal ?? 0) + sale.quantity * sale.priceAtSale;
-      }
-      group.items.push(sale);
-    }
-    for (const g of map.values()) groups.push(g);
-    groups.sort(
-      (a, b) =>
-        new Date(b.items[0].createdAt).getTime() -
-        new Date(a.items[0].createdAt).getTime(),
-    );
-    return groups;
-  }, [filteredData]);
+  // Resolve which calendar day an order's sale falls on (deep link from the
+  // Audit Logs diff dialog) — we only need the date, not the paginated day
+  // list, so this never depends on which page happens to contain it.
+  const { data: orderLookup } = useQuery({
+    queryKey: ["sales", "order-lookup", highlightOrderId],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/sales?orderId=${highlightOrderId}&limit=1`,
+      );
+      if (!res.ok) throw new Error("Failed to resolve order");
+      const json = await res.json();
+      return (json.data?.[0] as SaleRecord | undefined) ?? null;
+    },
+    enabled: !!highlightOrderId && !autoOpened,
+  });
 
   useEffect(() => {
-    if (autoOpenedRef.current || !highlightOrderId || dateGroups.length === 0)
-      return;
-    const match = dateGroups.find((g) =>
-      g.items.some((item) => item.orderId === highlightOrderId),
-    );
-    if (match) {
-      autoOpenedRef.current = true;
-      setSelectedDate(match);
-    }
-  }, [dateGroups, highlightOrderId]);
+    if (autoOpened || !orderLookup) return;
+    setAutoOpened(true);
+    setSelectedDateStr(toDateParam(new Date(orderLookup.createdAt)));
+  }, [autoOpened, orderLookup]);
 
-  const totalTransactions = filteredData.length;
-  const totalTileSold = filteredData
-    .filter((r) => (r.measurementUnit || "m²") === "m²")
-    .reduce((s, r) => s + r.quantity, 0);
-  const totalSkirtingSold = filteredData
-    .filter((r) => r.measurementUnit === "m")
-    .reduce((s, r) => s + r.quantity, 0);
-  const totalQuantity = totalTileSold + totalSkirtingSold;
-  const daysCount = dateGroups.length;
+  // Itemized sales for whichever day is open in the drawer — the only place
+  // this page ever fetches full per-sale detail now.
+  const { data: dayDetail, isLoading: isDayLoading } = useQuery({
+    queryKey: ["sales", "day", selectedDateStr],
+    queryFn: async () => {
+      const res = await fetch(
+        `/api/sales?dateFrom=${selectedDateStr}&dateTo=${selectedDateStr}&limit=-1`,
+      );
+      if (!res.ok) throw new Error("Failed to fetch day detail");
+      const json = await res.json();
+      return (json.data || []) as SaleRecord[];
+    },
+    enabled: !!selectedDateStr,
+  });
+
+  const dayItems = dayDetail ?? [];
+  const dayCount = dayItems.length;
+  const dayGrossTotal = dayItems.some((s) => s.priceAtSale !== null)
+    ? dayItems.reduce(
+        (s, sale) => s + (sale.priceAtSale !== null ? sale.quantity * sale.priceAtSale : 0),
+        0,
+      )
+    : null;
 
   return (
     <div className="flex flex-col gap-4 h-full overflow-hidden animate-in fade-in duration-500 md:gap-6">
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4 shrink-0">
-        <div>
-          <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
-            Sales
-          </p>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mt-0.5">
-            Sales Log
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Click a date to view that day&apos;s transactions.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <DateRangePicker
-            from={dateFrom}
-            to={dateTo}
-            onChange={({ from, to }) => {
-              setDateFrom(from);
-              setDateTo(to);
-            }}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setImportOpen(true);
-              setImportResult(null);
-              setImportText("");
-            }}
-          >
-            <Upload className="h-4 w-4" />
-            Import Log
-          </Button>
-        </div>
+      <div className="shrink-0">
+        <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
+          Sales
+        </p>
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mt-0.5">
+          Sales Log
+        </h1>
+        <p className="text-muted-foreground text-sm mt-0.5">
+          Click a date to view that day&apos;s transactions.
+        </p>
       </div>
 
       {/* Stats */}
@@ -382,7 +359,7 @@ function SalesLogPageInner() {
       </div>
 
       {/* Dates table */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
         {error ? (
           <div className="h-full flex items-center justify-center">
             <div className="text-center max-w-sm">
@@ -396,12 +373,30 @@ function SalesLogPageInner() {
             </div>
           </div>
         ) : (
-          <div
-            className={cn(
-              "h-full flex flex-col overflow-hidden",
-              "md:rounded-xl md:border md:bg-card md:shadow-xs md:transition-shadow md:duration-200 md:hover:shadow-md",
-            )}
-          >
+          <div className="flex-1 min-h-0 flex flex-col overflow-hidden rounded-lg border">
+            <div className="bg-muted/30 border-b shrink-0 py-3.5 px-4">
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <DateRangePicker
+                  from={dateFrom}
+                  to={dateTo}
+                  onChange={changeDateRange}
+                  placeholder="Filter"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9"
+                  onClick={() => {
+                    setImportOpen(true);
+                    setImportResult(null);
+                    setImportText("");
+                  }}
+                >
+                  <Upload className="h-4 w-4" />
+                  Import Log
+                </Button>
+              </div>
+            </div>
             <div className="flex-1 flex flex-col overflow-auto">
               <Table className="min-w-125">
                 <TableHeader className="border-b">
@@ -447,55 +442,65 @@ function SalesLogPageInner() {
                         </TableCell>
                       </TableRow>
                     ))
-                  ) : dateGroups.length > 0 ? (
-                    dateGroups.map((group) => (
-                      <TableRow
-                        key={group.date}
-                        className="group cursor-pointer border-b transition-colors hover:bg-muted/40 h-[56px] active:bg-muted/60"
-                        onClick={() => setSelectedDate(group)}
-                      >
-                        <TableCell className="pl-4">
-                          <div className="flex items-center gap-3">
-                            <div className="h-8 w-8 rounded-lg bg-primary/10 ring-1 ring-primary/10 flex items-center justify-center shrink-0">
-                              <Calendar className="h-4 w-4 text-primary" />
+                  ) : dayRows.length > 0 ? (
+                    dayRows.map((row) => {
+                      const dateObj = parseDateOnly(row.date);
+                      return (
+                        <TableRow
+                          key={row.date}
+                          className="group cursor-pointer border-b transition-colors hover:bg-muted/40 h-[56px] active:bg-muted/60"
+                          onClick={() => setSelectedDateStr(row.date)}
+                        >
+                          <TableCell className="pl-4">
+                            <div className="flex items-center gap-3">
+                              <div className="h-8 w-8 rounded-lg bg-primary/10 ring-1 ring-primary/10 flex items-center justify-center shrink-0">
+                                <Calendar className="h-4 w-4 text-primary" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="font-semibold text-sm">
+                                  {formatGreg(dateObj)}
+                                </span>
+                                <span className="text-[11px] text-muted-foreground">
+                                  {formatEthiopian(dateObj)}
+                                </span>
+                              </div>
                             </div>
-                            <div className="flex flex-col">
-                              <span className="font-semibold text-sm">
-                                {formatGreg(group.items[0].createdAt)}
-                              </span>
-                              <span className="text-[11px] text-muted-foreground">
-                                {formatEthiopian(
-                                  new Date(group.items[0].createdAt),
-                                )}
-                              </span>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className="text-sm font-medium tabular-nums">
-                            {group.count}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className="text-sm font-bold tabular-nums text-primary">
-                            {formatNumber(group.total)}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground/50 ml-0.5">
-                            m²
-                          </span>
-                        </TableCell>
-                        <TableCell className="pr-4">
-                          <div className="flex items-center justify-end gap-2">
-                            <span className="text-sm font-semibold text-foreground tabular-nums">
-                              {group.grossTotal !== null
-                                ? formatETB(group.grossTotal)
-                                : "—"}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <span className="text-sm font-medium tabular-nums">
+                              {row.transactionCount}
                             </span>
-                            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex flex-col items-end gap-0.5">
+                              <span>
+                                <span className="text-sm font-bold tabular-nums text-primary">
+                                  {formatNumber(row.totalSqm)}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground/50 ml-0.5">
+                                  m²
+                                </span>
+                              </span>
+                              {row.totalLinear > 0 && (
+                                <span className="text-[10px] text-muted-foreground/60">
+                                  +{formatNumber(row.totalLinear)} m
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="pr-4">
+                            <div className="flex items-center justify-end gap-2">
+                              <span className="text-sm font-semibold text-foreground tabular-nums">
+                                {row.grossTotal !== null
+                                  ? formatETB(row.grossTotal)
+                                  : "—"}
+                              </span>
+                              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 opacity-0 -translate-x-1 transition-all group-hover:opacity-100 group-hover:translate-x-0" />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   ) : (
                     <TableRow className="hover:bg-transparent">
                       <TableCell colSpan={4}>
@@ -520,6 +525,59 @@ function SalesLogPageInner() {
             </div>
           </div>
         )}
+
+        {!error && totalPages > 1 && (
+          <div className="flex flex-wrap items-center justify-between gap-2 px-1 shrink-0">
+            <p className="text-xs text-muted-foreground">
+              Showing{" "}
+              <span className="font-medium text-foreground">
+                {(currentPage - 1) * itemsPerPage + 1}
+              </span>{" "}
+              to{" "}
+              <span className="font-medium text-foreground">
+                {Math.min(currentPage * itemsPerPage, totalDays)}
+              </span>{" "}
+              of{" "}
+              <span className="font-medium text-foreground">{totalDays}</span>{" "}
+              days
+            </p>
+            <Pagination className="w-auto mx-0">
+              <PaginationContent className="gap-1.5">
+                <PaginationItem>
+                  <PaginationPrevious
+                    size="sm"
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(1, prev - 1))
+                    }
+                    className={
+                      currentPage === 1
+                        ? "pointer-events-none opacity-40"
+                        : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
+                <PaginationItem>
+                  <span className="flex h-8 items-center rounded-lg border bg-background px-3 text-xs font-medium tabular-nums">
+                    {currentPage} / {totalPages}
+                  </span>
+                </PaginationItem>
+                <PaginationItem>
+                  <PaginationNext
+                    size="sm"
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                    }
+                    className={
+                      currentPage === totalPages
+                        ? "pointer-events-none opacity-40"
+                        : "cursor-pointer"
+                    }
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+          </div>
+        )}
       </div>
 
       {/* Import dialog */}
@@ -541,10 +599,19 @@ function SalesLogPageInner() {
           </DialogHeader>
 
           <div className="space-y-3">
-            <div className="rounded-lg border bg-muted/40 px-3 py-2.5 text-[11px] font-mono text-muted-foreground whitespace-pre overflow-x-auto">
-              Date{"\t"}Product ID (CODE){"\t"}Ceramic Name{"\t"}Size{"\t"}
-              Quantity Sold (m2){"\n"}
-              16/06/2018{"\t"}005{"\t"}ARERTI{"\t"}60*60 N{"\t"}1.44
+            <div className="rounded-lg border bg-muted/40 px-3 py-2.5 text-[11px] font-mono text-muted-foreground overflow-x-auto">
+              <div className="grid grid-cols-[auto_auto_auto_auto_auto] gap-x-6 w-fit">
+                <span>Date</span>
+                <span>Product ID (CODE)</span>
+                <span>Ceramic Name</span>
+                <span>Size</span>
+                <span>Quantity Sold (m2)</span>
+                <span>16/06/2018</span>
+                <span>005</span>
+                <span>ARERTI</span>
+                <span>60*60 N</span>
+                <span>1.44</span>
+              </div>
             </div>
 
             <Textarea
@@ -606,9 +673,9 @@ function SalesLogPageInner() {
 
       {/* Day detail drawer */}
       <Sheet
-        open={!!selectedDate}
+        open={!!selectedDateStr}
         onOpenChange={(open) => {
-          if (!open) setSelectedDate(null);
+          if (!open) setSelectedDateStr(null);
         }}
       >
         <SheetContent className="flex flex-col gap-0 p-0 data-[side=right]:w-[calc(100%-2rem)] data-[side=right]:sm:w-full data-[side=right]:sm:max-w-175">
@@ -617,32 +684,37 @@ function SalesLogPageInner() {
               <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
               <div className="flex flex-col gap-0.5">
                 <SheetTitle>
-                  {selectedDate
-                    ? formatGreg(selectedDate.items[0].createdAt)
-                    : ""}
+                  {selectedDateStr ? formatGreg(parseDateOnly(selectedDateStr)) : ""}
                 </SheetTitle>
-                {selectedDate && (
+                {selectedDateStr && (
                   <span className="text-xs text-muted-foreground font-normal">
-                    {formatEthiopian(new Date(selectedDate.items[0].createdAt))}
+                    {formatEthiopian(parseDateOnly(selectedDateStr))}
                   </span>
                 )}
               </div>
             </div>
             <SheetDescription>
-              {selectedDate?.count} transaction
-              {selectedDate?.count !== 1 ? "s" : ""}
-              {selectedDate?.grossTotal !== null &&
-              selectedDate?.grossTotal !== undefined
-                ? ` \u2014 ${formatETB(selectedDate.grossTotal)} total`
-                : ""}
+              {isDayLoading
+                ? "Loading…"
+                : `${dayCount} transaction${dayCount !== 1 ? "s" : ""}${
+                    dayGrossTotal !== null
+                      ? ` — ${formatETB(dayGrossTotal)} total`
+                      : ""
+                  }`}
             </SheetDescription>
           </SheetHeader>
 
           <div className="flex-1 overflow-auto">
-            {(() => {
-              const orderGroups = groupByOrder(selectedDate?.items ?? []);
-              return (
-                <>
+            {isDayLoading ? (
+              <div className="flex flex-col gap-2 p-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-14 rounded-lg" />
+                ))}
+              </div>
+            ) : (
+              (() => {
+                const orderGroups = groupByOrder(dayItems);
+                return (
                   <div className="overflow-x-auto">
                     <Table className="min-w-150">
                       <TableHeader className="border-b">
@@ -783,9 +855,9 @@ function SalesLogPageInner() {
                       </TableBody>
                     </Table>
                   </div>
-                </>
-              );
-            })()}
+                );
+              })()
+            )}
           </div>
         </SheetContent>
       </Sheet>

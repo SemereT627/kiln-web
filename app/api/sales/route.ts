@@ -11,9 +11,33 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get("limit") || "10");
     const search = sanitizeSearchTerm(searchParams.get("search") || "");
     const ceramicId = searchParams.get("ceramicId");
+    const orderId = searchParams.get("orderId");
+    const dateFrom = searchParams.get("dateFrom");
+    const dateTo = searchParams.get("dateTo");
 
     const supabase = await createClient();
-    
+
+    // Resolved up front so we can short-circuit with an empty result when
+    // the order has no linked sales, instead of building a query with an
+    // empty .in() filter (which Supabase/PostgREST treats as "no filter").
+    let orderSaleIds: string[] | null = null;
+    if (orderId) {
+      const { data: orderItemRows, error: orderItemsError } = await supabase
+        .from("order_items")
+        .select("sale_id")
+        .eq("order_id", orderId)
+        .not("sale_id", "is", null);
+      if (orderItemsError) throw orderItemsError;
+
+      orderSaleIds = (orderItemRows || [])
+        .map((r: { sale_id: string | null }) => r.sale_id)
+        .filter((id): id is string => !!id);
+
+      if (orderSaleIds.length === 0) {
+        return NextResponse.json({ data: [], total: 0, page: 1, limit: 0 });
+      }
+    }
+
     let query = supabase
       .from("sales")
       .select(`
@@ -35,6 +59,20 @@ export async function GET(request: Request) {
 
     if (ceramicId) {
       query = query.eq("ceramic_id", ceramicId);
+    }
+
+    if (orderSaleIds) {
+      query = query.in("id", orderSaleIds);
+    }
+
+    // Day boundaries are computed in Addis Ababa local time (fixed UTC+3,
+    // no DST) so a dateFrom/dateTo pair lines up exactly with how
+    // get_sales_day_summary buckets sales into calendar days.
+    if (dateFrom) {
+      query = query.gte("sold_at", `${dateFrom}T00:00:00.000+03:00`);
+    }
+    if (dateTo) {
+      query = query.lte("sold_at", `${dateTo}T23:59:59.999+03:00`);
     }
 
     if (limit !== -1) {

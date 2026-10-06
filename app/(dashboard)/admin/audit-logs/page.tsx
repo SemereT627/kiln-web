@@ -11,6 +11,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Pagination,
@@ -19,10 +21,33 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { EmptyState } from "@/components/empty-state";
 import { AuditDiffDialog, type CeramicLookup } from "@/components/audit-diff-dialog";
-import { AlertCircle, Calendar, User } from "lucide-react";
+import { DateRangePicker } from "@/components/date-range-picker";
+import { AlertCircle, Calendar, Filter, Search, User, X } from "lucide-react";
 import { cn, formatDateTime } from "@/lib/utils";
+
+const TARGET_TABLES = [
+  { value: "brands", label: "Brands" },
+  { value: "ceramics", label: "Ceramics" },
+  { value: "ceramic_types", label: "Ceramic Types" },
+  { value: "finishes", label: "Finishes" },
+  { value: "orders", label: "Orders" },
+  { value: "return_requests", label: "Return Requests" },
+  { value: "sales", label: "Sales" },
+  { value: "stock_entries", label: "Stock Entries" },
+  { value: "user_profiles", label: "Users" },
+];
 
 type AuditLog = {
   id: string;
@@ -78,20 +103,60 @@ function DiffCell({
   );
 }
 
+function toDateParam(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 export default function AuditLogsPage() {
   const [page, setPage] = useState(1);
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [targetTable, setTargetTable] = useState("all");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  const hasActiveFilters = targetTable !== "all";
   const limit = 50;
+
+  const changeDateRange = (range: {
+    from: Date | undefined;
+    to: Date | undefined;
+  }) => {
+    setDateFrom(range.from);
+    setDateTo(range.to);
+    setPage(1);
+  };
+
+  const clearFilters = () => {
+    setTargetTable("all");
+    setPage(1);
+  };
 
   const { data, isLoading, error } = useQuery<{
     data: AuditLog[];
     total: number;
   }>({
-    queryKey: ["admin", "audit-logs", page],
+    queryKey: [
+      "admin",
+      "audit-logs",
+      page,
+      searchTerm,
+      targetTable,
+      dateFrom?.getTime(),
+      dateTo?.getTime(),
+    ],
     queryFn: async () => {
-      const res = await fetch(
-        `/api/admin/audit-logs?page=${page}&limit=${limit}`,
-      );
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+        search: searchTerm,
+      });
+      if (targetTable !== "all") params.set("targetTable", targetTable);
+      if (dateFrom) params.set("dateFrom", toDateParam(dateFrom));
+      if (dateTo) params.set("dateTo", toDateParam(dateTo));
+      const res = await fetch(`/api/admin/audit-logs?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch audit logs");
       return res.json();
     },
@@ -146,6 +211,92 @@ export default function AuditLogsPage() {
       </div>
 
       <div className="flex-1 flex flex-col overflow-hidden rounded-lg border">
+        <div className="bg-muted/30 border-b shrink-0 py-3.5 px-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-25 max-w-sm">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by actor or target ID..."
+                className="pl-8 bg-background h-9"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  aria-label="Clear search"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setPage(1);
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "h-9 gap-2",
+                    hasActiveFilters && "border-primary bg-primary/5",
+                  )}
+                  aria-label="Filters"
+                >
+                  <Filter className="h-4 w-4" />
+                  <span className="hidden sm:inline">Filters</span>
+                  {hasActiveFilters && (
+                    <Badge
+                      variant="secondary"
+                      className="ml-1 h-5 px-1.5 text-[10px] font-bold"
+                    >
+                      1
+                    </Badge>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuLabel>Target</DropdownMenuLabel>
+                <DropdownMenuRadioGroup
+                  value={targetTable}
+                  onValueChange={(value) => {
+                    setTargetTable(value);
+                    setPage(1);
+                  }}
+                >
+                  <DropdownMenuRadioItem value="all">
+                    All Targets
+                  </DropdownMenuRadioItem>
+                  {TARGET_TABLES.map((t) => (
+                    <DropdownMenuRadioItem key={t.value} value={t.value}>
+                      {t.label}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+                {hasActiveFilters && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      className="justify-center text-primary font-medium"
+                      onClick={clearFilters}
+                    >
+                      Clear Filters
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DateRangePicker from={dateFrom} to={dateTo} onChange={changeDateRange} />
+          </div>
+        </div>
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 flex flex-col overflow-auto">
             <Table className="min-w-175">

@@ -331,46 +331,41 @@ export default function SalesPage() {
             cart.length > 0 && "pb-20 lg:pb-0",
           )}
         >
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 shrink-0">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <h2 className="text-base font-semibold">Products</h2>
-              <Badge variant="outline" className="font-normal shrink-0">
-                {totalItems} items
-              </Badge>
-            </div>
-            <div className="relative w-full sm:w-72 shrink-0">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name, ID, or brand..."
-                className="pl-10 h-9 rounded-xl"
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setCurrentPage(1);
-                }}
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  aria-label="Clear search"
-                  onClick={() => {
-                    setSearchTerm("");
-                    setCurrentPage(1);
-                  }}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
-
           <div
             className={cn(
               "flex-1 min-h-0 flex flex-col rounded-lg border overflow-hidden transition-opacity duration-200",
               isFetching && !isLoading && "opacity-50 pointer-events-none",
             )}
           >
+            <div className="bg-muted/30 border-b shrink-0 py-3.5 px-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative flex-1 min-w-25 max-w-sm">
+                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search by name, ID, or brand..."
+                    className="pl-8 bg-background h-9"
+                    value={searchTerm}
+                    onChange={(e) => {
+                      setSearchTerm(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                  />
+                  {searchTerm && (
+                    <button
+                      type="button"
+                      aria-label="Clear search"
+                      onClick={() => {
+                        setSearchTerm("");
+                        setCurrentPage(1);
+                      }}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
             {isLoading ? (
               <div className="flex flex-col gap-2 p-3">
                 {Array.from({ length: skeletonCount }).map((_, i) => (
@@ -497,14 +492,19 @@ export default function SalesPage() {
           {totalPages > 1 && (
             <div className="flex flex-wrap items-center justify-between gap-2 px-1 shrink-0">
               <p className="text-xs text-muted-foreground">
-                Page{" "}
+                Showing{" "}
                 <span className="font-medium text-foreground">
-                  {currentPage}
+                  {(currentPage - 1) * itemsPerPage + 1}
+                </span>{" "}
+                to{" "}
+                <span className="font-medium text-foreground">
+                  {Math.min(currentPage * itemsPerPage, totalItems)}
                 </span>{" "}
                 of{" "}
                 <span className="font-medium text-foreground">
-                  {totalPages}
-                </span>
+                  {totalItems}
+                </span>{" "}
+                products
               </p>
               <Pagination className="w-auto mx-0">
                 <PaginationContent className="gap-1.5">
@@ -520,6 +520,11 @@ export default function SalesPage() {
                           : "cursor-pointer"
                       }
                     />
+                  </PaginationItem>
+                  <PaginationItem>
+                    <span className="flex h-8 items-center rounded-lg border bg-background px-3 text-xs font-medium tabular-nums">
+                      {currentPage} / {totalPages}
+                    </span>
                   </PaginationItem>
                   <PaginationItem>
                     <PaginationNext
