@@ -578,7 +578,7 @@ export default function SalesPage() {
         )}
       </div>
 
-      {/* Floating transaction bar — below lg, mirrors the tylio-mobile cart bar */}
+      {/* Floating transaction bar — below lg, mirrors the kiln-mobile cart bar */}
       {cart.length > 0 && (
         <button
           type="button"
