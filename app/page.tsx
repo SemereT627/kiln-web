@@ -57,10 +57,10 @@ export default function LandingPage() {
         {/* Hero */}
         <main className="flex flex-1 flex-col items-center justify-center px-6 py-10 text-center sm:px-10">
           <div className="max-w-2xl space-y-6">
-            <h1 className="text-4xl font-bold leading-tight sm:text-6xl">
+            <h1 className="font-(family-name:--font-fraunces) text-4xl font-semibold leading-[1.05] tracking-tight text-balance sm:text-6xl">
               Ceramic inventory,
               <br />
-              <span className="text-muted-foreground">under control.</span>
+              <span className="font-medium text-muted-foreground">under control.</span>
             </h1>
             <p className="mx-auto max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">
               Track stock levels, record sales, and manage your entire ceramic
