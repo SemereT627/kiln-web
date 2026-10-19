@@ -22,7 +22,7 @@ const fraunces = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Kiln - Inventory Management",
+  title: "Kiln",
   description: "Aesthetically pleasing ceramic store management system",
   icons: {
     icon: [
