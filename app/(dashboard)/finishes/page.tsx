@@ -122,12 +122,13 @@ export default function FinishesPage() {
       day: "numeric",
     });
 
-  const dotFor = (name: string) =>
-    name?.toLowerCase().includes("polish")
-      ? "bg-indigo-400"
-      : name?.toLowerCase().includes("decor")
-        ? "bg-violet-400"
-        : "bg-zinc-400";
+  const initialsFor = (name: string) =>
+    name
+      .split(" ")
+      .map((w: string) => w[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
 
   const handleAddFinish = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -158,13 +159,10 @@ export default function FinishesPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 h-full overflow-y-auto animate-in fade-in duration-500">
+    <div className="flex flex-col gap-4 h-full overflow-y-auto animate-in fade-in duration-500">
       <div className="flex flex-wrap items-center justify-between shrink-0 gap-4">
         <div>
-          <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
-            Catalog
-          </p>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mt-0.5">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
             Finishes
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">
@@ -270,10 +268,10 @@ export default function FinishesPage() {
                     >
                       <TableCell className="pl-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted">
-                            <span
-                              className={`h-2.5 w-2.5 rounded-full shrink-0 ${dotFor(f.name)}`}
-                            />
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 ring-1 ring-primary/10">
+                            <span className="text-[10px] font-bold text-primary">
+                              {initialsFor(f.name)}
+                            </span>
                           </div>
                           <span className="font-medium text-sm truncate">
                             {f.name}

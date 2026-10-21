@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
-import { Box, AlertTriangle, XCircle, LayoutGrid, ArrowUpRight, CheckCircle2 } from "lucide-react";
+import { Box, AlertTriangle, XCircle, ArrowUpRight, CheckCircle2 } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -32,14 +32,10 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
 import { useTranslations } from "next-intl";
 import { useUser } from "@/components/user-provider";
 import { BentoStatGrid } from "@/components/dashboard/bento-stat-grid";
-import { LiveClock } from "@/components/dashboard/live-clock";
 import { StockBadge } from "@/components/stock-badge";
 
 function SectionHeader({
@@ -54,9 +50,9 @@ function SectionHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-end justify-between gap-4 px-0.5">
+    <div className="flex items-end justify-between gap-4">
       <div>
-        <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
+        <p className="text-xs font-semibold tracking-wide text-primary uppercase">
           {eyebrow}
         </p>
         <h2 className="text-lg font-semibold tracking-tight mt-0.5">
@@ -73,54 +69,49 @@ function SectionHeader({
   );
 }
 
-// Cycles through the 5 chart tokens rather than falling back to
-// one-off hex swatches once a chart has more than 5 slices.
-const PIE_COLORS = [
-  "var(--chart-1)",
-  "var(--chart-2)",
-  "var(--chart-3)",
-  "var(--chart-4)",
-  "var(--chart-5)",
-];
-
 interface AlertItem {
   _id: string;
   name: string;
   productId: string;
   brand: string;
+  size?: string | null;
   currentStock: number;
   measurementUnit: string | null;
 }
 
 // Shared between the "Attention Required" card and the low-stock modal so
-// both render the exact same row instead of two drifting copies.
+// both render the exact same row instead of two drifting copies. Rendered
+// inside a `divide-y` list; status is carried by the icon chip + badge only.
 function AlertRow({ item }: { item: AlertItem }) {
   const unit = item.measurementUnit || "m²";
   const outOfStock = item.currentStock <= 0;
   const AlertIcon = outOfStock ? XCircle : AlertTriangle;
   return (
-    <div
-      className={cn(
-        "flex items-center gap-3 rounded-lg border p-2.5 transition-colors",
-        outOfStock
-          ? "border-destructive/20 bg-destructive/5 hover:bg-destructive/10"
-          : "border-warning/25 bg-warning/10 hover:bg-warning/15",
-      )}
-    >
-      <AlertIcon
+    <div className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+      <div
         className={cn(
-          "h-4 w-4 shrink-0",
-          outOfStock ? "text-destructive" : "text-warning-foreground dark:text-warning",
+          "flex size-9 shrink-0 items-center justify-center rounded-lg",
+          outOfStock
+            ? "bg-destructive/10 text-destructive"
+            : "bg-warning/15 text-warning-foreground dark:text-warning",
         )}
-      />
+      >
+        <AlertIcon className="size-4" />
+      </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium truncate">{item.name}</p>
-        <p className="text-xs text-muted-foreground">
-          {item.productId} · {item.brand}
+        <p className="text-sm font-medium leading-tight truncate">{item.name}</p>
+        <p className="text-xs text-muted-foreground mt-1 truncate">
+          {item.brand}
+          {item.size ? ` · ${item.size}` : ""}
         </p>
       </div>
-      <div className="flex items-center gap-3 shrink-0 ml-2">
-        <span className="text-sm tabular-nums font-semibold">
+      <div className="flex flex-col items-end gap-1 shrink-0">
+        <span
+          className={cn(
+            "text-sm tabular-nums font-semibold",
+            outOfStock && "text-muted-foreground",
+          )}
+        >
           {item.currentStock.toFixed(2)} {unit}
         </span>
         <StockBadge stock={item.currentStock} />
@@ -129,59 +120,44 @@ function AlertRow({ item }: { item: AlertItem }) {
   );
 }
 
+function SectionHeaderSkeleton() {
+  return (
+    <div className="space-y-2">
+      <Skeleton className="h-3 w-20" />
+      <Skeleton className="h-5 w-44" />
+      <Skeleton className="h-4 w-72 max-w-full" />
+    </div>
+  );
+}
+
+// Same style as AnalyticsSkeleton: solid blocks shaped like the real cards,
+// laid out on the same grid as the loaded dashboard.
 function DashboardSkeleton() {
   return (
     <div className="flex h-full flex-col">
-      <div className="shrink-0 -mx-6 -mt-6 px-6 py-4 md:-mx-8 md:-mt-8 border-b">
-        <div className="flex items-center justify-between gap-4">
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-56" />
-            <Skeleton className="h-4 w-72" />
-          </div>
-          <Skeleton className="h-10 w-28 shrink-0" />
-        </div>
-      </div>
-      <div className="flex-1 min-h-0 space-y-8 pt-6">
-        <div className="space-y-3">
-          <Skeleton className="h-4 w-24" />
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-12">
+      <div className="flex-1 min-h-0 -m-5 p-5 overflow-hidden space-y-6">
+        <section className="space-y-3">
+          <SectionHeaderSkeleton />
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-12">
             {[...Array(4)].map((_, i) => (
-              <Card key={i} className="lg:col-span-3">
-                <CardHeader className="pb-2">
-                  <Skeleton className="h-8 w-8 rounded-lg" />
-                </CardHeader>
-                <CardContent>
-                  <Skeleton className="h-3 w-20 mb-2" />
-                  <Skeleton className="h-7 w-24 mb-1" />
-                  <Skeleton className="h-3 w-32" />
-                </CardContent>
-              </Card>
+              <Skeleton key={i} className="h-32 rounded-2xl xl:col-span-3" />
             ))}
+            <Skeleton className="h-68 rounded-2xl md:col-span-2 xl:col-span-6" />
+            <div className="grid gap-4 md:col-span-2 md:grid-cols-2 xl:col-span-6 xl:grid-cols-1">
+              <Skeleton className="h-32 rounded-2xl" />
+              <Skeleton className="h-32 rounded-2xl" />
+            </div>
           </div>
-        </div>
-        <div className="space-y-3">
-          <Skeleton className="h-4 w-32" />
-          <div className="grid gap-4 lg:grid-cols-7">
-            <Card className="lg:col-span-4">
-              <CardHeader>
-                <Skeleton className="h-5 w-48" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-70" />
-              </CardContent>
-            </Card>
-            <Card className="lg:col-span-3">
-              <CardHeader>
-                <Skeleton className="h-5 w-36" />
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {[...Array(5)].map((_, i) => (
-                  <Skeleton key={i} className="h-9" />
-                ))}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+        </section>
+        {[0, 1].map((i) => (
+          <section key={i} className="space-y-3">
+            <SectionHeaderSkeleton />
+            <div className="grid gap-4 lg:grid-cols-7">
+              <Skeleton className="h-115 rounded-2xl lg:col-span-4" />
+              <Skeleton className="h-115 rounded-2xl lg:col-span-3" />
+            </div>
+          </section>
+        ))}
       </div>
     </div>
   );
@@ -256,55 +232,46 @@ export default function Dashboard() {
     const key = i.brand || "Unknown";
     brandMap.set(key, (brandMap.get(key) ?? 0) + i.currentStock);
   }
-  const brandShare = [...brandMap.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 4)
-    .map(([name, value]) => ({ name, value: +value.toFixed(2) }));
+  // Top 3 brands, with the remainder folded into "Other" so shares sum to 100%
+  const sortedBrands = [...brandMap.entries()].sort((a, b) => b[1] - a[1]);
+  const brandShare: { name: string; value: number; isOther?: boolean }[] =
+    sortedBrands.length > 4
+      ? [
+          ...sortedBrands.slice(0, 3).map(([name, value]) => ({ name, value: +value.toFixed(2) })),
+          {
+            name: "__other__",
+            value: +sortedBrands.slice(3).reduce((a, [, v]) => a + v, 0).toFixed(2),
+            isOther: true,
+          },
+        ]
+      : sortedBrands.map(([name, value]) => ({ name, value: +value.toFixed(2) }));
 
-  // Sparkline: top 5 m² products by current stock
-  const sparklineData = chartData
-    .slice(0, 5)
-    .map((c) => ({ name: c.name, stock: c.stock }));
-
-  // Pie: breakdown by ceramic type size (m² items)
-  const typeMap = new Map<string, number>();
+  // Stock by tile size (m² items): stock, product count and all-time sold
+  // per size, ranked by stock.
+  const sizeMap = new Map<string, { stock: number; sold: number; products: number }>();
   for (const i of sqmItems) {
     const key = i.size || "Unknown";
-    typeMap.set(key, (typeMap.get(key) ?? 0) + i.currentStock);
+    const entry = sizeMap.get(key) ?? { stock: 0, sold: 0, products: 0 };
+    entry.stock += i.currentStock;
+    entry.sold += i.soldStock;
+    entry.products += 1;
+    sizeMap.set(key, entry);
   }
-  const pieData = [...typeMap.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 8)
-    .map(([name, value]) => ({ name, value: +value.toFixed(2) }));
+  const sizeRows = [...sizeMap.entries()]
+    .map(([name, v]) => ({ name, ...v }))
+    .sort((a, b) => b.stock - a.stock);
+  const sizeTotal = sizeRows.reduce((a, r) => a + Math.max(0, r.stock), 0);
+  const sizeMax = Math.max(...sizeRows.map((r) => r.stock), 1);
 
-  const firstName = (user?.full_name || "").split(" ")[0];
+  const outOfStockCount = alerts.filter((i) => i.currentStock <= 0).length;
+  const lowOnlyCount = alerts.length - outOfStockCount;
 
   return (
     <div className="flex h-full flex-col animate-in fade-in duration-500">
-      <div className="relative shrink-0 -mx-6 -mt-6 px-6 py-5 md:-mx-8 md:-mt-8 overflow-hidden border-b bg-background/80">
-        <div className="relative flex items-center justify-between gap-4">
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-success" />
-              </span>
-              <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                {t("liveDashboard")}
-              </p>
-            </div>
-            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
-              {firstName ? t("welcomeBack", { name: firstName }) : t("greetingFallback")}
-            </h1>
-            <p className="text-sm text-muted-foreground hidden sm:block">
-              {t("subtitle")}
-            </p>
-          </div>
-          <LiveClock />
-        </div>
-      </div>
-
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden space-y-8 pt-6 pb-8 no-scrollbar">
+      {/* Bleeds to the layout's padded edges so content scrolls under the
+          top bar and to the very bottom instead of being clipped by <main>'s
+          padding, and card focus rings at the edges aren't cut off. */}
+      <div className="flex-1 min-h-0 -m-5 p-5 overflow-y-auto overflow-x-hidden space-y-6 no-scrollbar">
         <section className="space-y-3">
           <SectionHeader
             eyebrow={t("overview.eyebrow")}
@@ -316,7 +283,6 @@ export default function Dashboard() {
             tileStock={totalSqmStock}
             tileSold={totalSqmSold}
             tileProductCount={sqmItems.length}
-            sparklineData={sparklineData}
             lowStockCount={lowStockCount}
             topAlert={topAlert}
             onLowStockClick={() => setLowStockOpen(true)}
@@ -342,17 +308,12 @@ export default function Dashboard() {
           />
           <div className="grid gap-4 lg:grid-cols-7 items-stretch">
             {/* Bar chart — top tile products */}
-            <Card className="lg:col-span-4 h-115 flex flex-col shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-shadow duration-300 hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.12)]">
+            <Card className="lg:col-span-4 h-115 flex flex-col shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
               <CardHeader className="shrink-0">
                 <CardTitle>{t("topTileProducts.title")}</CardTitle>
                 <CardDescription>
                   {t("topTileProducts.description")}
                 </CardDescription>
-                <CardAction>
-                  <Badge variant="outline" className="font-normal">
-                    {t("topTileProducts.productsCount", { count: chartData.length })}
-                  </Badge>
-                </CardAction>
               </CardHeader>
               <CardContent className="flex-1 min-h-0 pl-2">
                 <div className="h-full">
@@ -365,13 +326,13 @@ export default function Dashboard() {
                       />
                       <XAxis
                         dataKey="name"
-                        fontSize={11}
+                        fontSize={12}
                         tickLine={false}
                         axisLine={false}
                         tick={{ fill: "var(--muted-foreground)" }}
                       />
                       <YAxis
-                        fontSize={11}
+                        fontSize={12}
                         tickLine={false}
                         axisLine={false}
                         tickFormatter={(v) => `${v}m²`}
@@ -386,7 +347,7 @@ export default function Dashboard() {
                           boxShadow: "0 8px 24px -8px rgba(0,0,0,0.2)",
                         }}
                         cursor={{ fill: "var(--muted)", opacity: 0.4 }}
-                        formatter={(v) => [`${v} m²`]}
+                        formatter={(v, name) => [`${v} m²`, name]}
                       />
                       <Legend
                         verticalAlign="top"
@@ -395,6 +356,11 @@ export default function Dashboard() {
                         iconType="circle"
                         iconSize={8}
                         wrapperStyle={{ fontSize: 12 }}
+                        formatter={(value) => (
+                          <span className="text-xs text-foreground">
+                            {value}
+                          </span>
+                        )}
                       />
                       <Bar
                         dataKey="stock"
@@ -418,14 +384,19 @@ export default function Dashboard() {
             </Card>
 
             {/* Recent inventory */}
-            <Card className="lg:col-span-3 h-115 flex flex-col shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-shadow duration-300 hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.12)]">
+            <Card className="lg:col-span-3 h-115 flex flex-col shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
               <CardHeader className="shrink-0">
                 <CardTitle>{t("recentInventory.title")}</CardTitle>
                 <CardDescription>
                   {t("recentInventory.description")}
                 </CardDescription>
                 <CardAction>
-                  <Button variant="ghost" size="sm" asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-primary hover:bg-primary/10 hover:text-primary"
+                    asChild
+                  >
                     <Link href="/inventory">
                       {t("recentInventory.viewAll")}
                       <ArrowUpRight className="size-3.5" />
@@ -434,30 +405,33 @@ export default function Dashboard() {
                 </CardAction>
               </CardHeader>
               <CardContent className="flex-1 min-h-0 overflow-y-auto pb-4">
-                <div className="space-y-1">
-                  {data.slice(0, 6).map((item: any) => {
+                <div className="divide-y">
+                  {data.slice(0, 5).map((item: any) => {
                     const unit = item.measurementUnit || "m²";
                     return (
                       <div
                         key={item._id}
-                        className="flex items-center gap-3 -mx-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted/50"
+                        className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
                       >
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+                        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                           <Box className="h-4 w-4 text-primary" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium leading-none truncate">
+                          <p className="text-sm font-medium leading-tight truncate">
                             {item.name}
                           </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {item.productId} · {item.size}
+                          <p className="text-xs text-muted-foreground mt-1 truncate">
+                            {item.brand} · {item.size}
                           </p>
                         </div>
                         <div className="flex flex-col items-end gap-1 shrink-0">
                           <span className="text-sm font-semibold tabular-nums">
                             {item.currentStock.toFixed(2)} {unit}
                           </span>
-                          <StockBadge stock={item.currentStock} />
+                          {/* Only flag problems — a badge on every row is noise */}
+                          {item.currentStock <= 5 && (
+                            <StockBadge stock={item.currentStock} />
+                          )}
                         </div>
                       </div>
                     );
@@ -476,98 +450,88 @@ export default function Dashboard() {
             description={t("health.description")}
           />
           <div className="grid gap-4 lg:grid-cols-7 items-stretch">
-            {/* Pie: stock distribution by tile size */}
-            <Card className="lg:col-span-3 h-115 flex flex-col shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-shadow duration-300 hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.12)]">
+            {/* Stock by tile size — ranked bars (easier to compare than a donut)
+                with product count and all-time sales for context */}
+            <Card className="lg:col-span-4 h-115 flex flex-col shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
               <CardHeader className="shrink-0">
-                <CardTitle className="flex items-center gap-2">
-                  <LayoutGrid className="h-4 w-4 text-primary" />
-                  {t("stockByTileSize.title")}
-                </CardTitle>
+                <CardTitle>{t("stockByTileSize.title")}</CardTitle>
                 <CardDescription>
                   {t("stockByTileSize.description")}
                 </CardDescription>
+                <CardAction className="text-right">
+                  <p className="text-base font-semibold leading-tight tabular-nums">
+                    {sizeTotal.toLocaleString("en-US", { maximumFractionDigits: 0 })} m²
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("stockByTileSize.totalStock")}
+                  </p>
+                </CardAction>
               </CardHeader>
-              <CardContent className="flex-1 min-h-0">
-                <div className="relative h-full w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={pieData}
-                        cx="50%"
-                        cy="46%"
-                        innerRadius={58}
-                        outerRadius={86}
-                        paddingAngle={3}
-                        dataKey="value"
-                      >
-                        {pieData.map((_, i) => (
-                          <Cell
-                            key={i}
-                            fill={PIE_COLORS[i % PIE_COLORS.length]}
-                            stroke="var(--card)"
-                            strokeWidth={2}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          borderRadius: "10px",
-                          border: "1px solid var(--border)",
-                          background: "var(--popover)",
-                          color: "var(--popover-foreground)",
-                          boxShadow: "0 8px 24px -8px rgba(0,0,0,0.2)",
-                        }}
-                        formatter={(v) => [`${v} m²`]}
-                      />
-                      <Legend
-                        verticalAlign="bottom"
-                        height={36}
-                        iconType="circle"
-                        iconSize={8}
-                        formatter={(value) => (
-                          <span className="text-xs text-muted-foreground">
-                            {value}
-                          </span>
-                        )}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="pointer-events-none absolute inset-x-0 top-0 flex h-[calc(100%-2.25rem)] flex-col items-center justify-center">
-                    <span className="text-xl font-semibold tracking-tight">
-                      {totalSqmStock.toFixed(0)}
-                    </span>
-                    <span className="text-[11px] text-muted-foreground">
-                      {t("stockByTileSize.total")}
-                    </span>
-                  </div>
-                </div>
+              <CardContent className="flex-1 min-h-0 overflow-y-auto">
+                {sizeRows.length === 0 ? (
+                  <p className="py-10 text-center text-sm text-muted-foreground">
+                    {t("stockByTileSize.noData")}
+                  </p>
+                ) : (
+                  <ul className="space-y-5">
+                    {sizeRows.map((r) => {
+                      const pct = sizeTotal > 0 ? (Math.max(0, r.stock) / sizeTotal) * 100 : 0;
+                      return (
+                        <li key={r.name}>
+                          <div className="flex items-center gap-3">
+                            <span className="w-14 shrink-0 text-sm font-semibold">{r.name}</span>
+                            <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-muted" aria-hidden="true">
+                              <div
+                                className="h-full rounded-full bg-primary"
+                                style={{ width: `${Math.max(0, (r.stock / sizeMax) * 100)}%` }}
+                              />
+                            </div>
+                            <span className="w-20 shrink-0 text-right text-sm font-semibold tabular-nums">
+                              {r.stock.toLocaleString("en-US", { maximumFractionDigits: 0 })} m²
+                            </span>
+                            <span className="w-9 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
+                              {pct > 0 && pct < 1 ? "<1%" : `${Math.round(pct)}%`}
+                            </span>
+                          </div>
+                          <p className="mt-1 pl-17 text-xs text-muted-foreground">
+                            {t("stockByTileSize.rowDetail", {
+                              count: r.products,
+                              sold: r.sold.toLocaleString("en-US", { maximumFractionDigits: 0 }),
+                            })}
+                          </p>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </CardContent>
             </Card>
 
             {/* Low / out of stock list */}
-            <Card className="lg:col-span-4 h-115 flex flex-col shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-shadow duration-300 hover:shadow-[0_12px_24px_-8px_rgba(0,0,0,0.12)]">
+            <Card className="lg:col-span-3 h-115 flex flex-col shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
               <CardHeader className="shrink-0">
-                <CardTitle className="flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-warning-foreground dark:text-warning" />
-                  {t("attentionRequired.title")}
-                </CardTitle>
+                <CardTitle>{t("attentionRequired.title")}</CardTitle>
                 <CardDescription>
                   {t("attentionRequired.description")}
                 </CardDescription>
-                <CardAction>
-                  <Badge
-                    variant={alerts.length > 0 ? undefined : "outline"}
-                    className={
-                      alerts.length > 0
-                        ? "bg-warning/15 text-warning-foreground dark:text-warning"
-                        : "font-normal"
-                    }
-                  >
-                    {alerts.length}
-                  </Badge>
-                </CardAction>
+                {alerts.length > 0 && (
+                  <CardAction className="flex items-center gap-1.5">
+                    {outOfStockCount > 0 && (
+                      <Badge className="bg-destructive/10 text-destructive tabular-nums">
+                        {t("attentionRequired.outCount", { count: outOfStockCount })}
+                      </Badge>
+                    )}
+                    {lowOnlyCount > 0 && (
+                      <Badge className="bg-warning/15 text-warning-foreground dark:text-warning tabular-nums">
+                        {t("attentionRequired.lowCount", { count: lowOnlyCount })}
+                      </Badge>
+                    )}
+                  </CardAction>
+                )}
               </CardHeader>
-              <CardContent className="flex-1 min-h-0 overflow-y-auto pb-4">
+              {/* Bottom fade signals the list scrolls; extra bottom padding
+                  lets the last row clear the fade when scrolled to the end. */}
+              <CardContent className="flex-1 min-h-0 overflow-y-auto pb-8 [mask-image:linear-gradient(to_bottom,black_calc(100%-2.5rem),transparent)]">
                 {(() => {
                   if (alerts.length === 0) {
                     return (
@@ -585,7 +549,7 @@ export default function Dashboard() {
                     );
                   }
                   return (
-                    <div className="space-y-2">
+                    <div className="divide-y">
                       {alerts.map((item) => (
                         <AlertRow key={item._id} item={item} />
                       ))}
@@ -606,7 +570,7 @@ export default function Dashboard() {
               {t("lowStockModal.description", { count: lowStockCount })}
             </DialogDescription>
           </DialogHeader>
-          <div className="max-h-100 space-y-2 overflow-y-auto pr-1">
+          <div className="max-h-100 divide-y overflow-y-auto pr-1">
             {lowStockItems.map((item) => (
               <AlertRow key={item._id} item={item} />
             ))}

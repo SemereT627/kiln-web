@@ -32,28 +32,35 @@ export function StatCard({
   variant: StatCardVariant;
   action?: React.ReactNode;
 }) {
+  // Same anatomy as the dashboard metric cards (bento-stat-grid.tsx): label
+  // left with the icon (and optional action) right, then value, then
+  // supporting text pinned to the bottom so cards in a row line up.
   return (
-    <div className="rounded-xl border bg-card p-3 shadow-xs transition-all duration-200 md:p-3.5 md:hover:-translate-y-0.5 md:hover:shadow-md">
-      <div className="flex items-start justify-between mb-1.5 md:mb-2">
-        <div className={cn("rounded-lg p-1.5 shrink-0", STAT_ICON_STYLES[variant])}>
-          <Icon className="h-3.5 w-3.5" strokeWidth={2} />
+    <div className="flex min-w-0 flex-col rounded-2xl border bg-card p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+      <div className="flex h-9 items-center justify-between gap-3">
+        <p className="min-w-0 truncate text-sm font-medium text-muted-foreground">
+          {title}
+        </p>
+        <div className="flex shrink-0 items-center gap-2">
+          {action}
+          <div
+            className={cn(
+              "flex size-9 items-center justify-center rounded-lg",
+              STAT_ICON_STYLES[variant],
+            )}
+          >
+            <Icon className="size-4" strokeWidth={2} />
+          </div>
         </div>
-        {action}
       </div>
-      <div className="text-2xl font-semibold tracking-tight leading-tight">
+      <div className="text-2xl font-semibold leading-tight tracking-tight tabular-nums">
         {value}
       </div>
-      <p className="text-[11px] text-muted-foreground leading-snug mt-0.5">
-        {title}
-      </p>
-      <p
-        className={cn(
-          "hidden text-xs text-muted-foreground/80 mt-0.5 leading-snug md:block",
-          !subtext && "invisible",
-        )}
-      >
-        {subtext ?? " "}
-      </p>
+      {subtext && (
+        <p className="mt-auto pt-2 text-xs leading-relaxed text-muted-foreground">
+          {subtext}
+        </p>
+      )}
     </div>
   );
 }

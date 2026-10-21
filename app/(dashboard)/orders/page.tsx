@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -54,7 +53,7 @@ import {
   Undo2,
   Wallet,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatETB } from "@/lib/utils";
 import { useOrdersRealtime } from "@/hooks/use-orders-realtime";
 import { useOrderMutations } from "@/hooks/use-order-mutations";
 import { useUser } from "@/components/user-provider";
@@ -491,39 +490,42 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 h-full animate-in fade-in duration-500 overflow-hidden">
-      <div className="shrink-0">
-        <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
-          Sales
-        </p>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mt-0.5">
-          Order Approvals
-        </h1>
-        <p className="text-muted-foreground text-sm mt-0.5">
-          Review orders submitted by sellers before stock is deducted and a sale
-          is recorded.
-        </p>
-      </div>
-
-      <Card className="border-warning/30 bg-warning/5 shrink-0">
-        <CardContent className="flex items-center gap-4 py-4">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-warning/10">
-            <Wallet className="h-5 w-5 text-warning-foreground dark:text-warning" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-muted-foreground">
-              Outstanding Credit
-            </p>
-            <p className="text-xl font-bold tabular-nums">
-              {outstandingTotal.toFixed(2)} ETB
-            </p>
-          </div>
-          <p className="text-xs text-muted-foreground shrink-0">
-            {outstandingOrders.length} unpaid order
-            {outstandingOrders.length !== 1 ? "s" : ""}
+    <div className="flex flex-col gap-4 h-full animate-in fade-in duration-500 overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-4 shrink-0">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+            Order Approvals
+          </h1>
+          <p className="text-muted-foreground text-sm mt-0.5">
+            Review orders submitted by sellers before stock is deducted and a
+            sale is recorded.
           </p>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Outstanding credit — jumps to the Unpaid Credit tab */}
+        <button
+          type="button"
+          onClick={() => changeFilterMode("unpaid_credit")}
+          aria-label={`Outstanding credit: ${formatETB(outstandingTotal)} across ${outstandingOrders.length} unpaid orders. Show unpaid credit orders`}
+          className="flex shrink-0 items-center gap-3 rounded-xl border border-warning/30 bg-warning/5 px-3 py-2 text-left transition-colors outline-none hover:bg-warning/10 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+        >
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-warning/15">
+            <Wallet className="size-4 text-warning-foreground dark:text-warning" />
+          </div>
+          <div>
+            <p className="text-xs font-medium text-muted-foreground">
+              Outstanding credit
+            </p>
+            <p className="text-base font-semibold leading-tight tabular-nums">
+              {formatETB(outstandingTotal)}
+              <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                · {outstandingOrders.length} unpaid order
+                {outstandingOrders.length !== 1 ? "s" : ""}
+              </span>
+            </p>
+          </div>
+        </button>
+      </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2 shrink-0">
         <div className="inline-flex gap-1 rounded-lg border bg-muted/30 p-1 overflow-x-auto no-scrollbar -mx-1 px-1 sm:mx-0">

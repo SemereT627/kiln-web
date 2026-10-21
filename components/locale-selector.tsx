@@ -28,7 +28,7 @@ export function LocaleSelector({ className }: { className?: string }) {
         <Button
           variant="ghost"
           size="icon"
-          aria-label="Select locale"
+          aria-label="Change language"
           className={className}
         >
           <Languages className="size-4" />

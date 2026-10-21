@@ -266,13 +266,10 @@ export default function CeramicTypesPage() {
   ];
 
   return (
-    <div className="flex flex-col gap-6 h-full overflow-y-auto animate-in fade-in duration-500">
+    <div className="flex flex-col gap-4 h-full overflow-y-auto animate-in fade-in duration-500">
       <div className="flex flex-wrap items-center justify-between shrink-0 gap-4">
         <div>
-          <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
-            Catalog
-          </p>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mt-0.5">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
             Ceramic Types
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">

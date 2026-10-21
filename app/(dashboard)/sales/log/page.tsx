@@ -260,6 +260,8 @@ function SalesLogPageInner() {
   const totalTileSold = summaryResponse?.summary?.totalSqm ?? 0;
   const totalSkirtingSold = summaryResponse?.summary?.totalLinear ?? 0;
   const daysCount = summaryResponse?.summary?.totalDays ?? 0;
+  // Averages are per day *with sales*, matching what the table lists.
+  const perDay = (total: number) => (daysCount > 0 ? total / daysCount : 0);
 
   // Resolve which calendar day an order's sale falls on (deep link from the
   // Audit Logs diff dialog) — we only need the date, not the paginated day
@@ -308,13 +310,10 @@ function SalesLogPageInner() {
     : null;
 
   return (
-    <div className="flex flex-col gap-4 h-full overflow-hidden animate-in fade-in duration-500 md:gap-6">
+    <div className="flex flex-col gap-4 h-full overflow-hidden animate-in fade-in duration-500">
       {/* Header */}
       <div className="shrink-0">
-        <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
-          Sales
-        </p>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mt-0.5">
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
           Sales Log
         </h1>
         <p className="text-muted-foreground text-sm mt-0.5">
@@ -323,27 +322,39 @@ function SalesLogPageInner() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-2 shrink-0 sm:grid-cols-3 md:gap-4">
+      <div className="grid grid-cols-2 gap-4 shrink-0 sm:grid-cols-3">
         <StatCard
           title="Total Transactions"
           value={totalTransactions}
+          subtext={
+            daysCount > 0
+              ? `≈ ${formatNumber(perDay(totalTransactions), 1)} per sales day`
+              : "No sales recorded yet"
+          }
           icon={History}
           variant="info"
         />
         <StatCard
           title="Total Quantity Sold"
           value={
-            <>
-              {formatNumber(totalTileSold)}{" "}
-              <span className="text-base font-medium text-muted-foreground">
-                m²
+            <span className="flex flex-wrap items-baseline gap-x-2">
+              <span>
+                {formatNumber(totalTileSold)}{" "}
+                <span className="text-base font-medium text-muted-foreground">
+                  m²
+                </span>
               </span>
-            </>
+              {totalSkirtingSold > 0 && (
+                <span className="text-xs font-normal tracking-normal text-muted-foreground">
+                  + {formatQuantity(totalSkirtingSold, "m")} skirting
+                </span>
+              )}
+            </span>
           }
           subtext={
-            totalSkirtingSold > 0
-              ? `+ ${formatQuantity(totalSkirtingSold, "m")} skirting`
-              : undefined
+            daysCount > 0
+              ? `≈ ${formatNumber(perDay(totalTileSold))} m² of tiles per sales day`
+              : "No sales recorded yet"
           }
           icon={Package}
           variant="success"
@@ -352,6 +363,11 @@ function SalesLogPageInner() {
           <StatCard
             title="Days Recorded"
             value={daysCount}
+            subtext={
+              dateFrom || dateTo
+                ? "Days with sales in the selected range"
+                : "Days with at least one sale"
+            }
             icon={Calendar}
             variant="neutral"
           />
