@@ -34,6 +34,7 @@ import {
 import { useUser } from "@/components/user-provider";
 import { EmptyState } from "@/components/empty-state";
 import { AddUserForm } from "@/components/add-user-form";
+import { AccessRequestsPanel } from "@/components/access-requests-panel";
 import { UserAvatar } from "@/components/user-avatar";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { toast } from "sonner";
@@ -205,13 +206,10 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 h-full overflow-hidden animate-in fade-in duration-500">
+    <div className="flex flex-col gap-4 h-full overflow-hidden animate-in fade-in duration-500">
       <div className="flex flex-wrap items-center justify-between shrink-0 gap-4">
         <div>
-          <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
-            Administration
-          </p>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mt-0.5">
+          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
             Users
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">
@@ -223,6 +221,8 @@ export default function AdminUsersPage() {
           Add User
         </Button>
       </div>
+
+      <AccessRequestsPanel />
 
       <AddUserForm
         open={addUserOpen}

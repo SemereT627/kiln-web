@@ -3,18 +3,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import {
-  LayoutDashboard,
-  PackageSearch,
-  ShoppingCart,
-  ClipboardList,
-  Building2,
-  Palette,
-  Layers3,
-  ShieldCheck,
-  ScrollText,
-  ClipboardCheck,
-} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import {
@@ -34,33 +22,16 @@ import { useUser, useUserLoading } from "@/components/user-provider";
 import { UserMenu } from "@/components/user-menu";
 import { cn } from "@/lib/utils";
 import { useOrdersRealtime } from "@/hooks/use-orders-realtime";
-
-type NavItem = {
-  /** Key into the Sidebar.items message namespace — see NavGroup's t() call. */
-  titleKey: string;
-  href: string;
-  icon: React.ElementType;
-  badge?: number;
-};
-
-const overviewItems: NavItem[] = [
-  { titleKey: "dashboard", href: "/dashboard", icon: LayoutDashboard },
-];
-
-const salesItems: NavItem[] = [
-  { titleKey: "newSale", href: "/sales", icon: ShoppingCart },
-  { titleKey: "salesLog", href: "/sales/log", icon: ClipboardList },
-];
-
-// Taxonomy first, then the stock built on top of it — ceramic_types
-// reference brand/finish, and stock is tracked per ceramic (which
-// references a ceramic_type), so this mirrors the actual dependency chain.
-const catalogItems: NavItem[] = [
-  { titleKey: "brands", href: "/brands", icon: Building2 },
-  { titleKey: "finishes", href: "/finishes", icon: Palette },
-  { titleKey: "ceramicTypes", href: "/ceramic-types", icon: Layers3 },
-  { titleKey: "inventory", href: "/inventory", icon: PackageSearch },
-];
+import {
+  type NavItem,
+  overviewItems,
+  analyticsItem,
+  catalogItems,
+  salesItems,
+  orderApprovalsItem,
+  adminItems,
+} from "@/components/nav-config";
+import { accessRequestsKey, type AccessRequest } from "@/components/access-requests-panel";
 
 function NavGroup({
   label,
@@ -77,45 +48,45 @@ function NavGroup({
   className?: string;
 }) {
   return (
-    <SidebarGroup className={cn("py-1", className)}>
+    <SidebarGroup className={cn("px-0 py-1.5", className)}>
       {label && (
-        <SidebarGroupLabel className="group-data-[collapsible=icon]:hidden">
+        <SidebarGroupLabel className="h-7 px-2.5 group-data-[collapsible=icon]:hidden">
           {label}
         </SidebarGroupLabel>
       )}
       <SidebarGroupContent>
-        <SidebarMenu className="gap-1 group-data-[collapsible=icon]:gap-2 px-2 group-data-[collapsible=icon]:px-0">
+        <SidebarMenu className="gap-0.5 group-data-[collapsible=icon]:gap-2">
           {items.map((item) => {
             const active = isActive(item.href);
             const title = t(item.titleKey);
             return (
               <SidebarMenuItem key={item.href} className="relative">
                 {active && (
-                  <span className="absolute -left-2 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary group-data-[collapsible=icon]:-left-1" />
+                  <span className="absolute -left-2 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r-full bg-primary/80 group-data-[collapsible=icon]:hidden" />
                 )}
                 <SidebarMenuButton
                   asChild
                   isActive={active}
                   tooltip={title}
                   className={cn(
-                    "h-auto py-2.5 px-3 rounded-xl hover:bg-muted/50 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full",
+                    "h-9 px-2.5 rounded-lg focus-visible:ring-2 focus-visible:ring-ring/50 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full",
                     active
-                      ? "bg-primary/10 text-primary font-bold hover:bg-primary/15"
-                      : "font-medium text-muted-foreground hover:bg-muted/80 hover:text-foreground",
+                      ? "bg-primary/[0.07] text-primary font-semibold hover:bg-primary/10 hover:text-primary data-[active=true]:bg-primary/[0.07] data-[active=true]:text-primary"
+                      : "font-medium text-muted-foreground hover:bg-muted hover:text-foreground active:bg-muted",
                   )}
                 >
                   <Link href={item.href} className="flex items-center w-full">
-                    <div className="flex items-center gap-3">
+                    <div className="flex w-full items-center gap-2.5">
                       <item.icon
                         className={cn(
-                          "size-[18px] shrink-0",
+                          "size-4 shrink-0",
                           active ? "text-primary" : "text-muted-foreground",
                         )}
-                        strokeWidth={active ? 2.5 : 2}
+                        strokeWidth={2}
                       />
-                      <div className="flex flex-col min-w-0 group-data-[collapsible=icon]:hidden">
-                        <span className="leading-tight">{title}</span>
-                      </div>
+                      <span className="min-w-0 truncate leading-tight group-data-[collapsible=icon]:hidden">
+                        {title}
+                      </span>
                       {!!item.badge && (
                         <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] leading-none font-bold tabular-nums text-white group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:-top-1 group-data-[collapsible=icon]:-right-1 group-data-[collapsible=icon]:ml-0">
                           {item.badge}
@@ -168,6 +139,18 @@ export function AppSidebar() {
   const pendingOrderCount =
     (pendingOrders?.total ?? 0) + (pendingReturnRequests?.total ?? 0);
 
+  // Shares its cache entry with the Users page's access-requests panel.
+  const { data: pendingAccessRequests } = useQuery<AccessRequest[]>({
+    queryKey: accessRequestsKey("pending"),
+    queryFn: async () => {
+      const res = await fetch("/api/admin/access-requests?status=pending&limit=50");
+      if (!res.ok) throw new Error("Failed to fetch access requests");
+      return res.json();
+    },
+    enabled: isAdmin,
+    refetchInterval: 60_000,
+  });
+
   const localelessPath = pathname.replace(/^\/[a-z]{2}(?=\/|$)/, "") || "/";
 
   const isActive = (href: string) => localelessPath === href;
@@ -178,7 +161,7 @@ export function AppSidebar() {
       collapsible="icon"
       className="border-r border-sidebar-border"
     >
-      <SidebarHeader className="flex flex-col border-b-0 p-6 pb-2 group-data-[collapsible=icon]:p-3 group-data-[collapsible=icon]:pt-6 group-data-[collapsible=icon]:items-center">
+      <SidebarHeader className="flex flex-col border-b-0 px-5 pt-5 pb-3 group-data-[collapsible=icon]:p-3 group-data-[collapsible=icon]:pt-6 group-data-[collapsible=icon]:items-center">
         <div className="flex w-full items-center justify-between group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-6">
           <div className="flex items-center gap-2.5 group-data-[collapsible=icon]:hidden">
             <Image
@@ -203,8 +186,19 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="gap-0 px-1 mt-4 group-data-[collapsible=icon]:px-0">
-        <NavGroup items={overviewItems} isActive={isActive} t={tItems} />
+      <SidebarContent className="gap-0 px-5 group-data-[collapsible=icon]:px-0">
+        <NavGroup
+          items={
+            isAdmin
+              ? [
+                  ...overviewItems,
+                  analyticsItem,
+                ]
+              : overviewItems
+          }
+          isActive={isActive}
+          t={tItems}
+        />
 
         <NavGroup
           label={tGroups("catalog")}
@@ -219,12 +213,7 @@ export function AppSidebar() {
             isAdmin
               ? [
                   ...salesItems,
-                  {
-                    titleKey: "orderApprovals",
-                    href: "/orders",
-                    icon: ClipboardCheck,
-                    badge: pendingOrderCount,
-                  },
+                  { ...orderApprovalsItem, badge: pendingOrderCount },
                 ]
               : salesItems
           }
@@ -233,12 +222,12 @@ export function AppSidebar() {
         />
 
         {isLoading ? (
-          <SidebarGroup className="animate-pulse py-2 border-t border-border/60 mt-2 pt-3">
+          <SidebarGroup className="animate-pulse px-0 py-1.5 border-t border-border/60 mt-1.5 pt-3">
             <SidebarGroupContent>
-              <SidebarMenu className="px-2">
+              <SidebarMenu>
                 <SidebarMenuItem>
-                  <div className="flex items-center gap-3 px-3 py-2.5">
-                    <span className="h-[18px] w-[18px] rounded bg-muted shrink-0" />
+                  <div className="flex h-9 items-center gap-2.5 px-2.5">
+                    <span className="size-4 rounded bg-muted shrink-0" />
                     <span className="h-3 w-20 rounded bg-muted block group-data-[collapsible=icon]:hidden" />
                   </div>
                 </SidebarMenuItem>
@@ -248,22 +237,19 @@ export function AppSidebar() {
         ) : isAdmin ? (
           <NavGroup
             label={tGroups("administration")}
-            items={[
-              { titleKey: "users", href: "/admin/users", icon: ShieldCheck },
-              {
-                titleKey: "auditLogs",
-                href: "/admin/audit-logs",
-                icon: ScrollText,
-              },
-            ]}
+            items={adminItems.map((item) =>
+              item.href === "/admin/users"
+                ? { ...item, badge: pendingAccessRequests?.length ?? 0 }
+                : item,
+            )}
             isActive={isActive}
             t={tItems}
-            className="animate-in fade-in duration-300 border-t border-border/60 mt-2 pt-3"
+            className="animate-in fade-in duration-300 border-t border-border/60 mt-1.5 pt-3"
           />
         ) : null}
       </SidebarContent>
 
-      <SidebarFooter className="p-4 group-data-[collapsible=icon]:p-2 border-t-0 mb-2">
+      <SidebarFooter className="mx-5 border-t border-border/60 px-0 py-3 group-data-[collapsible=icon]:mx-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-2">
         <UserMenu />
       </SidebarFooter>
     </Sidebar>
