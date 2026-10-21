@@ -4,6 +4,9 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 const nextConfig: NextConfig = {
+  // The dev-tools badge sits bottom-left by default, on top of the sidebar
+  // account footer. Build/runtime error overlays still show without it.
+  devIndicators: false,
   images: {
     remotePatterns: [
       {

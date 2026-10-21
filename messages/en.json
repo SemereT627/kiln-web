@@ -1,12 +1,14 @@
 {
   "Sidebar": {
     "groups": {
+      "overview": "Overview",
       "catalog": "Catalog",
       "sales": "Sales",
       "administration": "Administration"
     },
     "items": {
       "dashboard": "Dashboard",
+      "analytics": "Analytics",
       "brands": "Brands",
       "finishes": "Finishes",
       "ceramicTypes": "Ceramic Types",
@@ -15,14 +17,14 @@
       "salesLog": "Sales Log",
       "orderApprovals": "Order Approvals",
       "users": "Users",
-      "auditLogs": "Audit Logs"
+      "auditLogs": "Audit Logs",
+      "profile": "Profile"
     }
   },
   "Dashboard": {
     "liveDashboard": "Live Dashboard",
     "welcomeBack": "Welcome back, {name}",
     "greetingFallback": "Dashboard",
-    "subtitle": "Here's the state of your ceramic inventory right now.",
     "overview": {
       "eyebrow": "Overview",
       "title": "Key metrics",
@@ -40,10 +42,9 @@
     },
     "topTileProducts": {
       "title": "Top Tile Products",
-      "description": "Stock vs. sold for the 8 highest-stock tile products (m²). Skirting excluded.",
-      "productsCount": "{count} products",
+      "description": "Current stock vs. all-time sales for the 8 highest-stock tile products (m²). Skirting excluded.",
       "currentStock": "Current Stock",
-      "totalSold": "Total Sold"
+      "totalSold": "Sold (all time)"
     },
     "recentInventory": {
       "title": "Recent Inventory",
@@ -53,13 +54,17 @@
     "stockByTileSize": {
       "title": "Stock by Tile Size",
       "description": "Current m² stock distribution across tile sizes.",
-      "total": "m² total"
+      "totalStock": "Total stock",
+      "noData": "No tile stock recorded yet",
+      "rowDetail": "{count, plural, one {# product} other {# products}} · {sold} m² sold all time"
     },
     "attentionRequired": {
       "title": "Attention Required",
       "description": "Products that are low or out of stock.",
       "allGood": "All products are well-stocked",
-      "allGoodDescription": "Nothing needs restocking right now."
+      "allGoodDescription": "Nothing needs restocking right now.",
+      "outCount": "{count} out",
+      "lowCount": "{count} low"
     },
     "lowStockModal": {
       "title": "Low Stock Alerts",
@@ -71,19 +76,42 @@
       "label": "Total Products",
       "description": "Unique items in catalog"
     },
-    "tileStock": { "label": "Tile Stock" },
-    "skirtingStock": { "label": "Skirting Stock" },
+    "tileStock": {
+      "label": "Tile Stock",
+      "description": "{sold} m² sold · {count, plural, one {# product} other {# products}}"
+    },
+    "skirtingStock": {
+      "label": "Skirting Stock",
+      "description": "{sold} m sold · {count, plural, one {# product} other {# products}}",
+      "pieces": "{count} pcs"
+    },
     "lowStockAlerts": {
       "label": "Low Stock Alerts",
-      "attention": "Attention",
-      "allWellStocked": "All products well-stocked"
+      "allWellStocked": "All products well-stocked",
+      "viewList": "View list",
+      "left": "{stock} {unit} left"
     },
-    "stockByBrand": { "label": "Stock by Brand" },
-    "totalSold": { "label": "Total Sold" },
-    "totalStockValue": { "label": "Total Stock Value" }
+    "stockByBrand": {
+      "label": "Stock by Brand",
+      "description": "Distribution across all brands",
+      "noData": "No tile stock recorded yet",
+      "other": "Other",
+      "totalStock": "Total stock"
+    },
+    "totalSold": {
+      "label": "Total Sold",
+      "description": "+ {sold} m skirting sold"
+    },
+    "totalStockValue": {
+      "label": "Total Stock Value",
+      "showAria": "Show total stock value",
+      "hideAria": "Hide total stock value",
+      "hiddenAria": "Value hidden",
+      "noPriceData": "No price data",
+      "description": "Priced products only · confidential"
+    }
   },
   "Inventory": {
-    "eyebrow": "Catalog",
     "title": "Inventory",
     "subtitle": "Manage your ceramic stock and product catalog.",
     "export": "Export",

@@ -74,7 +74,8 @@ export async function middleware(request: NextRequest) {
   // Protect /admin routes — same role check as requireAdmin() in lib/auth.ts,
   // reused directly since it's just a service-role lookup by id (no
   // session/cookie dependency to conflict with the client wired up above).
-  if (strippedPath.startsWith("/admin")) {
+  // /analytics exposes revenue and per-seller figures, so it's admin-only too.
+  if (strippedPath.startsWith("/admin") || strippedPath.startsWith("/analytics")) {
     const role = await getRole(user.id);
 
     if (role !== "admin") {

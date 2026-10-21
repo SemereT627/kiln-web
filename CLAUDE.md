@@ -20,6 +20,9 @@ Required in `.env.local`:
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+RESEND_API_KEY=
+RESEND_FROM_EMAIL=          # e.g. "Kiln <noreply@yourdomain>" (verified Resend domain)
+NEXT_PUBLIC_SITE_URL=       # optional; base URL for links in emails (defaults to request origin)
 ```
 
 ## Architecture
@@ -102,4 +105,5 @@ Frontend uses **TanStack React Query** for all data fetching/mutation. No Redux 
 - RLS itself only grants admin ALL / public SELECT — `INSERT`/`UPDATE`/`DELETE` require `get_my_role() = 'admin'`. Seller writes (direct sales, order submission) don't go through RLS: they hit API routes gated by `requireSeller()` that use `createServiceClient()` (service role, bypasses RLS)
 - `requireAdmin()` / `requireSeller()` in `lib/auth.ts` resolve the user from either the session cookie (web) or an `Authorization: Bearer` token (mobile app, no cookies)
 - `user_profiles` row auto-created on signup via `handle_new_user()` trigger
+- No self-signup: `/signup` is "Request access" → `access_requests` row (public `POST /api/access-requests`). Admin approves/rejects on the Users page; approval creates the user via `auth.admin.generateLink` and emails an invite through Resend (`lib/email.ts`). The link hits `GET /api/auth/confirm` (`verifyOtp`) → `/set-password`. Supabase's own "Allow new users to sign up" should be OFF
 - Session inactivity timeout handled in `hooks/use-session-timeout.ts`

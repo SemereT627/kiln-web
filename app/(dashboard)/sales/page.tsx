@@ -308,12 +308,9 @@ export default function SalesPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 pr-1 h-full overflow-hidden animate-in fade-in duration-500">
+    <div className="flex flex-col gap-4 pr-1 h-full overflow-hidden animate-in fade-in duration-500">
       <div className="shrink-0">
-        <p className="text-xs font-semibold tracking-wide text-primary/70 uppercase">
-          Sales
-        </p>
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl mt-0.5">
+        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
           New Sale
         </h1>
         <p className="text-muted-foreground text-sm mt-0.5">

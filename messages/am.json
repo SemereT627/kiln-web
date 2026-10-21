@@ -1,12 +1,14 @@
 {
   "Sidebar": {
     "groups": {
+      "overview": "አጠቃላይ እይታ",
       "catalog": "ካታሎግ",
       "sales": "ሽያጭ",
       "administration": "አስተዳደር"
     },
     "items": {
       "dashboard": "ዳሽቦርድ",
+      "analytics": "ትንታኔ",
       "brands": "ብራንዶች",
       "finishes": "አጨራረሶች",
       "ceramicTypes": "የሴራሚክ አይነቶች",
@@ -15,14 +17,14 @@
       "salesLog": "የሽያጭ መዝገብ",
       "orderApprovals": "የትዕዛዝ ማጽደቂያ",
       "users": "ተጠቃሚዎች",
-      "auditLogs": "የኦዲት መዝገቦች"
+      "auditLogs": "የኦዲት መዝገቦች",
+      "profile": "መገለጫ"
     }
   },
   "Dashboard": {
     "liveDashboard": "የቀጥታ ዳሽቦርድ",
     "welcomeBack": "እንኳን ደህና ተመለሱ፣ {name}",
     "greetingFallback": "ዳሽቦርድ",
-    "subtitle": "የሴራሚክ ክምችትዎ የአሁኑ ሁኔታ እነሆ።",
     "overview": {
       "eyebrow": "አጠቃላይ እይታ",
       "title": "ቁልፍ መለኪያዎች",
@@ -40,10 +42,9 @@
     },
     "topTileProducts": {
       "title": "ከፍተኛ የንጣፍ ምርቶች",
-      "description": "ለ8ቱ ከፍተኛ ክምችት ላላቸው የንጣፍ ምርቶች ክምችት እና የተሸጠ መጠን (m²)። ስክርቲንግ አልተካተተም።",
-      "productsCount": "{count} ምርቶች",
+      "description": "የአሁኑ ክምችት ከጠቅላላ የምንጊዜም ሽያጭ ጋር ለ8ቱ ከፍተኛ ክምችት ላላቸው የንጣፍ ምርቶች (m²)። ስክርቲንግ አልተካተተም።",
       "currentStock": "የአሁኑ ክምችት",
-      "totalSold": "ጠቅላላ የተሸጠ"
+      "totalSold": "የተሸጠ (ሁሉም ጊዜ)"
     },
     "recentInventory": {
       "title": "የቅርብ ጊዜ ክምችት",
@@ -53,13 +54,17 @@
     "stockByTileSize": {
       "title": "በንጣፍ መጠን የተከፋፈለ ክምችት",
       "description": "የአሁኑ m² ክምችት በንጣፍ መጠኖች ስርጭት።",
-      "total": "m² ጠቅላላ"
+      "totalStock": "ጠቅላላ ክምችት",
+      "noData": "እስካሁን የተመዘገበ የንጣፍ ክምችት የለም",
+      "rowDetail": "{count} ምርቶች · በአጠቃላይ {sold} m² ተሽጧል"
     },
     "attentionRequired": {
       "title": "ትኩረት ያስፈልጋል",
       "description": "ዝቅተኛ ወይም ያለቀባቸው ምርቶች።",
       "allGood": "ሁሉም ምርቶች በበቂ ሁኔታ ተከማችተዋል",
-      "allGoodDescription": "አሁን ምንም መሞላት የሚያስፈልገው ነገር የለም።"
+      "allGoodDescription": "አሁን ምንም መሞላት የሚያስፈልገው ነገር የለም።",
+      "outCount": "{count} አልቋል",
+      "lowCount": "{count} ዝቅተኛ"
     },
     "lowStockModal": {
       "title": "ዝቅተኛ ክምችት ማንቂያዎች",
@@ -71,19 +76,42 @@
       "label": "ጠቅላላ ምርቶች",
       "description": "በካታሎግ ውስጥ ልዩ ዕቃዎች"
     },
-    "tileStock": { "label": "የንጣፍ ክምችት" },
-    "skirtingStock": { "label": "የስክርቲንግ ክምችት" },
+    "tileStock": {
+      "label": "የንጣፍ ክምችት",
+      "description": "{sold} m² ተሽጧል · {count} ምርቶች"
+    },
+    "skirtingStock": {
+      "label": "የስክርቲንግ ክምችት",
+      "description": "{sold} m ተሽጧል · {count} ምርቶች",
+      "pieces": "{count} ቁራጭ"
+    },
     "lowStockAlerts": {
       "label": "ዝቅተኛ ክምችት ማንቂያዎች",
-      "attention": "ትኩረት",
-      "allWellStocked": "ሁሉም ምርቶች በበቂ ሁኔታ አሉ"
+      "allWellStocked": "ሁሉም ምርቶች በበቂ ሁኔታ አሉ",
+      "viewList": "ዝርዝሩን ይመልከቱ",
+      "left": "{stock} {unit} ቀርቷል"
     },
-    "stockByBrand": { "label": "በብራንድ የተከፋፈለ ክምችት" },
-    "totalSold": { "label": "ጠቅላላ የተሸጠ" },
-    "totalStockValue": { "label": "ጠቅላላ የክምችት ዋጋ" }
+    "stockByBrand": {
+      "label": "በብራንድ የተከፋፈለ ክምችት",
+      "description": "በሁሉም ብራንዶች ላይ ያለ ስርጭት",
+      "noData": "እስካሁን የተመዘገበ የንጣፍ ክምችት የለም",
+      "other": "ሌሎች",
+      "totalStock": "ጠቅላላ ክምችት"
+    },
+    "totalSold": {
+      "label": "ጠቅላላ የተሸጠ",
+      "description": "+ {sold} m ስክርቲንግ ተሽጧል"
+    },
+    "totalStockValue": {
+      "label": "ጠቅላላ የክምችት ዋጋ",
+      "showAria": "ጠቅላላ የክምችት ዋጋን አሳይ",
+      "hideAria": "ጠቅላላ የክምችት ዋጋን ደብቅ",
+      "hiddenAria": "ዋጋው ተደብቋል",
+      "noPriceData": "የዋጋ መረጃ የለም",
+      "description": "ዋጋ ያላቸው ምርቶች ብቻ · ሚስጥራዊ"
+    }
   },
   "Inventory": {
-    "eyebrow": "ካታሎግ",
     "title": "ክምችት",
     "subtitle": "የሴራሚክ ክምችትዎን እና የምርት ካታሎግዎን ያስተዳድሩ።",
     "export": "ላክ",
