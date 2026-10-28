@@ -109,6 +109,10 @@ export async function GET(request: Request) {
     const paymentStatus = searchParams.get("paymentStatus");
     const dateFrom = searchParams.get("dateFrom");
     const dateTo = searchParams.get("dateTo");
+    // "has_returns" | "return_requested" — narrows to orders with a recorded
+    // return / a still-pending return request, so admins can find them
+    // without paging through every approved order.
+    const returnsFilter = searchParams.get("returns");
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
     const mineOnly = searchParams.get("mine") === "1";
@@ -116,9 +120,22 @@ export async function GET(request: Request) {
     const supabase = await createServiceClient();
     const isAdmin = user.role === "admin";
 
+    // !inner embeds under their own alias act as an EXISTS filter on the
+    // parent row without touching the full embeds formatOrder reads.
+    let select = ORDER_SELECT;
+    if (returnsFilter === "has_returns") {
+      select += ", returns_filter:returns!inner(id)";
+    } else if (returnsFilter === "return_requested") {
+      select += ", return_requests_filter:return_requests!inner(status)";
+    }
+
     let query = supabase
       .from("orders")
-      .select(ORDER_SELECT, { count: "exact" });
+      .select(select, { count: "exact" });
+
+    if (returnsFilter === "return_requested") {
+      query = query.eq("return_requests_filter.status", "pending");
+    }
 
     if (status) {
       query = query.eq("status", status);

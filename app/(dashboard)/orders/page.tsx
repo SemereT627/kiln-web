@@ -39,6 +39,13 @@ import {
   DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { EmptyState } from "@/components/empty-state";
 import { DateRangePicker } from "@/components/date-range-picker";
 import {
@@ -60,6 +67,7 @@ import { useUser } from "@/components/user-provider";
 
 type OrderStatus = "pending" | "approved" | "rejected";
 type FilterMode = OrderStatus | "unpaid_credit";
+type ReturnsFilter = "all" | "has_returns" | "return_requested";
 
 interface OrderItem {
   id: string;
@@ -119,6 +127,12 @@ const STATUS_TABS: { label: string; value: FilterMode }[] = [
   { label: "Approved", value: "approved" },
   { label: "Rejected", value: "rejected" },
   { label: "Unpaid Credit", value: "unpaid_credit" },
+];
+
+const RETURNS_FILTERS: { label: string; value: ReturnsFilter }[] = [
+  { label: "All orders", value: "all" },
+  { label: "Has returns", value: "has_returns" },
+  { label: "Return requested", value: "return_requested" },
 ];
 
 const PAYMENT_LABEL: Record<Order["paymentMethod"], string> = {
@@ -193,6 +207,7 @@ function ordersUrl(
   limit: number,
   dateFrom?: Date,
   dateTo?: Date,
+  returnsFilter: ReturnsFilter = "all",
 ) {
   const base =
     filterMode === "unpaid_credit"
@@ -201,6 +216,7 @@ function ordersUrl(
   let url = `${base}&page=${page}&limit=${limit}`;
   if (dateFrom) url += `&dateFrom=${toDateParam(dateFrom)}`;
   if (dateTo) url += `&dateTo=${toDateParam(dateTo)}`;
+  if (returnsFilter !== "all") url += `&returns=${returnsFilter}`;
   return url;
 }
 
@@ -223,6 +239,11 @@ export default function OrdersPage() {
   }) => {
     setDateFrom(range.from);
     setDateTo(range.to);
+    setCurrentPage(1);
+  };
+  const [returnsFilter, setReturnsFilter] = useState<ReturnsFilter>("all");
+  const changeReturnsFilter = (value: ReturnsFilter) => {
+    setReturnsFilter(value);
     setCurrentPage(1);
   };
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
@@ -253,10 +274,18 @@ export default function OrdersPage() {
       currentPage,
       dateFrom?.getTime(),
       dateTo?.getTime(),
+      returnsFilter,
     ],
     queryFn: async () => {
       const res = await fetch(
-        ordersUrl(filterMode, currentPage, itemsPerPage, dateFrom, dateTo),
+        ordersUrl(
+          filterMode,
+          currentPage,
+          itemsPerPage,
+          dateFrom,
+          dateTo,
+          returnsFilter,
+        ),
       );
       if (!res.ok) throw new Error("Failed to fetch orders");
       return res.json();
@@ -265,14 +294,22 @@ export default function OrdersPage() {
 
   // Per-tab counts for the segmented control's badges — cheap (limit=1,
   // Supabase still returns the exact total count regardless of page size).
-  // Respects the active date filter so counts always match what each tab
-  // would actually show if clicked.
+  // Respects the active date and returns filters so counts always match what
+  // each tab would actually show if clicked.
   const { data: tabCounts } = useQuery({
-    queryKey: ["orders", "tab-counts", dateFrom?.getTime(), dateTo?.getTime()],
+    queryKey: [
+      "orders",
+      "tab-counts",
+      dateFrom?.getTime(),
+      dateTo?.getTime(),
+      returnsFilter,
+    ],
     queryFn: async () => {
       const entries = await Promise.all(
         STATUS_TABS.map(async (tab) => {
-          const res = await fetch(ordersUrl(tab.value, 1, 1, dateFrom, dateTo));
+          const res = await fetch(
+            ordersUrl(tab.value, 1, 1, dateFrom, dateTo, returnsFilter),
+          );
           if (!res.ok) throw new Error("Failed to fetch order counts");
           const json = await res.json();
           return [tab.value, json.total ?? 0] as const;
@@ -561,11 +598,36 @@ export default function OrdersPage() {
           })}
         </div>
 
-        <DateRangePicker
-          from={dateFrom}
-          to={dateTo}
-          onChange={changeDateRange}
-        />
+        <div className="flex items-center gap-2">
+          <Select
+            value={returnsFilter}
+            onValueChange={(v) => changeReturnsFilter(v as ReturnsFilter)}
+          >
+            <SelectTrigger
+              aria-label="Filter by returns"
+              className={cn(
+                "h-9 w-44 gap-2",
+                returnsFilter !== "all" && "text-foreground",
+              )}
+            >
+              <Undo2 className="h-4 w-4 text-muted-foreground" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {RETURNS_FILTERS.map((f) => (
+                <SelectItem key={f.value} value={f.value}>
+                  {f.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <DateRangePicker
+            from={dateFrom}
+            to={dateTo}
+            onChange={changeDateRange}
+          />
+        </div>
       </div>
 
       <div className="flex-1 flex flex-col min-h-0 gap-3">
