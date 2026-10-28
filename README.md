@@ -35,7 +35,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 ### Routing
 
 - Pages live under `app/(dashboard)/` (auth-protected route group)
-- `middleware.ts` enforces: `/en` locale prefix on non-API paths, auth redirect to `/en/login`, admin-only access to `/admin/*` via DB role check
+- `proxy.ts` (Next 16 rename of middleware) enforces: `/en` locale prefix on non-API paths, auth redirect to `/en/login`, admin-only access to `/admin/*` via DB role check
 - Auth routes: `app/(auth)/login`, `app/(auth)/signup`
 
 ### Supabase Clients

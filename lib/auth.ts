@@ -26,7 +26,7 @@ async function getRequestUser(request?: Request): Promise<User | null> {
 }
 
 /** Looks up a user's role directly via service role — no session/cookie
- * dependency, so this is also safe to call from middleware.ts. */
+ * dependency, so this is also safe to call from proxy.ts. */
 export async function getRole(userId: string): Promise<string | null> {
   const supabase = await createServiceClient();
   const { data: profile } = await supabase

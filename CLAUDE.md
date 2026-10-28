@@ -32,7 +32,7 @@ NEXT_PUBLIC_SITE_URL=       # optional; base URL for links in emails (defaults t
 ### Routing
 
 - All pages live under `app/(dashboard)/` (auth-protected route group)
-- Middleware (`middleware.ts`) enforces:
+- Proxy (`proxy.ts`, formerly `middleware.ts`) enforces:
   1. `/en` locale prefix on all non-API paths
   2. Auth redirect to `/en/login` for unauthenticated users
   3. Admin-only access to `/admin/*` routes via DB role check

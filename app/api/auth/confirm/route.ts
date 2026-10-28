@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 /**
  * Landing point for invite / re-invite links emailed by Resend. Verifies the
  * one-time token server-side (which sets the session cookie) and sends the
- * user on to choose a password. Lives under /api so middleware doesn't
+ * user on to choose a password. Lives under /api so the proxy doesn't
  * locale-prefix it or bounce the not-yet-signed-in visitor to /login.
  */
 export async function GET(request: Request) {
