@@ -60,7 +60,7 @@ import {
   Undo2,
   Wallet,
 } from "lucide-react";
-import { cn, formatETB } from "@/lib/utils";
+import { cn, formatETB, formatNumber } from "@/lib/utils";
 import { useOrdersRealtime } from "@/hooks/use-orders-realtime";
 import { useOrderMutations } from "@/hooks/use-order-mutations";
 import { useUser } from "@/components/user-provider";
@@ -734,7 +734,7 @@ export default function OrdersPage() {
                           </TableCell>
                           <TableCell className="text-right">
                             <span className="text-sm font-bold tabular-nums">
-                              {order.outstandingTotal.toFixed(2)}
+                              {formatNumber(order.outstandingTotal)}
                             </span>
                             <span className="text-[10px] text-muted-foreground/40 ml-0.5">
                               ETB
@@ -938,7 +938,7 @@ export default function OrdersPage() {
                             </div>
                           ) : (
                             <p className="text-xs text-muted-foreground">
-                              {(remaining * item.priceAtSale).toFixed(2)} ETB
+                              {formatNumber(remaining * item.priceAtSale)} ETB
                             </p>
                           )}
                         </div>
@@ -952,10 +952,11 @@ export default function OrdersPage() {
                     {selectedOrder.hasReturns ? "Outstanding total" : "Total"}
                   </span>
                   <span className="font-bold text-lg tabular-nums">
-                    {(selectedOrder.status === "pending"
-                      ? pendingTotal
-                      : selectedOrder.outstandingTotal
-                    ).toFixed(2)}{" "}
+                    {formatNumber(
+                      selectedOrder.status === "pending"
+                        ? pendingTotal
+                        : selectedOrder.outstandingTotal,
+                    )}{" "}
                     ETB
                   </span>
                 </div>

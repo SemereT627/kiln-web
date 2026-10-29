@@ -49,7 +49,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import { ProductImage } from "@/components/product-image";
 import { EmptyState } from "@/components/empty-state";
 import { StockBadge } from "@/components/stock-badge";
@@ -450,7 +450,7 @@ export default function SalesPage() {
                           ) : (
                             <div className="flex items-center justify-end gap-1.5">
                               <span className="text-sm font-bold tabular-nums text-foreground">
-                                {item.currentStock.toFixed(2)}
+                                {formatNumber(item.currentStock)}
                               </span>
                               <span className="text-[11px] text-muted-foreground">
                                 {item.measurementUnit || "m²"}
@@ -468,7 +468,7 @@ export default function SalesPage() {
                           {item.pricePerUnit != null ? (
                             <>
                               <span className="text-sm font-semibold tabular-nums text-foreground">
-                                {Number(item.pricePerUnit).toFixed(0)}
+                                {formatNumber(Number(item.pricePerUnit), 0)}
                               </span>
                               <span className="text-[11px] text-muted-foreground ml-1">
                                 ETB/{item.measurementUnit || "m²"}
@@ -586,7 +586,7 @@ export default function SalesPage() {
             {cart.length}
           </span>
           <span className="flex-1 text-left font-bold tabular-nums">
-            {cartTotal.toFixed(2)} ETB
+            {formatNumber(cartTotal)} ETB
           </span>
           <span className="flex items-center gap-1 font-bold text-sm">
             Review
@@ -637,7 +637,7 @@ export default function SalesPage() {
                 <DialogTitle>{dialogProduct.name}</DialogTitle>
                 <DialogDescription>
                   {dialogProduct.brand} &bull; {dialogProduct.size} &bull;
-                  Stock: {dialogProduct.currentStock.toFixed(2)} {dialogUnit}
+                  Stock: {formatNumber(dialogProduct.currentStock)} {dialogUnit}
                   {dialogAlreadyInCart > 0 &&
                     ` (${dialogAlreadyInCart} already in cart)`}
                 </DialogDescription>
@@ -696,7 +696,7 @@ export default function SalesPage() {
 
                 {dialogExceedsStock && (
                   <p className="text-xs text-destructive text-center font-medium">
-                    Exceeds available stock ({dialogRemainingStock.toFixed(2)}{" "}
+                    Exceeds available stock ({formatNumber(dialogRemainingStock)}{" "}
                     {dialogUnit} remaining)
                   </p>
                 )}
@@ -774,7 +774,7 @@ function CartPanelBody({
             Total ({cart.length} item{cart.length !== 1 ? "s" : ""})
           </span>
           <span className="font-bold text-lg tabular-nums text-primary">
-            {cartTotal.toFixed(2)} ETB
+            {formatNumber(cartTotal)} ETB
           </span>
         </div>
 
@@ -896,14 +896,14 @@ function CartLineItem({
             <span className="text-[9px] text-muted-foreground">ETB</span>
           </div>
           <p className="text-xs font-bold tabular-nums">
-            {(line.quantity * line.priceAtSale).toFixed(2)}
+            {formatNumber(line.quantity * line.priceAtSale)}
           </p>
         </div>
       </div>
 
       {exceedsStock && (
         <p className="text-[10px] text-destructive -mt-1">
-          Exceeds stock ({line.stock.toFixed(2)} {line.measurementUnit})
+          Exceeds stock ({formatNumber(line.stock)} {line.measurementUnit})
         </p>
       )}
       {line.error && (

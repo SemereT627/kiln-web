@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, PackagePlus, CheckCircle2, AlertCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 
 interface RestockFormProps {
   open: boolean;
@@ -95,7 +95,7 @@ export function RestockForm({
 
       setStatus({
         type: "success",
-        message: `Successfully added ${qty.toFixed(2)} ${product?.measurementUnit || "m²"} to stock.`,
+        message: `Successfully added ${formatNumber(qty)} ${product?.measurementUnit || "m²"} to stock.`,
       });
 
       onSuccess();
@@ -126,7 +126,7 @@ export function RestockForm({
               <strong className="text-foreground">{product?.name}</strong>.
               Current stock:{" "}
               <span className="font-semibold text-foreground">
-                {product?.currentStock?.toFixed(2)} {unit}
+                {product ? formatNumber(product.currentStock) : null} {unit}
               </span>
             </DialogDescription>
           </DialogHeader>

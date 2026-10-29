@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useOrdersRealtime } from "@/hooks/use-orders-realtime";
 import { useOrderMutations } from "@/hooks/use-order-mutations";
 import { useUser } from "@/components/user-provider";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 
 type PaymentMethod = "cash" | "bank_transfer" | "credit";
 
@@ -128,7 +128,7 @@ export function NotificationsBell({ className }: { className?: string }) {
                       </p>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         {order.items.length} item{order.items.length !== 1 ? "s" : ""} ·{" "}
-                        {order.total.toFixed(2)} ETB
+                        {formatNumber(order.total)} ETB
                       </p>
                       {order.paymentMethod === "credit" && order.paymentStatus === "unpaid" && (
                         <Badge className="mt-1.5 text-[9px] bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 hover:bg-amber-100">

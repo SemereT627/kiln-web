@@ -26,6 +26,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Loader2, Upload, X, ImageIcon, AlertCircle } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
+import { formatNumber } from "@/lib/utils";
 
 const supabase = createClient();
 
@@ -363,7 +364,7 @@ export function CeramicForm({
                           {t.size} — {t.finish?.name || "Normal"}
                           {t.measurement_unit !== "m²" ? ` (${t.measurement_unit})` : ""}
                           {t.price_per_unit != null
-                            ? ` · ${Number(t.price_per_unit).toFixed(2)} ETB`
+                            ? ` · ${formatNumber(Number(t.price_per_unit))} ETB`
                             : ""}
                         </SelectItem>
                       ))}
@@ -378,7 +379,7 @@ export function CeramicForm({
                 <p className="text-xs text-muted-foreground">
                   Unit: {selectedType.measurement_unit || "m²"}
                   {selectedType.price_per_unit != null &&
-                    ` · Price: ${Number(selectedType.price_per_unit).toFixed(2)} ETB`}
+                    ` · Price: ${formatNumber(Number(selectedType.price_per_unit))} ETB`}
                 </p>
               )}
             </div>
