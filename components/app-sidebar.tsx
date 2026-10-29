@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
+import { ArrowUpRight } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -251,6 +252,40 @@ export function AppSidebar() {
             className="animate-in fade-in duration-300 border-t border-border/60 mt-1.5 pt-3"
           />
         ) : null}
+
+        {/* Sibling app — pinned to the bottom of the nav, above the account footer */}
+        {isAdmin && (
+          <SidebarGroup className="mt-auto px-0 py-1.5">
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    tooltip="VatFlow"
+                    className="h-9 px-2.5 rounded-lg font-medium text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full"
+                  >
+                    <a
+                      href="https://vatflow.semere.app"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label="VatFlow (opens in a new tab)"
+                      className="flex w-full items-center gap-2.5"
+                    >
+                      {/* VatFlow's own mark, copied from vatflow-web/public/brand */}
+                      <span className="relative size-4 shrink-0">
+                        <Image src="/vatflow-mark.png" alt="" fill sizes="16px" className="object-contain" />
+                      </span>
+                      <span className="min-w-0 truncate leading-tight group-data-[collapsible=icon]:hidden">
+                        VatFlow
+                      </span>
+                      <ArrowUpRight className="ml-auto size-3.5 shrink-0 text-muted-foreground/70 group-data-[collapsible=icon]:hidden" />
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="mx-4 border-t border-border/60 px-0 py-3 group-data-[collapsible=icon]:mx-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-2">
