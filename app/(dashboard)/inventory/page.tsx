@@ -26,17 +26,8 @@ import {
   ArrowDown,
   X,
   PackageSearch,
-  ChevronRight,
-  ChevronLeft,
   Layers,
 } from "lucide-react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,6 +56,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cn, formatNumber } from "@/lib/utils";
 import { useUser } from "@/components/user-provider";
 import { useTranslations } from "next-intl";
+import { PageHeader } from "@/components/page-header";
+import { StockBreakdownDialog } from "@/components/inventory/stock-breakdown-dialog";
 
 export default function InventoryPage() {
   const t = useTranslations("Inventory");
@@ -78,9 +71,6 @@ export default function InventoryPage() {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [isStockDrawerOpen, setIsStockDrawerOpen] = useState(false);
-  const [stockDrawerBrand, setStockDrawerBrand] = useState<string | null>(
-    null,
-  );
 
   // Filter state
   const [selectedBrand, setSelectedBrand] = useState<string>("all");
@@ -188,31 +178,6 @@ export default function InventoryPage() {
   const totalStockSqm = stockByUnit["m²"] ?? 0;
   const totalStockLinear = stockByUnit["m"] ?? 0;
 
-  // byType is already sorted brand -> size by the API. Group it into
-  // Brand -> Size -> Finish for the stock breakdown drawer.
-  const stockByBrand = byType.reduce(
-    (acc: Record<string, any[]>, row: any) => {
-      (acc[row.brand] ??= []).push(row);
-      return acc;
-    },
-    {},
-  );
-  const brandNames = Object.keys(stockByBrand).sort((a, b) =>
-    a.localeCompare(b),
-  );
-
-  function groupBySize(rows: any[]) {
-    const bySize = rows.reduce((acc: Record<string, any[]>, row: any) => {
-      (acc[row.size] ??= []).push(row);
-      return acc;
-    }, {});
-    return Object.entries(bySize).map(([size, finishRows]) => ({
-      size,
-      subtotal: finishRows.reduce((s, r) => s + Number(r.currentStock), 0),
-      measurementUnit: finishRows[0]?.measurementUnit || "m²",
-      finishRows,
-    }));
-  }
 
   const handleEdit = (e: React.MouseEvent, product: any) => {
     e.stopPropagation();
@@ -278,28 +243,24 @@ export default function InventoryPage() {
 
   return (
     <div className="flex flex-col gap-4 h-full overflow-hidden animate-in fade-in duration-500">
-      <div className="flex flex-wrap items-center justify-between shrink-0 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            {t("title")}
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            {t("subtitle")}
-          </p>
-        </div>
-        <div className="flex gap-2 shrink-0">
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4" />
-            {t("export")}
-          </Button>
-          {isAdmin && (
-            <Button size="sm" onClick={handleAdd}>
-              <Plus className="h-4 w-4" />
-              {t("addProduct")}
+      <PageHeader
+        title={t("title")}
+        description={t("subtitle")}
+        actions={
+          <>
+            <Button variant="outline" size="sm" aria-label={t("export")}>
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline">{t("export")}</span>
             </Button>
-          )}
-        </div>
-      </div>
+            {isAdmin && (
+              <Button size="sm" onClick={handleAdd}>
+                <Plus className="h-4 w-4" />
+                {t("addProduct")}
+              </Button>
+            )}
+          </>
+        }
+      />
 
       {(isLoading || byType.length > 0) && (
         <div className="shrink-0">
@@ -309,7 +270,6 @@ export default function InventoryPage() {
             className="gap-2"
             disabled={isLoading}
             onClick={() => {
-              setStockDrawerBrand(null);
               setIsStockDrawerOpen(true);
             }}
           >
@@ -898,99 +858,11 @@ export default function InventoryPage() {
       )}
 
 
-      <Sheet
+      <StockBreakdownDialog
         open={isStockDrawerOpen}
-        onOpenChange={(open) => {
-          setIsStockDrawerOpen(open);
-          if (!open) setStockDrawerBrand(null);
-        }}
-      >
-        <SheetContent className="data-[side=right]:w-full data-[side=right]:sm:max-w-md overflow-y-auto">
-          <SheetHeader>
-            {stockDrawerBrand ? (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-7 w-7 shrink-0 -ml-1.5"
-                  onClick={() => setStockDrawerBrand(null)}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <SheetTitle>{stockDrawerBrand}</SheetTitle>
-              </div>
-            ) : (
-              <SheetTitle>{t("totalStock")}</SheetTitle>
-            )}
-            <SheetDescription>
-              {stockDrawerBrand
-                ? t("stockDrawer.brandSubtitle")
-                : t("stockDrawer.brandListSubtitle")}
-            </SheetDescription>
-          </SheetHeader>
-
-          <div className="px-4 flex flex-col gap-2">
-            {!stockDrawerBrand
-              ? brandNames.map((brand) => (
-                  <button
-                    key={brand}
-                    onClick={() => setStockDrawerBrand(brand)}
-                    className="flex items-center justify-between rounded-lg border p-3.5 text-left transition-colors hover:border-primary/40 hover:bg-muted/30"
-                  >
-                    <span className="font-medium text-sm">{brand}</span>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                  </button>
-                ))
-              : groupBySize(stockByBrand[stockDrawerBrand] || []).map(
-                  (group) => (
-                    <div key={group.size} className="flex flex-col gap-2">
-                      <div className="flex items-baseline justify-between px-0.5 pt-2">
-                        <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                          {group.size}
-                        </span>
-                        <span className="text-xs font-bold tabular-nums">
-                          {formatNumber(group.subtotal)}{" "}
-                          <span className="text-[10px] font-medium text-muted-foreground">
-                            {group.measurementUnit}
-                          </span>
-                        </span>
-                      </div>
-                      {group.finishRows.map((row: any) => (
-                        <div
-                          key={row.typeId}
-                          className="rounded-lg border p-3 text-sm"
-                        >
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="font-medium">{row.finish}</span>
-                            <span className="font-bold tabular-nums">
-                              {formatNumber(Number(row.currentStock))}{" "}
-                              <span className="text-[10px] font-medium text-muted-foreground">
-                                {row.measurementUnit}
-                              </span>
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-[11px] text-muted-foreground pt-1.5 mt-1.5 border-t border-dashed">
-                            <span>
-                              {t("sold")}{" "}
-                              <span className="tabular-nums font-medium text-primary">
-                                {formatNumber(Number(row.soldStock))}
-                              </span>
-                            </span>
-                            <span>
-                              {t("initial")}{" "}
-                              <span className="tabular-nums font-medium text-foreground">
-                                {formatNumber(Number(row.initialStock))}
-                              </span>
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ),
-                )}
-          </div>
-        </SheetContent>
-      </Sheet>
+        onOpenChange={setIsStockDrawerOpen}
+        rows={byType}
+      />
 
       <ConfirmDialog
         open={!!confirmDeleteId}

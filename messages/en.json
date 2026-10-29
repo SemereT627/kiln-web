@@ -123,10 +123,6 @@
     "addProduct": "Add Product",
     "totalStock": "Total Stock",
     "showTotalStock": "Show Total Stock",
-    "stockDrawer": {
-      "brandListSubtitle": "Select a brand to see its stock breakdown by size and finish.",
-      "brandSubtitle": "Stock breakdown by size and finish."
-    },
     "sold": "Sold",
     "initial": "Initial",
     "searchPlaceholder": "Search products...",
@@ -173,6 +169,27 @@
       "title": "Delete Product",
       "description": "This will permanently delete the product and all associated stock entries. This action cannot be undone.",
       "confirmLabel": "Delete"
+    },
+    "stockBreakdown": {
+      "title": "Stock breakdown",
+      "tiles": "tiles",
+      "skirting": "skirting",
+      "brandFilter": "Brand",
+      "metricFilter": "Measure",
+      "allBrands": "All brands",
+      "metricStock": "Stock",
+      "metricSold": "Sold",
+      "chartStock": "Stock by size, split by finish",
+      "chartSold": "Sold by size, split by finish",
+      "other": "Other",
+      "noData": "No tile stock for this selection.",
+      "colSize": "Size",
+      "colFinish": "Finish",
+      "colStock": "Stock",
+      "colSold": "Sold",
+      "colReceived": "Received",
+      "colSoldPct": "Sold %",
+      "subtotal": "Subtotal"
     }
   }
 }
