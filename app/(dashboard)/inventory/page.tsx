@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -56,18 +57,18 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { CeramicForm } from "@/components/ceramic-form";
-import { CeramicDetailsDrawer } from "@/components/ceramic-details-drawer";
 import { ProductImage } from "@/components/product-image";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import { useUser } from "@/components/user-provider";
 import { useTranslations } from "next-intl";
 
 export default function InventoryPage() {
   const t = useTranslations("Inventory");
+  const router = useRouter();
   const userProfile = useUser();
   const isAdmin = userProfile?.role === "admin";
 
@@ -75,8 +76,6 @@ export default function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [isStockDrawerOpen, setIsStockDrawerOpen] = useState(false);
   const [stockDrawerBrand, setStockDrawerBrand] = useState<string | null>(
@@ -232,8 +231,7 @@ export default function InventoryPage() {
   };
 
   const handleRowClick = (product: any) => {
-    setSelectedProduct(product);
-    setIsDrawerOpen(true);
+    router.push(`/inventory/${product._id}`);
   };
 
   const handleSort = (key: string) => {
@@ -319,14 +317,14 @@ export default function InventoryPage() {
             {t("showTotalStock")}
             {!isLoading && (
               <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-bold tabular-nums">
-                {totalStockSqm.toFixed(2)}
+                {formatNumber(totalStockSqm)}
                 <span className="text-[9px] font-medium text-muted-foreground">
                   m²
                 </span>
                 {totalStockLinear > 0 && (
                   <>
                     <span className="text-muted-foreground/40">+</span>
-                    {totalStockLinear.toFixed(2)}
+                    {formatNumber(totalStockLinear)}
                     <span className="text-[9px] font-medium text-muted-foreground">
                       m
                     </span>
@@ -737,7 +735,7 @@ export default function InventoryPage() {
                         {/* Initial */}
                         <TableCell className="text-right">
                           <span className="text-sm tabular-nums text-muted-foreground/70">
-                            {item.initialStock.toFixed(2)}
+                            {formatNumber(item.initialStock)}
                           </span>
                           <span className="text-[10px] text-muted-foreground/40 ml-0.5">
                             {unit}
@@ -746,7 +744,7 @@ export default function InventoryPage() {
                         {/* Sold */}
                         <TableCell className="text-right">
                           <span className="text-sm tabular-nums text-primary font-medium">
-                            {item.soldStock.toFixed(2)}
+                            {formatNumber(item.soldStock)}
                           </span>
                           <span className="text-[10px] text-muted-foreground/40 ml-0.5">
                             {unit}
@@ -755,7 +753,7 @@ export default function InventoryPage() {
                         {/* Current Stock */}
                         <TableCell className="text-right">
                           <span className="text-sm font-bold tabular-nums">
-                            {item.currentStock.toFixed(2)}
+                            {formatNumber(item.currentStock)}
                           </span>
                           <span className="text-[10px] text-muted-foreground/40 ml-0.5">
                             {unit}
@@ -899,11 +897,6 @@ export default function InventoryPage() {
         />
       )}
 
-      <CeramicDetailsDrawer
-        ceramic={selectedProduct}
-        open={isDrawerOpen}
-        onOpenChange={setIsDrawerOpen}
-      />
 
       <Sheet
         open={isStockDrawerOpen}
@@ -956,7 +949,7 @@ export default function InventoryPage() {
                           {group.size}
                         </span>
                         <span className="text-xs font-bold tabular-nums">
-                          {group.subtotal.toFixed(2)}{" "}
+                          {formatNumber(group.subtotal)}{" "}
                           <span className="text-[10px] font-medium text-muted-foreground">
                             {group.measurementUnit}
                           </span>
@@ -970,7 +963,7 @@ export default function InventoryPage() {
                           <div className="flex items-center justify-between gap-2">
                             <span className="font-medium">{row.finish}</span>
                             <span className="font-bold tabular-nums">
-                              {Number(row.currentStock).toFixed(2)}{" "}
+                              {formatNumber(Number(row.currentStock))}{" "}
                               <span className="text-[10px] font-medium text-muted-foreground">
                                 {row.measurementUnit}
                               </span>
@@ -980,13 +973,13 @@ export default function InventoryPage() {
                             <span>
                               {t("sold")}{" "}
                               <span className="tabular-nums font-medium text-primary">
-                                {Number(row.soldStock).toFixed(2)}
+                                {formatNumber(Number(row.soldStock))}
                               </span>
                             </span>
                             <span>
                               {t("initial")}{" "}
                               <span className="tabular-nums font-medium text-foreground">
-                                {Number(row.initialStock).toFixed(2)}
+                                {formatNumber(Number(row.initialStock))}
                               </span>
                             </span>
                           </div>

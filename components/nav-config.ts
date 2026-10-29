@@ -77,5 +77,10 @@ export function findNavTrail(path: string) {
     const item = group.items.find((i) => i.href === path);
     if (item) return { groupKey: group.groupKey, item };
   }
+  // Detail pages (e.g. /inventory/[id]) belong to their parent nav item.
+  for (const group of NAV_GROUPS) {
+    const item = group.items.find((i) => path.startsWith(`${i.href}/`));
+    if (item) return { groupKey: group.groupKey, item };
+  }
   return null;
 }

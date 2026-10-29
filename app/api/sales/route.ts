@@ -42,6 +42,7 @@ export async function GET(request: Request) {
       .from("sales")
       .select(`
         *,
+        seller:user_profiles!sales_sold_by_fkey(full_name),
         ceramic:ceramics(
           product_code,
           name,
@@ -100,6 +101,10 @@ export async function GET(request: Request) {
         orderId: orderItem?.order_id ?? null,
         orderSellerName: orderItem?.order?.seller?.full_name ?? null,
         orderPaymentMethod: orderItem?.order?.payment_method ?? null,
+        // Direct (POS) sales record sold_by; order-approved sales may not,
+        // so fall back to the order's seller.
+        sellerName:
+          item.seller?.full_name ?? orderItem?.order?.seller?.full_name ?? null,
       };
     });
 
