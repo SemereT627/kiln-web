@@ -1,108 +1,155 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, BarChart3, RadioTower, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { TileBoard } from "@/components/marketing/tile-board";
 
-const features = [
+// What the shop actually does with Kiln, in the order a day runs.
+const workflows = [
   {
-    icon: BarChart3,
-    title: "Real-time stock",
-    description:
-      "Every restock, adjustment, and sale updates the catalog instantly — stock is always computed, never stale.",
+    title: "Stock that adds itself up",
+    body: "Restocks, adjustments, returns and sales each move the count. Nobody types a stock number, so the figure on screen is the one on the shelf.",
   },
   {
-    icon: Smartphone,
-    title: "Offline-first mobile sales",
-    description:
-      "Reps record sales and orders from the floor, connection or not. Everything queues on-device and syncs the moment signal's back.",
+    title: "Sales from the floor, signal or not",
+    body: "Sellers record sales and orders on their phone beside the customer. If the connection drops, they keep working and it syncs when it's back.",
   },
   {
-    icon: RadioTower,
-    title: "Order approval workflow",
-    description:
-      "Credit and bank-transfer orders route to an admin for review before stock ever leaves the shelf.",
+    title: "Credit you can follow up",
+    body: "Credit and bank-transfer orders wait for an admin before stock is taken off. Unpaid credit stays on the list until the money arrives.",
+  },
+  {
+    title: "Returns that don't rewrite history",
+    body: "Take back part of an order and the tiles go back into stock. The original sale stays as it was, so the books still match.",
+  },
+];
+
+const localFit = [
+  { title: "Priced in birr", body: "Prices, totals and outstanding credit in ETB." },
+  {
+    title: "Both calendars",
+    body: "Ethiopian dates shown beside Gregorian, and sales importable by Ethiopian date.",
+  },
+  { title: "Amharic and English", body: "Each person picks their language." },
+  {
+    title: "The right unit for each product",
+    body: "Square metres for tiles, metres for skirting, pieces for the rest.",
   },
 ];
 
 export default function LandingPage() {
   return (
-    <div className="min-h-full bg-background text-foreground overflow-x-hidden">
-      {/* Decorative tile squares backdrop */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute top-[8%] left-[12%] w-30 h-30 rotate-12 opacity-[0.06] dark:opacity-[0.08] rounded-xl border border-foreground" />
-        <div className="absolute top-[18%] left-[74%] w-20 h-20 rotate-[-8deg] opacity-[0.05] dark:opacity-[0.06] rounded-xl border border-foreground" />
-        <div className="absolute top-[52%] left-[4%] w-22.5 h-22.5 rotate-20 opacity-[0.055] dark:opacity-[0.07] rounded-xl border border-foreground" />
-        <div className="absolute top-[62%] left-[80%] w-35 h-35 rotate-[-15deg] opacity-[0.04] dark:opacity-[0.05] rounded-xl border border-foreground" />
-      </div>
+    <div className="marketing min-h-screen overflow-x-hidden">
+      <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 sm:px-8">
+        <Link
+          href="/"
+          className="flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        >
+          <Image src="/logo-192.png" alt="" width={30} height={30} className="rounded-md" />
+          <span className="font-display text-xl font-semibold">Kiln</span>
+        </Link>
+        <nav className="flex items-center gap-1">
+          <ThemeToggle />
+          <Button asChild variant="ghost">
+            <Link href="/login">Sign in</Link>
+          </Button>
+        </nav>
+      </header>
 
-      <div className="relative z-10 flex min-h-full flex-col">
-        {/* Header */}
-        <header className="flex items-center justify-between px-6 py-6 sm:px-10">
-          <div className="flex items-center gap-3">
-            <Image src="/logo-192.png" alt="Kiln" width={36} height={36} className="rounded-lg" />
-            <div>
-              <p className="font-bold text-lg leading-none">Kiln</p>
-              <p className="text-muted-foreground text-xs mt-0.5">Stock Management</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Button asChild variant="ghost">
-              <Link href="/login">Sign In</Link>
-            </Button>
-          </div>
-        </header>
-
-        {/* Hero */}
-        <main className="flex flex-1 flex-col items-center justify-center px-6 py-10 text-center sm:px-10">
-          <div className="max-w-2xl space-y-6">
-            <h1 className="font-(family-name:--font-fraunces) text-4xl font-semibold leading-[1.05] tracking-tight text-balance sm:text-6xl">
-              Ceramic inventory,
-              <br />
-              <span className="font-medium text-muted-foreground">under control.</span>
+      <main>
+        {/* Hero — the headline beside a sample board, the way tiles are
+            actually shown in a shop. */}
+        <section className="mx-auto grid max-w-6xl items-center gap-12 px-5 pt-8 pb-20 sm:px-8 lg:grid-cols-[1.15fr_1fr] lg:gap-16 lg:pt-14 lg:pb-28">
+          <div className="max-w-xl">
+            <h1 className="font-display text-[2.75rem] leading-[1.02] font-medium tracking-[-0.02em] text-balance sm:text-6xl lg:text-[4.25rem]">
+              Every tile in your shop, counted to the square metre.
             </h1>
-            <p className="mx-auto max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">
-              Track stock levels, record sales, and manage your entire ceramic
-              catalog from one place — on the web or on the floor.
+            <p className="mt-6 max-w-[34rem] text-lg leading-relaxed text-(--m-muted)">
+              Kiln keeps stock, sales and credit for ceramic tile shops in one
+              place. Your counter staff use it on the web, your sellers use it
+              on their phones, and the numbers always agree.
             </p>
-            <div className="flex flex-col items-center justify-center gap-3 pt-2 sm:flex-row">
-              <Button asChild size="lg" className="gap-2">
-                <Link href="/login">
-                  Sign In
-                  <ArrowRight className="size-4" />
-                </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline">
+            <div className="mt-9 flex flex-wrap items-center gap-3">
+              <Button asChild size="lg" className="h-11 px-6">
                 <Link href="/signup">Request access</Link>
               </Button>
+              <Button asChild size="lg" variant="ghost" className="h-11 px-5">
+                <Link href="/login">Sign in to your shop</Link>
+              </Button>
             </div>
           </div>
 
-          {/* Feature highlights */}
-          <div className="mt-12 grid w-full max-w-5xl gap-6 sm:grid-cols-3">
-            {features.map((feature) => (
-              <div
-                key={feature.title}
-                className="rounded-2xl border border-border bg-card p-6 text-left"
-              >
-                <div className="mb-4 inline-flex rounded-lg bg-primary/10 p-2.5">
-                  <feature.icon className="size-5 text-primary" />
-                </div>
-                <h3 className="text-base font-semibold text-foreground">{feature.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                  {feature.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </main>
+          <TileBoard className="mx-auto w-full max-w-[26rem] lg:max-w-none" />
+        </section>
 
-        {/* Footer */}
-        <footer className="px-6 py-8 text-center sm:px-10">
-          <p className="text-xs text-muted-foreground/60">© {new Date().getFullYear()} Kiln</p>
-        </footer>
-      </div>
+        {/* Workflows — grout-line rules between rows, heading left / text right */}
+        <section className="border-t border-(--m-line)">
+          <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:py-24">
+            <h2 className="font-display max-w-lg text-3xl leading-tight font-medium tracking-[-0.015em] sm:text-4xl">
+              How a tile shop runs on Kiln
+            </h2>
+            <dl className="mt-12 divide-y divide-(--m-line) border-y border-(--m-line)">
+              {workflows.map((w) => (
+                <div
+                  key={w.title}
+                  className="grid gap-2 py-7 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] md:gap-10"
+                >
+                  <dt className="font-display text-xl leading-snug font-medium">
+                    {w.title}
+                  </dt>
+                  <dd className="max-w-[38rem] text-base leading-relaxed text-(--m-muted)">
+                    {w.body}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </section>
+
+        {/* Local fit — what makes it right for shops in Ethiopia */}
+        <section className="border-t border-(--m-line)">
+          <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-10 lg:py-24">
+            <h2 className="font-display max-w-sm text-3xl leading-tight font-medium tracking-[-0.015em] sm:text-4xl">
+              Made for how tile shops work in Ethiopia
+            </h2>
+            <ul className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
+              {localFit.map((f) => (
+                <li key={f.title} className="border-t-2 border-(--m-glaze) pt-4">
+                  <p className="font-semibold">{f.title}</p>
+                  <p className="mt-1.5 leading-relaxed text-(--m-muted)">{f.body}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+
+        {/* Closing */}
+        <section className="border-t border-(--m-line)">
+          <div className="mx-auto flex max-w-6xl flex-col items-start gap-6 px-5 py-20 sm:px-8 md:flex-row md:items-end md:justify-between lg:py-24">
+            <div className="max-w-xl">
+              <h2 className="font-display text-3xl leading-tight font-medium tracking-[-0.015em] sm:text-4xl">
+                Bring your shop onto Kiln
+              </h2>
+              <p className="mt-3 text-lg leading-relaxed text-(--m-muted)">
+                Send a request with your name and shop, and we&apos;ll set up
+                your catalog and accounts with you.
+              </p>
+            </div>
+            <Button asChild size="lg" className="h-11 shrink-0 px-6">
+              <Link href="/signup">Request access</Link>
+            </Button>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-(--m-line)">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-6 text-sm text-(--m-muted) sm:px-8">
+          <p>© {new Date().getFullYear()} Kiln</p>
+          <Link href="/login" className="hover:text-(--m-ink) hover:underline underline-offset-4">
+            Sign in
+          </Link>
+        </div>
+      </footer>
     </div>
   );
 }

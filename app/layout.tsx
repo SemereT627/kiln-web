@@ -33,10 +33,11 @@ const notoEthiopic = Noto_Sans_Ethiopic({
   subsets: ["ethiopic"],
 });
 
+// Variable, with the SOFT axis for the marketing display face (.font-display).
 const fraunces = Fraunces({
-  weight: ["500", "600"],
   variable: "--font-fraunces",
   subsets: ["latin"],
+  axes: ["SOFT", "WONK", "opsz"],
 });
 
 export const metadata: Metadata = {

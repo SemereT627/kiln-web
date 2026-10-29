@@ -84,6 +84,13 @@
   --chart-3: oklch(0.78 0.19 70);
   --chart-4: oklch(0.64 0.27 303);
   --chart-5: oklch(0.64 0.24 25);
+  /* Categorical series for finish breakdowns — CVD-validated as a set
+     (dataviz validate_palette.js), unlike chart-1..5. Fixed order. */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
   --radius: 0.625rem;
   --sidebar: oklch(1 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
@@ -125,6 +132,11 @@
   --chart-3: oklch(0.8 0.19 70);
   --chart-4: oklch(0.68 0.27 303);
   --chart-5: oklch(0.68 0.24 25);
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
   --sidebar: oklch(0.145 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.68 0.14 42);
@@ -147,13 +159,6 @@
     /* Fixed-width digits so stock, prices and dates line up in columns. */
     font-variant-numeric: tabular-nums;
   }
-}
-
-.login-tile-grid {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.5) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.5) 1px, transparent 1px);
-  background-size: 60px 60px;
 }
 
 .no-scrollbar {
@@ -183,4 +188,57 @@
 
 .animate-fade-in-up {
   animation: fade-in-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+/* ── Marketing + auth surfaces ─────────────────────────────────────────
+   Porcelain/grout palette for the signed-out pages. Grout follows the
+   theme; tile colours (components/marketing/tile-board.tsx) don't. */
+.marketing {
+  --m-bg: #f3f2ef;
+  --m-ink: #1e1b18;
+  --m-muted: #67615a;
+  --m-grout: #d7d3cc;
+  --m-line: #dedad3;
+  --m-glaze: #2e5a57;
+  background: var(--m-bg);
+  color: var(--m-ink);
+}
+.dark .marketing {
+  --m-bg: #171513;
+  --m-ink: #eeeae4;
+  --m-muted: #a39b91;
+  --m-grout: #2b2724;
+  --m-line: #2e2a27;
+  --m-glaze: #86b3ac;
+}
+
+/* Fraunces with its SOFT axis up — rounded terminals, like fired clay
+   rather than sharp-cut type. */
+.font-display {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-variation-settings: "SOFT" 100, "WONK" 0;
+  font-optical-sizing: auto;
+}
+
+/* The one load moment: tiles set onto the board in laying order. */
+@keyframes tile-set {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.tile-set {
+  animation: tile-set 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.tag-hang {
+  animation: tile-set 0.45s cubic-bezier(0.16, 1, 0.3, 1) 0.75s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tile-set,
+  .tag-hang {
+    animation: none;
+  }
 }

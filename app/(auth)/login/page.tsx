@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/password-input";
 import { Label } from "@/components/ui/label";
 import { AuthShell } from "@/components/auth-shell";
-import { AlertCircle, ArrowRight, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 /** Set by /api/auth/confirm when an emailed invite link is used up or expired. */
 function InviteLinkError() {
@@ -56,7 +56,7 @@ export default function LoginPage() {
   return (
     <AuthShell>
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight">Welcome back</h2>
+        <h2 className="font-display text-3xl font-medium tracking-[-0.015em]">Welcome back</h2>
         <p className="text-muted-foreground text-sm">
           Sign in to your account to continue.
         </p>
@@ -118,8 +118,7 @@ export default function LoginPage() {
             </>
           ) : (
             <>
-              Sign In
-              <ArrowRight className="size-4" />
+              Sign in
             </>
           )}
         </Button>

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { AuthShell } from "@/components/auth-shell";
-import { AlertCircle, ArrowRight, Loader2, MailCheck } from "lucide-react";
+import { AlertCircle, Loader2, MailCheck } from "lucide-react";
 
 /**
  * "Request access" — submits a request for an admin to review. No account
@@ -51,7 +51,7 @@ export default function RequestAccessPage() {
             <div className="w-fit rounded-xl bg-primary/10 p-2.5">
               <MailCheck className="size-5 text-primary" />
             </div>
-            <h2 className="text-2xl font-bold tracking-tight">Request sent</h2>
+            <h2 className="font-display text-3xl font-medium tracking-[-0.015em]">Request sent</h2>
             <p className="text-muted-foreground text-sm">
               Thanks, {fullName.split(" ")[0] || "there"}. An administrator will
               review your request. We&apos;ll email{" "}
@@ -65,13 +65,13 @@ export default function RequestAccessPage() {
             </p>
           </div>
           <Button asChild size="lg" variant="outline" className="w-full">
-            <Link href="/login">Back to Sign In</Link>
+            <Link href="/login">Back to sign in</Link>
           </Button>
         </div>
       ) : (
         <>
           <div className="space-y-2">
-            <h2 className="text-2xl font-bold tracking-tight">Request access</h2>
+            <h2 className="font-display text-3xl font-medium tracking-[-0.015em]">Request access</h2>
             <p className="text-muted-foreground text-sm">
               Tell us who you are. An administrator reviews every request.
             </p>
@@ -159,7 +159,6 @@ export default function RequestAccessPage() {
               ) : (
                 <>
                   Send request
-                  <ArrowRight className="size-4" />
                 </>
               )}
             </Button>

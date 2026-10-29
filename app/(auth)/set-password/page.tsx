@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/password-input";
 import { Label } from "@/components/ui/label";
 import { AuthShell } from "@/components/auth-shell";
-import { AlertCircle, ArrowRight, Loader2 } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 const MIN_LENGTH = 8;
 
@@ -47,7 +47,7 @@ export default function SetPasswordPage() {
   return (
     <AuthShell>
       <div className="space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight">Set your password</h2>
+        <h2 className="font-display text-3xl font-medium tracking-[-0.015em]">Set your password</h2>
         <p className="text-muted-foreground text-sm">
           Your access was approved. Choose a password to finish setting up your
           account.
@@ -108,7 +108,6 @@ export default function SetPasswordPage() {
           ) : (
             <>
               Save and continue
-              <ArrowRight className="size-4" />
             </>
           )}
         </Button>
