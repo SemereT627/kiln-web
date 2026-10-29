@@ -39,6 +39,7 @@ import { UserAvatar } from "@/components/user-avatar";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { toast } from "sonner";
 import { cn, formatDate } from "@/lib/utils";
+import { PageHeader } from "@/components/page-header";
 
 type Role = "admin" | "seller" | "viewer";
 
@@ -207,20 +208,18 @@ export default function AdminUsersPage() {
 
   return (
     <div className="flex flex-col gap-4 h-full overflow-hidden animate-in fade-in duration-500">
-      <div className="flex flex-wrap items-center justify-between shrink-0 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Users
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Manage roles and permissions for all registered users.
-          </p>
-        </div>
-        <Button size="sm" onClick={() => setAddUserOpen(true)}>
-          <UserPlus className="size-4" />
-          Add User
-        </Button>
-      </div>
+      <PageHeader
+        title="Users"
+        description="Manage roles and permissions for all registered users."
+        actions={
+          <>
+            <Button size="sm" onClick={() => setAddUserOpen(true)}>
+              <UserPlus className="size-4" />
+              Add User
+            </Button>
+          </>
+        }
+      />
 
       <AccessRequestsPanel />
 

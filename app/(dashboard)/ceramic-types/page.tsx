@@ -66,6 +66,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { PageHeader } from "@/components/page-header";
 
 
 export default function CeramicTypesPage() {
@@ -267,22 +268,20 @@ export default function CeramicTypesPage() {
 
   return (
     <div className="flex flex-col gap-4 h-full overflow-y-auto animate-in fade-in duration-500">
-      <div className="flex flex-wrap items-center justify-between shrink-0 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Ceramic Types
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Define brand, size, and finish combinations.
-          </p>
-        </div>
-        {isAdmin && (
-          <Button size="sm" onClick={handleAddClick}>
-            <Plus className="h-4 w-4" />
-            Add Type
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Ceramic Types"
+        description="Define brand, size, and finish combinations."
+        actions={
+          <>
+            {isAdmin && (
+              <Button size="sm" onClick={handleAddClick}>
+                <Plus className="h-4 w-4" />
+                Add Type
+              </Button>
+            )}
+          </>
+        }
+      />
 
       <div className="flex flex-col overflow-hidden rounded-lg border">
         <div className="py-3.5 px-5 border-b shrink-0 bg-muted/30">

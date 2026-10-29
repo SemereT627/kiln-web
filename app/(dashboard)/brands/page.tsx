@@ -52,6 +52,7 @@ import { toast } from "sonner";
 import { useUser } from "@/components/user-provider";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { PageHeader } from "@/components/page-header";
 
 const supabase = createClient();
 
@@ -160,22 +161,20 @@ export default function BrandsPage() {
 
   return (
     <div className="flex flex-col gap-4 h-full overflow-y-auto animate-in fade-in duration-500">
-      <div className="flex flex-wrap items-center justify-between shrink-0 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Brands
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Manage product brands for your catalog.
-          </p>
-        </div>
-        {isAdmin && (
-          <Button size="sm" onClick={() => setIsModalOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Add Brand
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Brands"
+        description="Manage product brands for your catalog."
+        actions={
+          <>
+            {isAdmin && (
+              <Button size="sm" onClick={() => setIsModalOpen(true)}>
+                <Plus className="h-4 w-4" />
+                Add Brand
+              </Button>
+            )}
+          </>
+        }
+      />
 
       <div className="flex flex-col overflow-hidden rounded-lg border">
         <div className="py-3.5 px-5 border-b shrink-0 bg-muted/30">
