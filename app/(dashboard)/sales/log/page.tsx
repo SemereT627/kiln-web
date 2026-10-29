@@ -1,7 +1,7 @@
 "use client";
 
-import { Fragment, Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -13,13 +13,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
 import {
   Dialog,
   DialogContent,
@@ -50,7 +43,7 @@ import { formatEthiopian } from "@/lib/ethiopian-calendar";
 import { StatCard } from "@/components/stat-card";
 import { DateRangePicker } from "@/components/date-range-picker";
 import { EmptyState } from "@/components/empty-state";
-import { cn, formatETB, formatNumber, formatQuantity } from "@/lib/utils";
+import { formatETB, formatNumber, formatQuantity } from "@/lib/utils";
 
 interface SaleRecord {
   id: string;
@@ -66,47 +59,6 @@ interface SaleRecord {
   orderId: string | null;
   orderSellerName: string | null;
   orderPaymentMethod: string | null;
-}
-
-interface OrderGroup {
-  key: string;
-  orderId: string | null;
-  sellerName: string | null;
-  paymentMethod: string | null;
-  items: SaleRecord[];
-}
-
-function groupByOrder(items: SaleRecord[]): OrderGroup[] {
-  const groups: OrderGroup[] = [];
-  const byOrderId = new Map<string, OrderGroup>();
-
-  for (const sale of items) {
-    if (!sale.orderId) {
-      groups.push({
-        key: `direct-${sale.id}`,
-        orderId: null,
-        sellerName: null,
-        paymentMethod: null,
-        items: [sale],
-      });
-      continue;
-    }
-    let group = byOrderId.get(sale.orderId);
-    if (!group) {
-      group = {
-        key: sale.orderId,
-        orderId: sale.orderId,
-        sellerName: sale.orderSellerName,
-        paymentMethod: sale.orderPaymentMethod,
-        items: [],
-      };
-      byOrderId.set(sale.orderId, group);
-      groups.push(group);
-    }
-    group.items.push(sale);
-  }
-
-  return groups;
 }
 
 interface DaySummary {
@@ -183,8 +135,7 @@ function SalesLogPageInner() {
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const highlightOrderId = searchParams.get("order");
-  const [autoOpened, setAutoOpened] = useState(false);
-  const [selectedDateStr, setSelectedDateStr] = useState<string | null>(null);
+  const router = useRouter();
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
   const [importing, setImporting] = useState(false);
@@ -276,38 +227,16 @@ function SalesLogPageInner() {
       const json = await res.json();
       return (json.data?.[0] as SaleRecord | undefined) ?? null;
     },
-    enabled: !!highlightOrderId && !autoOpened,
+    enabled: !!highlightOrderId,
   });
 
   useEffect(() => {
-    if (autoOpened || !orderLookup) return;
-    setAutoOpened(true);
-    setSelectedDateStr(toDateParam(new Date(orderLookup.createdAt)));
-  }, [autoOpened, orderLookup]);
+    if (!orderLookup) return;
+    router.replace(
+      `/sales/log/${toDateParam(new Date(orderLookup.createdAt))}?order=${highlightOrderId}`,
+    );
+  }, [orderLookup, router, highlightOrderId]);
 
-  // Itemized sales for whichever day is open in the drawer — the only place
-  // this page ever fetches full per-sale detail now.
-  const { data: dayDetail, isLoading: isDayLoading } = useQuery({
-    queryKey: ["sales", "day", selectedDateStr],
-    queryFn: async () => {
-      const res = await fetch(
-        `/api/sales?dateFrom=${selectedDateStr}&dateTo=${selectedDateStr}&limit=-1`,
-      );
-      if (!res.ok) throw new Error("Failed to fetch day detail");
-      const json = await res.json();
-      return (json.data || []) as SaleRecord[];
-    },
-    enabled: !!selectedDateStr,
-  });
-
-  const dayItems = dayDetail ?? [];
-  const dayCount = dayItems.length;
-  const dayGrossTotal = dayItems.some((s) => s.priceAtSale !== null)
-    ? dayItems.reduce(
-        (s, sale) => s + (sale.priceAtSale !== null ? sale.quantity * sale.priceAtSale : 0),
-        0,
-      )
-    : null;
 
   return (
     <div className="flex flex-col gap-4 h-full overflow-hidden animate-in fade-in duration-500">
@@ -465,7 +394,7 @@ function SalesLogPageInner() {
                         <TableRow
                           key={row.date}
                           className="group cursor-pointer border-b transition-colors hover:bg-muted/40 h-[56px] active:bg-muted/60"
-                          onClick={() => setSelectedDateStr(row.date)}
+                          onClick={() => router.push(`/sales/log/${row.date}`)}
                         >
                           <TableCell className="pl-4">
                             <div className="flex items-center gap-3">
@@ -687,196 +616,6 @@ function SalesLogPageInner() {
         </DialogContent>
       </Dialog>
 
-      {/* Day detail drawer */}
-      <Sheet
-        open={!!selectedDateStr}
-        onOpenChange={(open) => {
-          if (!open) setSelectedDateStr(null);
-        }}
-      >
-        <SheetContent className="flex flex-col gap-0 p-0 data-[side=right]:w-[calc(100%-2rem)] data-[side=right]:sm:w-full data-[side=right]:sm:max-w-175">
-          <SheetHeader className="p-6 pb-4 shrink-0 border-b">
-            <div className="flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
-              <div className="flex flex-col gap-0.5">
-                <SheetTitle>
-                  {selectedDateStr ? formatGreg(parseDateOnly(selectedDateStr)) : ""}
-                </SheetTitle>
-                {selectedDateStr && (
-                  <span className="text-xs text-muted-foreground font-normal">
-                    {formatEthiopian(parseDateOnly(selectedDateStr))}
-                  </span>
-                )}
-              </div>
-            </div>
-            <SheetDescription>
-              {isDayLoading
-                ? "Loading…"
-                : `${dayCount} transaction${dayCount !== 1 ? "s" : ""}${
-                    dayGrossTotal !== null
-                      ? ` — ${formatETB(dayGrossTotal)} total`
-                      : ""
-                  }`}
-            </SheetDescription>
-          </SheetHeader>
-
-          <div className="flex-1 overflow-auto">
-            {isDayLoading ? (
-              <div className="flex flex-col gap-2 p-4">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <Skeleton key={i} className="h-14 rounded-lg" />
-                ))}
-              </div>
-            ) : (
-              (() => {
-                const orderGroups = groupByOrder(dayItems);
-                return (
-                  <div className="overflow-x-auto">
-                    <Table className="min-w-150">
-                      <TableHeader className="border-b">
-                        <TableRow className="hover:bg-transparent">
-                          <TableHead className="sticky top-0 z-10 bg-background pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
-                            Product
-                          </TableHead>
-                          <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
-                            Brand
-                          </TableHead>
-                          <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
-                            Size / Finish
-                          </TableHead>
-                          <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
-                            Qty
-                          </TableHead>
-                          <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
-                            Unit Price
-                          </TableHead>
-                          <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
-                            Total
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {orderGroups.map((group) => {
-                          const groupTotal = group.items.reduce(
-                            (s, sale) =>
-                              s +
-                              (sale.priceAtSale != null
-                                ? sale.quantity * sale.priceAtSale
-                                : 0),
-                            0,
-                          );
-                          const isHighlighted =
-                            !!highlightOrderId &&
-                            group.orderId === highlightOrderId;
-                          return (
-                            <Fragment key={group.key}>
-                              <TableRow className="hover:bg-transparent border-b">
-                                <TableCell
-                                  colSpan={6}
-                                  className={cn(
-                                    "py-2 pl-4",
-                                    isHighlighted
-                                      ? "bg-primary/10"
-                                      : "bg-muted/30",
-                                  )}
-                                >
-                                  <span
-                                    className={cn(
-                                      "text-xs font-semibold",
-                                      isHighlighted
-                                        ? "text-primary"
-                                        : "text-foreground",
-                                    )}
-                                  >
-                                    {group.orderId
-                                      ? `Order #${group.orderId!.slice(0, 8)} · ${group.sellerName ?? "Unknown seller"}`
-                                      : "Direct sale"}
-                                  </span>
-                                </TableCell>
-                              </TableRow>
-                              {group.items.map((sale) => {
-                                const lineTotal =
-                                  sale.priceAtSale !== null
-                                    ? sale.quantity * sale.priceAtSale
-                                    : null;
-                                const finishDot = sale.finish
-                                  ?.toLowerCase()
-                                  .includes("polish")
-                                  ? "bg-indigo-400"
-                                  : sale.finish?.toLowerCase().includes("decor")
-                                    ? "bg-violet-400"
-                                    : "bg-zinc-400";
-                                return (
-                                  <TableRow
-                                    key={sale.id}
-                                    className="border-b transition-colors hover:bg-muted/40 h-[52px]"
-                                  >
-                                    <TableCell className="pl-4">
-                                      <p className="font-semibold text-sm">
-                                        {sale.productName}
-                                      </p>
-                                      <p className="text-[10px] text-muted-foreground font-mono mt-0.5">
-                                        {sale.productCode}
-                                      </p>
-                                    </TableCell>
-                                    <TableCell className="text-sm text-foreground">
-                                      {sale.brand}
-                                    </TableCell>
-                                    <TableCell>
-                                      <div className="flex items-center gap-1.5">
-                                        <div
-                                          className={`h-1.5 w-1.5 rounded-full shrink-0 ${finishDot}`}
-                                        />
-                                        <span className="text-sm text-muted-foreground">
-                                          {sale.size} · {sale.finish}
-                                        </span>
-                                      </div>
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                      <span className="font-bold tabular-nums text-primary">
-                                        {formatNumber(sale.quantity)}
-                                      </span>
-                                      <span className="text-[10px] text-muted-foreground/50 ml-0.5">
-                                        {sale.measurementUnit || "m²"}
-                                      </span>
-                                    </TableCell>
-                                    <TableCell className="text-right tabular-nums text-muted-foreground text-sm">
-                                      {sale.priceAtSale !== null &&
-                                      sale.priceAtSale !== undefined
-                                        ? formatNumber(sale.priceAtSale)
-                                        : "—"}
-                                    </TableCell>
-                                    <TableCell className="text-right tabular-nums font-semibold text-sm">
-                                      {lineTotal !== null
-                                        ? formatETB(lineTotal)
-                                        : "—"}
-                                    </TableCell>
-                                  </TableRow>
-                                );
-                              })}
-                              <TableRow className="hover:bg-transparent border-b">
-                                <TableCell
-                                  colSpan={5}
-                                  className="text-right text-xs text-muted-foreground pr-3"
-                                >
-                                  Subtotal
-                                </TableCell>
-                                <TableCell className="text-right text-xs font-bold tabular-nums pr-4">
-                                  {formatETB(groupTotal)}
-                                </TableCell>
-                              </TableRow>
-                            </Fragment>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                );
-              })()
-            )}
-          </div>
-        </SheetContent>
-      </Sheet>
     </div>
   );
 }
