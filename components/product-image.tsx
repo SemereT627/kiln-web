@@ -12,9 +12,10 @@ interface ProductImageProps {
   className?: string;
   iconSize?: "sm" | "md" | "lg";
   sizes?: string;
-  /** "cover" crops to fill the box (thumbnails); "contain" shows the whole
-   * uploaded image undistorted, letterboxed inside the box (detail previews). */
-  fit?: "cover" | "contain";
+  /** "cover" crops to fill the box (thumbnails); "contain" sizes the box to
+   * the image's natural aspect at full width (detail previews); "letterbox"
+   * fits the whole image inside a fixed-size box (full-screen viewers). */
+  fit?: "cover" | "contain" | "letterbox";
 }
 
 export function ProductImage({
@@ -80,7 +81,8 @@ export function ProductImage({
         fill
         sizes={sizes}
         className={cn(
-          "object-cover transition-opacity duration-300",
+          fit === "letterbox" ? "object-contain" : "object-cover",
+          "transition-opacity duration-300",
           loaded ? "opacity-100" : "opacity-0",
         )}
         onLoad={() => setLoaded(true)}

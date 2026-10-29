@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import {
   ArrowLeft,
+  Expand,
   Banknote,
   Box,
   PackagePlus,
@@ -42,6 +43,7 @@ import {
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/empty-state";
 import { ProductImage } from "@/components/product-image";
+import { ImageLightbox } from "@/components/image-lightbox";
 import { StockBadge } from "@/components/stock-badge";
 import { StatCard } from "@/components/stat-card";
 import { RestockForm } from "@/components/restock-form";
@@ -94,6 +96,7 @@ export default function ProductDetailPage({
   const [tab, setTab] = useState<HistoryTab>("movements");
   const [restockOpen, setRestockOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
+  const [imageOpen, setImageOpen] = useState(false);
 
   const { data: ceramic, isLoading, isError } = useQuery({
     queryKey: ["ceramics", id],
@@ -256,7 +259,8 @@ export default function ProductDetailPage({
 
         {/* Stock over time + specs */}
         <div className="grid gap-3 lg:grid-cols-7">
-          <Card className="lg:col-span-5 h-80 flex flex-col shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          {/* Stretches to the specs card beside it; min height for single-column layouts. */}
+          <Card className="lg:col-span-5 min-h-80 flex flex-col shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
             <CardHeader className="shrink-0">
               <CardTitle>Stock over time</CardTitle>
               <CardDescription>
@@ -327,14 +331,37 @@ export default function ProductDetailPage({
 
           <Card className="lg:col-span-2 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
             <CardContent className="space-y-4">
-              <ProductImage
-                src={ceramic.imageUrl}
-                alt={ceramic.name}
-                className="aspect-4/3 w-full rounded-xl border border-border/60"
-                iconSize="lg"
-                sizes="(min-width: 1024px) 320px, 100vw"
-                fit="cover"
-              />
+              {ceramic.imageUrl ? (
+                <button
+                  type="button"
+                  onClick={() => setImageOpen(true)}
+                  aria-label={`View ${ceramic.productId} image full size`}
+                  className="group/image relative block w-full cursor-zoom-in overflow-hidden rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                >
+                  <ProductImage
+                    src={ceramic.imageUrl}
+                    alt={ceramic.name}
+                    className="aspect-4/3 w-full rounded-xl border border-border/60"
+                    iconSize="lg"
+                    sizes="(min-width: 1024px) 320px, 100vw"
+                    fit="cover"
+                  />
+                  {/* Hover/focus hint that the image opens full screen */}
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition-opacity duration-200 group-hover/image:opacity-100 group-focus-visible/image:opacity-100">
+                    <span className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-sm font-medium text-white">
+                      <Expand className="size-4" />
+                      Preview
+                    </span>
+                  </span>
+                </button>
+              ) : (
+                <ProductImage
+                  src={null}
+                  alt={ceramic.name}
+                  className="aspect-4/3 w-full rounded-xl border border-border/60"
+                  iconSize="lg"
+                />
+              )}
               <dl className="divide-y text-sm">
                 <SpecRow label="Brand" value={ceramic.brand} />
                 <SpecRow label="Size" value={ceramic.size} />
@@ -403,6 +430,16 @@ export default function ProductDetailPage({
           </div>
         </Card>
       </div>
+
+      {ceramic.imageUrl && (
+        <ImageLightbox
+          src={ceramic.imageUrl}
+          alt={ceramic.name}
+          title={ceramic.productId}
+          open={imageOpen}
+          onOpenChange={setImageOpen}
+        />
+      )}
 
       {isAdmin && (
         <>
