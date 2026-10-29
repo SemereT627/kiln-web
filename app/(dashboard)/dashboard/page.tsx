@@ -40,37 +40,7 @@ import {
   type BrandShare,
 } from "@/components/dashboard/bento-stat-grid";
 import { StockBadge } from "@/components/stock-badge";
-
-function SectionHeader({
-  eyebrow,
-  title,
-  description,
-  action,
-}: {
-  eyebrow: string;
-  title: string;
-  description?: string;
-  action?: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-end justify-between gap-4">
-      <div>
-        <p className="text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
-          {eyebrow}
-        </p>
-        <h2 className="text-lg font-semibold tracking-tight mt-1">
-          {title}
-        </h2>
-        {description && (
-          <p className="text-sm text-muted-foreground mt-0.5">
-            {description}
-          </p>
-        )}
-      </div>
-      {action}
-    </div>
-  );
-}
+import { SectionHeader } from "@/components/dashboard/section-header";
 
 interface AlertItem {
   _id: string;

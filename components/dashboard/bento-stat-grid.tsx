@@ -227,7 +227,7 @@ function StatBody({
         </div>
       </div>
       {value !== undefined && (
-        <div className="mt-0.5 text-3xl font-semibold leading-tight tracking-[-0.02em] tabular-nums">
+        <div className="mt-0.5 text-2xl font-semibold leading-tight tracking-tight tabular-nums">
           {value}
         </div>
       )}

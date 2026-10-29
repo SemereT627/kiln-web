@@ -13,6 +13,7 @@ import {
   Hourglass,
   Snail,
   BarChart3,
+  Gauge,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -35,6 +36,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { DateRangePicker } from "@/components/date-range-picker";
 import { EmptyState } from "@/components/empty-state";
+import { StatCard, type StatCardVariant } from "@/components/stat-card";
+import { SectionHeader } from "@/components/dashboard/section-header";
 import { cn, formatNumber, formatETB } from "@/lib/utils";
 
 // ── Types (mirror GET /api/analytics) ──────────────────────────────────
@@ -148,24 +151,6 @@ const CARD_CLASS = "shadow-[0_1px_2px_rgba(0,0,0,0.04)]";
 
 // ── Building blocks ────────────────────────────────────────────────────
 
-function SectionHeader({
-  eyebrow,
-  title,
-  description,
-}: {
-  eyebrow: string;
-  title: string;
-  description?: string;
-}) {
-  return (
-    <div>
-      <p className="text-xs font-semibold tracking-wide text-primary uppercase">{eyebrow}</p>
-      <h2 className="mt-0.5 text-lg font-semibold tracking-tight">{title}</h2>
-      {description && <p className="mt-0.5 text-sm text-muted-foreground">{description}</p>}
-    </div>
-  );
-}
-
 /** Percent change vs the previous period, coloured by direction. */
 function Delta({ current, previous }: { current: number; previous: number }) {
   if (previous === 0) {
@@ -195,8 +180,8 @@ function Delta({ current, previous }: { current: number; previous: number }) {
 
 function KpiCard({
   label,
-  icon: Icon,
-  iconClass,
+  icon,
+  variant,
   value,
   current,
   previous,
@@ -204,27 +189,28 @@ function KpiCard({
 }: {
   label: string;
   icon: LucideIcon;
-  iconClass: string;
+  variant: StatCardVariant;
   value: React.ReactNode;
   current: number;
   previous: number;
   note?: string;
 }) {
+  // Same card as the dashboard metrics; the period-over-period delta rides
+  // in the supporting line.
   return (
-    <div className={cn("flex min-w-0 flex-col rounded-2xl border bg-card px-4 py-3.5", CARD_CLASS)}>
-      <div className="flex h-8 items-center justify-between gap-3">
-        <p className="truncate text-sm font-medium text-muted-foreground">{label}</p>
-        <div className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", iconClass)}>
-          <Icon className="size-4" />
-        </div>
-      </div>
-      <div className="mt-0.5 text-2xl font-semibold leading-tight tracking-tight tabular-nums">{value}</div>
-      <div className="mt-auto flex flex-wrap items-center gap-x-1.5 gap-y-0.5 pt-1.5">
-        <Delta current={current} previous={previous} />
-        <span className="text-xs text-muted-foreground">vs previous period</span>
-        {note && <span className="w-full text-xs text-muted-foreground">{note}</span>}
-      </div>
-    </div>
+    <StatCard
+      title={label}
+      value={value}
+      icon={icon}
+      variant={variant}
+      subtext={
+        <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+          <Delta current={current} previous={previous} />
+          <span>vs previous period</span>
+          {note && <span className="w-full">{note}</span>}
+        </span>
+      }
+    />
   );
 }
 
@@ -380,40 +366,39 @@ export default function AnalyticsPage() {
   return (
     <div className="flex h-full flex-col animate-in fade-in duration-500">
       <div className="flex-1 min-h-0 -m-4 p-4 overflow-y-auto overflow-x-hidden space-y-5 no-scrollbar">
-        {/* Header */}
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Analytics</h1>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              Sales performance, top sellers and stock health for the selected period.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Segmented
-              label="Date range"
-              value={preset === "custom" ? ("" as PresetKey) : preset}
-              options={PRESETS.map((p) => ({ key: p.key as PresetKey, label: p.label }))}
-              onChange={(key) => {
-                setPreset(key);
-                setCustomRange({});
-              }}
-            />
-            <DateRangePicker
-              from={preset === "custom" ? customRange.from : undefined}
-              to={preset === "custom" ? customRange.to : undefined}
-              placeholder="Custom range"
-              onChange={({ from, to }) => {
-                if (from) {
-                  setCustomRange({ from, to });
-                  setPreset("custom");
-                } else {
+        {/* Header — same section heading as the dashboard, range controls right */}
+        <SectionHeader
+          eyebrow="Overview"
+          title="Sales performance"
+          description="Sales, top sellers and stock health for the selected period."
+          action={
+            <div className="flex flex-wrap items-center gap-2">
+              <Segmented
+                label="Date range"
+                value={preset === "custom" ? ("" as PresetKey) : preset}
+                options={PRESETS.map((p) => ({ key: p.key as PresetKey, label: p.label }))}
+                onChange={(key) => {
+                  setPreset(key);
                   setCustomRange({});
-                  setPreset("30d");
-                }
-              }}
-            />
-          </div>
-        </div>
+                }}
+              />
+              <DateRangePicker
+                from={preset === "custom" ? customRange.from : undefined}
+                to={preset === "custom" ? customRange.to : undefined}
+                placeholder="Custom range"
+                onChange={({ from, to }) => {
+                  if (from) {
+                    setCustomRange({ from, to });
+                    setPreset("custom");
+                  } else {
+                    setCustomRange({});
+                    setPreset("30d");
+                  }
+                }}
+              />
+            </div>
+          }
+        />
 
         {isLoading ? (
           <AnalyticsSkeleton />
@@ -431,7 +416,7 @@ export default function AnalyticsPage() {
               <KpiCard
                 label="Revenue"
                 icon={Banknote}
-                iconClass="bg-primary/10 text-primary"
+                variant="primary"
                 value={formatETB(current.revenue)}
                 current={current.revenue}
                 previous={previous.revenue}
@@ -439,7 +424,7 @@ export default function AnalyticsPage() {
               <KpiCard
                 label="Tiles sold"
                 icon={Layers}
-                iconClass="bg-success/10 text-success"
+                variant="success"
                 value={`${formatNumber(current.tileSqm)} m²`}
                 current={current.tileSqm}
                 previous={previous.tileSqm}
@@ -457,7 +442,7 @@ export default function AnalyticsPage() {
               <KpiCard
                 label="Transactions"
                 icon={Receipt}
-                iconClass="bg-info/10 text-info"
+                variant="info"
                 value={current.transactions.toLocaleString("en-US")}
                 current={current.transactions}
                 previous={previous.transactions}
@@ -465,7 +450,7 @@ export default function AnalyticsPage() {
               <KpiCard
                 label="Avg. sale value"
                 icon={Calculator}
-                iconClass="bg-muted text-muted-foreground"
+                variant="neutral"
                 value={formatETB(avgSale(current))}
                 current={avgSale(current)}
                 previous={avgSale(previous)}
@@ -722,27 +707,27 @@ export default function AnalyticsPage() {
                 description="How fast stock is moving at the selected period's sales pace."
               />
               <div className="grid gap-3 md:grid-cols-2">
-                <div className={cn("rounded-2xl border bg-card p-4", CARD_CLASS)}>
-                  <p className="text-sm font-medium text-muted-foreground">Tile sell-through</p>
-                  <p className="mt-1 text-2xl font-semibold tabular-nums">
-                    {Math.round(data.stockHealth.sellThrough * 100)}%
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    Share of available tile stock sold during the period
-                  </p>
-                </div>
-                <div className={cn("rounded-2xl border bg-card p-4", CARD_CLASS)}>
-                  <p className="text-sm font-medium text-muted-foreground">Slow movers</p>
-                  <p className="mt-1 text-2xl font-semibold tabular-nums">
-                    {data.stockHealth.slowMoverCount}
-                    <span className="ml-1.5 text-base font-medium text-muted-foreground">
-                      of {data.stockHealth.stockedProducts}
-                    </span>
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    In-stock products with no sales during the period
-                  </p>
-                </div>
+                <StatCard
+                  title="Tile sell-through"
+                  value={`${Math.round(data.stockHealth.sellThrough * 100)}%`}
+                  subtext="Share of available tile stock sold during the period"
+                  icon={Gauge}
+                  variant="info"
+                />
+                <StatCard
+                  title="Slow movers"
+                  value={
+                    <>
+                      {data.stockHealth.slowMoverCount}
+                      <span className="ml-1.5 text-base font-medium text-muted-foreground">
+                        of {data.stockHealth.stockedProducts}
+                      </span>
+                    </>
+                  }
+                  subtext="In-stock products with no sales during the period"
+                  icon={Hourglass}
+                  variant="warning"
+                />
               </div>
               <div className="grid gap-3 lg:grid-cols-2">
                 <Card className={CARD_CLASS}>
