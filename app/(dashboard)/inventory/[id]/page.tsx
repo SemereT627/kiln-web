@@ -309,7 +309,7 @@ export default function ProductDetailPage({
                         color: "var(--popover-foreground)",
                         boxShadow: "0 8px 24px -8px rgba(0,0,0,0.2)",
                       }}
-                      labelFormatter={(v) => formatDateTime(v)}
+                      labelFormatter={(v) => formatDateTime(String(v))}
                       formatter={(v) => [`${formatNumber(Number(v))} ${unit}`, "Stock"]}
                     />
                     <Area
