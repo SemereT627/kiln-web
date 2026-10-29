@@ -96,7 +96,12 @@
       "description": "በሁሉም ብራንዶች ላይ ያለ ስርጭት",
       "noData": "እስካሁን የተመዘገበ የንጣፍ ክምችት የለም",
       "other": "ሌሎች",
-      "totalStock": "ጠቅላላ ክምችት"
+      "totalStock": "ጠቅላላ ክምችት",
+      "colBrand": "ብራንድ",
+      "colProducts": "ምርቶች",
+      "colSold": "የተሸጠ (በአጠቃላይ)",
+      "colStock": "ክምችት",
+      "colShare": "ድርሻ"
     },
     "totalSold": {
       "label": "ጠቅላላ የተሸጠ",

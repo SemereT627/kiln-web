@@ -23,7 +23,7 @@ export default function DashboardLayout({
       <div className="flex h-svh w-full overflow-hidden">
         <AppSidebar />
         <SidebarInset className="flex flex-col flex-1 overflow-hidden">
-          <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4 bg-background/80 backdrop-blur-md z-10">
+          <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4 bg-background/80 backdrop-blur-md z-10">
             <SidebarTrigger className="-ml-1 size-11 md:hidden" />
             <div className="flex min-w-0 flex-1 items-center">
               <TopbarGreeting />
@@ -35,7 +35,7 @@ export default function DashboardLayout({
             <NotificationsBell className="size-11" />
           </header>
           <main className="flex-1 relative">
-            <div className="absolute inset-0 p-5 overflow-y-auto overflow-x-hidden">
+            <div className="absolute inset-0 p-4 overflow-y-auto overflow-x-hidden">
               {children}
             </div>
           </main>

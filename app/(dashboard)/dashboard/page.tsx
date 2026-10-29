@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -35,7 +35,10 @@ import {
 } from "recharts";
 import { useTranslations } from "next-intl";
 import { useUser } from "@/components/user-provider";
-import { BentoStatGrid } from "@/components/dashboard/bento-stat-grid";
+import {
+  BentoStatGrid,
+  type BrandShare,
+} from "@/components/dashboard/bento-stat-grid";
 import { StockBadge } from "@/components/stock-badge";
 
 function SectionHeader({
@@ -52,10 +55,10 @@ function SectionHeader({
   return (
     <div className="flex items-end justify-between gap-4">
       <div>
-        <p className="text-xs font-semibold tracking-wide text-primary uppercase">
+        <p className="text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
           {eyebrow}
         </p>
-        <h2 className="text-lg font-semibold tracking-tight mt-0.5">
+        <h2 className="text-lg font-semibold tracking-tight mt-1">
           {title}
         </h2>
         {description && (
@@ -87,7 +90,10 @@ function AlertRow({ item }: { item: AlertItem }) {
   const outOfStock = item.currentStock <= 0;
   const AlertIcon = outOfStock ? XCircle : AlertTriangle;
   return (
-    <div className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+    <Link
+      href={`/inventory/${item._id}`}
+      className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50"
+    >
       <div
         className={cn(
           "flex size-9 shrink-0 items-center justify-center rounded-lg",
@@ -112,11 +118,11 @@ function AlertRow({ item }: { item: AlertItem }) {
             outOfStock && "text-muted-foreground",
           )}
         >
-          {item.currentStock.toFixed(2)} {unit}
+          {formatNumber(item.currentStock)} {unit}
         </span>
         <StockBadge stock={item.currentStock} />
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -135,15 +141,15 @@ function SectionHeaderSkeleton() {
 function DashboardSkeleton() {
   return (
     <div className="flex h-full flex-col">
-      <div className="flex-1 min-h-0 -m-5 p-5 overflow-hidden space-y-6">
+      <div className="flex-1 min-h-0 -m-4 p-4 overflow-hidden space-y-5">
         <section className="space-y-3">
           <SectionHeaderSkeleton />
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-12">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-12">
             {[...Array(4)].map((_, i) => (
               <Skeleton key={i} className="h-32 rounded-2xl xl:col-span-3" />
             ))}
             <Skeleton className="h-68 rounded-2xl md:col-span-2 xl:col-span-6" />
-            <div className="grid gap-4 md:col-span-2 md:grid-cols-2 xl:col-span-6 xl:grid-cols-1">
+            <div className="grid gap-3 md:col-span-2 md:grid-cols-2 xl:col-span-6 xl:grid-cols-1">
               <Skeleton className="h-32 rounded-2xl" />
               <Skeleton className="h-32 rounded-2xl" />
             </div>
@@ -152,7 +158,7 @@ function DashboardSkeleton() {
         {[0, 1].map((i) => (
           <section key={i} className="space-y-3">
             <SectionHeaderSkeleton />
-            <div className="grid gap-4 lg:grid-cols-7">
+            <div className="grid gap-3 lg:grid-cols-7">
               <Skeleton className="h-115 rounded-2xl lg:col-span-4" />
               <Skeleton className="h-115 rounded-2xl lg:col-span-3" />
             </div>
@@ -226,25 +232,45 @@ export default function Dashboard() {
       }
     : null;
 
-  // Stock share by brand (m² items)
-  const brandMap = new Map<string, number>();
+  // Stock share by brand (m² items), with product count and all-time sold
+  // per brand for the breakdown table.
+  const brandMap = new Map<string, { stock: number; sold: number; products: number }>();
   for (const i of sqmItems) {
     const key = i.brand || "Unknown";
-    brandMap.set(key, (brandMap.get(key) ?? 0) + i.currentStock);
+    const entry = brandMap.get(key) ?? { stock: 0, sold: 0, products: 0 };
+    entry.stock += i.currentStock;
+    entry.sold += i.soldStock;
+    entry.products += 1;
+    brandMap.set(key, entry);
   }
-  // Top 3 brands, with the remainder folded into "Other" so shares sum to 100%
-  const sortedBrands = [...brandMap.entries()].sort((a, b) => b[1] - a[1]);
-  const brandShare: { name: string; value: number; isOther?: boolean }[] =
-    sortedBrands.length > 4
+  const toShare = (name: string, v: { stock: number; sold: number; products: number }) => ({
+    name,
+    value: +v.stock.toFixed(2),
+    sold: +v.sold.toFixed(2),
+    products: v.products,
+  });
+  // Top 5 brands, with the remainder folded into "Other" so shares sum to 100%
+  const sortedBrands = [...brandMap.entries()].sort((a, b) => b[1].stock - a[1].stock);
+  const brandShare: BrandShare[] =
+    sortedBrands.length > 6
       ? [
-          ...sortedBrands.slice(0, 3).map(([name, value]) => ({ name, value: +value.toFixed(2) })),
+          ...sortedBrands.slice(0, 5).map(([name, v]) => toShare(name, v)),
           {
-            name: "__other__",
-            value: +sortedBrands.slice(3).reduce((a, [, v]) => a + v, 0).toFixed(2),
+            ...toShare(
+              "__other__",
+              sortedBrands.slice(5).reduce(
+                (a, [, v]) => ({
+                  stock: a.stock + v.stock,
+                  sold: a.sold + v.sold,
+                  products: a.products + v.products,
+                }),
+                { stock: 0, sold: 0, products: 0 },
+              ),
+            ),
             isOther: true,
           },
         ]
-      : sortedBrands.map(([name, value]) => ({ name, value: +value.toFixed(2) }));
+      : sortedBrands.map(([name, v]) => toShare(name, v));
 
   // Stock by tile size (m² items): stock, product count and all-time sold
   // per size, ranked by stock.
@@ -271,7 +297,7 @@ export default function Dashboard() {
       {/* Bleeds to the layout's padded edges so content scrolls under the
           top bar and to the very bottom instead of being clipped by <main>'s
           padding, and card focus rings at the edges aren't cut off. */}
-      <div className="flex-1 min-h-0 -m-5 p-5 overflow-y-auto overflow-x-hidden space-y-6 no-scrollbar">
+      <div className="flex-1 min-h-0 -m-4 p-4 overflow-y-auto overflow-x-hidden space-y-5 no-scrollbar">
         <section className="space-y-3">
           <SectionHeader
             eyebrow={t("overview.eyebrow")}
@@ -306,7 +332,7 @@ export default function Dashboard() {
             title={t("trends.title")}
             description={t("trends.description")}
           />
-          <div className="grid gap-4 lg:grid-cols-7 items-stretch">
+          <div className="grid gap-3 lg:grid-cols-7 items-stretch">
             {/* Bar chart — top tile products */}
             <Card className="lg:col-span-4 h-115 flex flex-col shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
               <CardHeader className="shrink-0">
@@ -335,7 +361,7 @@ export default function Dashboard() {
                         fontSize={12}
                         tickLine={false}
                         axisLine={false}
-                        tickFormatter={(v) => `${v}m²`}
+                        tickFormatter={(v) => `${formatNumber(v, 0)} m²`}
                         tick={{ fill: "var(--muted-foreground)" }}
                       />
                       <Tooltip
@@ -347,7 +373,7 @@ export default function Dashboard() {
                           boxShadow: "0 8px 24px -8px rgba(0,0,0,0.2)",
                         }}
                         cursor={{ fill: "var(--muted)", opacity: 0.4 }}
-                        formatter={(v, name) => [`${v} m²`, name]}
+                        formatter={(v, name) => [`${formatNumber(Number(v))} m²`, name]}
                       />
                       <Legend
                         verticalAlign="top"
@@ -409,9 +435,10 @@ export default function Dashboard() {
                   {data.slice(0, 5).map((item: any) => {
                     const unit = item.measurementUnit || "m²";
                     return (
-                      <div
+                      <Link
                         key={item._id}
-                        className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
+                        href={`/inventory/${item._id}`}
+                        className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50"
                       >
                         <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
                           <Box className="h-4 w-4 text-primary" />
@@ -426,14 +453,14 @@ export default function Dashboard() {
                         </div>
                         <div className="flex flex-col items-end gap-1 shrink-0">
                           <span className="text-sm font-semibold tabular-nums">
-                            {item.currentStock.toFixed(2)} {unit}
+                            {formatNumber(item.currentStock)} {unit}
                           </span>
                           {/* Only flag problems — a badge on every row is noise */}
                           {item.currentStock <= 5 && (
                             <StockBadge stock={item.currentStock} />
                           )}
                         </div>
-                      </div>
+                      </Link>
                     );
                   })}
                 </div>
@@ -449,7 +476,7 @@ export default function Dashboard() {
             title={t("health.title")}
             description={t("health.description")}
           />
-          <div className="grid gap-4 lg:grid-cols-7 items-stretch">
+          <div className="grid gap-3 lg:grid-cols-7 items-stretch">
             {/* Stock by tile size — ranked bars (easier to compare than a donut)
                 with product count and all-time sales for context */}
             <Card className="lg:col-span-4 h-115 flex flex-col shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
@@ -460,7 +487,7 @@ export default function Dashboard() {
                 </CardDescription>
                 <CardAction className="text-right">
                   <p className="text-base font-semibold leading-tight tabular-nums">
-                    {sizeTotal.toLocaleString("en-US", { maximumFractionDigits: 0 })} m²
+                    {formatNumber(sizeTotal, 0)} m²
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {t("stockByTileSize.totalStock")}
@@ -487,7 +514,7 @@ export default function Dashboard() {
                               />
                             </div>
                             <span className="w-20 shrink-0 text-right text-sm font-semibold tabular-nums">
-                              {r.stock.toLocaleString("en-US", { maximumFractionDigits: 0 })} m²
+                              {formatNumber(r.stock, 0)} m²
                             </span>
                             <span className="w-9 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
                               {pct > 0 && pct < 1 ? "<1%" : `${Math.round(pct)}%`}
@@ -496,7 +523,7 @@ export default function Dashboard() {
                           <p className="mt-1 pl-17 text-xs text-muted-foreground">
                             {t("stockByTileSize.rowDetail", {
                               count: r.products,
-                              sold: r.sold.toLocaleString("en-US", { maximumFractionDigits: 0 }),
+                              sold: formatNumber(r.sold, 0),
                             })}
                           </p>
                         </li>

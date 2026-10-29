@@ -211,15 +211,15 @@ function KpiCard({
   note?: string;
 }) {
   return (
-    <div className={cn("flex min-w-0 flex-col rounded-2xl border bg-card p-4", CARD_CLASS)}>
-      <div className="flex h-9 items-center justify-between gap-3">
+    <div className={cn("flex min-w-0 flex-col rounded-2xl border bg-card px-4 py-3.5", CARD_CLASS)}>
+      <div className="flex h-8 items-center justify-between gap-3">
         <p className="truncate text-sm font-medium text-muted-foreground">{label}</p>
-        <div className={cn("flex size-9 shrink-0 items-center justify-center rounded-lg", iconClass)}>
+        <div className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", iconClass)}>
           <Icon className="size-4" />
         </div>
       </div>
-      <div className="text-2xl font-semibold leading-tight tracking-tight tabular-nums">{value}</div>
-      <div className="mt-auto flex flex-wrap items-center gap-x-1.5 gap-y-0.5 pt-2">
+      <div className="mt-0.5 text-2xl font-semibold leading-tight tracking-tight tabular-nums">{value}</div>
+      <div className="mt-auto flex flex-wrap items-center gap-x-1.5 gap-y-0.5 pt-1.5">
         <Delta current={current} previous={previous} />
         <span className="text-xs text-muted-foreground">vs previous period</span>
         {note && <span className="w-full text-xs text-muted-foreground">{note}</span>}
@@ -323,14 +323,14 @@ function HealthList({
 
 function AnalyticsSkeleton() {
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div className="space-y-5">
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {[...Array(4)].map((_, i) => (
           <Skeleton key={i} className="h-32 rounded-2xl" />
         ))}
       </div>
       <Skeleton className="h-96 rounded-2xl" />
-      <div className="grid gap-4 lg:grid-cols-12">
+      <div className="grid gap-3 lg:grid-cols-12">
         <Skeleton className="h-96 rounded-2xl lg:col-span-7" />
         <Skeleton className="h-96 rounded-2xl lg:col-span-5" />
       </div>
@@ -379,7 +379,7 @@ export default function AnalyticsPage() {
 
   return (
     <div className="flex h-full flex-col animate-in fade-in duration-500">
-      <div className="flex-1 min-h-0 -m-5 p-5 overflow-y-auto overflow-x-hidden space-y-6 no-scrollbar">
+      <div className="flex-1 min-h-0 -m-4 p-4 overflow-y-auto overflow-x-hidden space-y-5 no-scrollbar">
         {/* Header */}
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -425,9 +425,9 @@ export default function AnalyticsPage() {
             description={(error as Error | null)?.message ?? "Please try again."}
           />
         ) : (
-          <div className={cn("space-y-6 transition-opacity", isFetching && "opacity-60")}>
+          <div className={cn("space-y-5 transition-opacity", isFetching && "opacity-60")}>
             {/* KPIs */}
-            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
               <KpiCard
                 label="Revenue"
                 icon={Banknote}
@@ -555,7 +555,7 @@ export default function AnalyticsPage() {
                 title="Top sellers"
                 description="Ranked by revenue for the selected period."
               />
-              <div className="grid gap-4 lg:grid-cols-12">
+              <div className="grid gap-3 lg:grid-cols-12">
                 <Card className={cn("lg:col-span-7", CARD_CLASS)}>
                   <CardHeader>
                     <CardTitle>Top products</CardTitle>
@@ -721,7 +721,7 @@ export default function AnalyticsPage() {
                 title="Stock health"
                 description="How fast stock is moving at the selected period's sales pace."
               />
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-3 md:grid-cols-2">
                 <div className={cn("rounded-2xl border bg-card p-4", CARD_CLASS)}>
                   <p className="text-sm font-medium text-muted-foreground">Tile sell-through</p>
                   <p className="mt-1 text-2xl font-semibold tabular-nums">
@@ -744,7 +744,7 @@ export default function AnalyticsPage() {
                   </p>
                 </div>
               </div>
-              <div className="grid gap-4 lg:grid-cols-2">
+              <div className="grid gap-3 lg:grid-cols-2">
                 <Card className={CARD_CLASS}>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">

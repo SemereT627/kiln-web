@@ -96,7 +96,12 @@
       "description": "Distribution across all brands",
       "noData": "No tile stock recorded yet",
       "other": "Other",
-      "totalStock": "Total stock"
+      "totalStock": "Total stock",
+      "colBrand": "Brand",
+      "colProducts": "Products",
+      "colSold": "Sold (all time)",
+      "colStock": "Stock",
+      "colShare": "Share"
     },
     "totalSold": {
       "label": "Total Sold",

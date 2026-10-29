@@ -30,6 +30,7 @@ import {
   salesItems,
   orderApprovalsItem,
   adminItems,
+  findNavTrail,
 } from "@/components/nav-config";
 import { accessRequestsKey, type AccessRequest } from "@/components/access-requests-panel";
 
@@ -153,7 +154,10 @@ export function AppSidebar() {
 
   const localelessPath = pathname.replace(/^\/[a-z]{2}(?=\/|$)/, "") || "/";
 
-  const isActive = (href: string) => localelessPath === href;
+  // Resolved via the nav trail so detail pages (/inventory/[id]) keep their
+  // parent item highlighted, without /sales also lighting up on /sales/log.
+  const activeHref = findNavTrail(localelessPath)?.item.href;
+  const isActive = (href: string) => activeHref === href;
 
   return (
     <Sidebar
@@ -161,7 +165,7 @@ export function AppSidebar() {
       collapsible="icon"
       className="border-r border-sidebar-border"
     >
-      <SidebarHeader className="flex flex-col border-b-0 px-5 pt-5 pb-3 group-data-[collapsible=icon]:p-3 group-data-[collapsible=icon]:pt-6 group-data-[collapsible=icon]:items-center">
+      <SidebarHeader className="flex flex-col border-b-0 px-4 pt-4 pb-2 group-data-[collapsible=icon]:p-3 group-data-[collapsible=icon]:pt-6 group-data-[collapsible=icon]:items-center">
         <div className="flex w-full items-center justify-between group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:gap-6">
           <div className="flex items-center gap-2.5 group-data-[collapsible=icon]:hidden">
             <Image
@@ -186,7 +190,7 @@ export function AppSidebar() {
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="gap-0 px-5 group-data-[collapsible=icon]:px-0">
+      <SidebarContent className="gap-0 px-4 group-data-[collapsible=icon]:px-0">
         <NavGroup
           items={
             isAdmin
@@ -249,7 +253,7 @@ export function AppSidebar() {
         ) : null}
       </SidebarContent>
 
-      <SidebarFooter className="mx-5 border-t border-border/60 px-0 py-3 group-data-[collapsible=icon]:mx-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-2">
+      <SidebarFooter className="mx-4 border-t border-border/60 px-0 py-3 group-data-[collapsible=icon]:mx-2 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-2">
         <UserMenu />
       </SidebarFooter>
     </Sidebar>

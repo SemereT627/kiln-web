@@ -36,8 +36,8 @@ export function StatCard({
   // left with the icon (and optional action) right, then value, then
   // supporting text pinned to the bottom so cards in a row line up.
   return (
-    <div className="flex min-w-0 flex-col rounded-2xl border bg-card p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-      <div className="flex h-9 items-center justify-between gap-3">
+    <div className="flex min-w-0 flex-col rounded-2xl border bg-card px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+      <div className="flex h-8 items-center justify-between gap-3">
         <p className="min-w-0 truncate text-sm font-medium text-muted-foreground">
           {title}
         </p>
@@ -45,7 +45,7 @@ export function StatCard({
           {action}
           <div
             className={cn(
-              "flex size-9 items-center justify-center rounded-lg",
+              "flex size-8 items-center justify-center rounded-lg",
               STAT_ICON_STYLES[variant],
             )}
           >
@@ -53,11 +53,11 @@ export function StatCard({
           </div>
         </div>
       </div>
-      <div className="text-2xl font-semibold leading-tight tracking-tight tabular-nums">
+      <div className="mt-0.5 text-3xl font-semibold leading-tight tracking-[-0.02em] tabular-nums">
         {value}
       </div>
       {subtext && (
-        <p className="mt-auto pt-2 text-xs leading-relaxed text-muted-foreground">
+        <p className="mt-auto pt-1.5 text-xs leading-relaxed text-muted-foreground">
           {subtext}
         </p>
       )}

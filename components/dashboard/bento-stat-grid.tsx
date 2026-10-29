@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import gsap from "gsap";
-import { cn } from "@/lib/utils";
+import { cn, formatETB, formatNumber } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -20,6 +20,16 @@ import {
   ChevronRight,
   type LucideIcon,
 } from "lucide-react";
+
+export interface BrandShare {
+  name: string;
+  /** Current stock (m²). */
+  value: number;
+  /** All-time sold (m²). */
+  sold: number;
+  products: number;
+  isOther?: boolean;
+}
 
 // Same chart tokens as the dashboard charts so brand colours feel native.
 const BRAND_COLORS = [
@@ -97,7 +107,7 @@ function CountUp({
       "(prefers-reduced-motion: reduce)",
     ).matches;
     if (prefersReducedMotion) {
-      el.textContent = value.toFixed(decimals) + suffix;
+      el.textContent = formatNumber(value, decimals) + suffix;
       return;
     }
     const obj = { val: 0 };
@@ -106,7 +116,7 @@ function CountUp({
       duration: 0.9,
       ease: "power2.out",
       onUpdate: () => {
-        if (el) el.textContent = obj.val.toFixed(decimals) + suffix;
+        if (el) el.textContent = formatNumber(obj.val, decimals) + suffix;
       },
     });
     return () => {
@@ -152,7 +162,7 @@ function CardShell({
           : undefined
       }
       className={cn(
-        "flex min-w-0 flex-col rounded-2xl border bg-card p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]",
+        "flex min-w-0 flex-col rounded-2xl border bg-card px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]",
         onClick &&
           "group/card cursor-pointer outline-none transition-[box-shadow,border-color,background-color] duration-200 hover:border-primary/30 hover:shadow-[0_8px_20px_-8px_rgba(0,0,0,0.14)] focus-visible:ring-[3px] focus-visible:ring-ring/50 active:shadow-[0_1px_2px_rgba(0,0,0,0.04)]",
         className,
@@ -173,7 +183,7 @@ function IconChip({
   return (
     <div
       className={cn(
-        "flex size-9 shrink-0 items-center justify-center rounded-lg",
+        "flex size-8 shrink-0 items-center justify-center rounded-lg",
         ICON_STYLES[variant],
       )}
     >
@@ -207,7 +217,7 @@ function StatBody({
 }) {
   return (
     <>
-      <div className="flex h-9 items-center justify-between gap-3">
+      <div className="flex h-8 items-center justify-between gap-3">
         <p className="min-w-0 truncate text-sm font-medium text-muted-foreground">
           {label}
         </p>
@@ -217,12 +227,12 @@ function StatBody({
         </div>
       </div>
       {value !== undefined && (
-        <div className="text-2xl font-semibold leading-tight tracking-tight tabular-nums">
+        <div className="mt-0.5 text-3xl font-semibold leading-tight tracking-[-0.02em] tabular-nums">
           {value}
         </div>
       )}
       {description && (
-        <div className="mt-auto pt-2 text-xs leading-relaxed text-muted-foreground">
+        <div className="mt-auto pt-1.5 text-xs leading-relaxed text-muted-foreground">
           {description}
         </div>
       )}
@@ -256,7 +266,7 @@ export function BentoStatGrid({
   lowStockCount: number;
   topAlert: { name: string; stock: number; unit: string } | null;
   onLowStockClick?: () => void;
-  brandShare: { name: string; value: number; isOther?: boolean }[];
+  brandShare: BrandShare[];
   stockValue: number;
   stockValueRevealed: boolean;
   onToggleStockValue: () => void;
@@ -294,7 +304,7 @@ export function BentoStatGrid({
   return (
     <div
       ref={containerRef}
-      className="grid w-full min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-12"
+      className="grid w-full min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-12"
     >
       {/* Total Products */}
       <CardShell cardRef={setRef(idx++)} className="xl:col-span-3">
@@ -315,7 +325,7 @@ export function BentoStatGrid({
           label={t("tileStock.label")}
           value={<CountUp value={tileStock} decimals={2} suffix=" m²" />}
           description={t("tileStock.description", {
-            sold: tileSold.toFixed(2),
+            sold: formatNumber(tileSold),
             count: tileProductCount,
           })}
         />
@@ -330,11 +340,11 @@ export function BentoStatGrid({
           value={<CountUp value={skirtingStock} decimals={2} suffix=" m" />}
           description={[
             t("skirtingStock.description", {
-              sold: skirtingSold.toFixed(2),
+              sold: formatNumber(skirtingSold),
               count: skirtingProductCount,
             }),
             otherPcs > 0 &&
-              t("skirtingStock.pieces", { count: otherPcs.toFixed(0) }),
+              t("skirtingStock.pieces", { count: formatNumber(otherPcs, 0) }),
           ]
             .filter(Boolean)
             .join(" · ")}
@@ -368,7 +378,7 @@ export function BentoStatGrid({
                   </span>
                   {" · "}
                   {t("lowStockAlerts.left", {
-                    stock: topAlert.stock.toFixed(2),
+                    stock: formatNumber(topAlert.stock),
                     unit: topAlert.unit,
                   })}
                 </span>
@@ -402,11 +412,8 @@ export function BentoStatGrid({
           </div>
           {brandShare.length > 0 && (
             <div className="shrink-0 text-right">
-              <p className="text-xl font-semibold leading-tight tracking-tight tabular-nums">
-                {brandTotal.toLocaleString("en-US", {
-                  maximumFractionDigits: 0,
-                })}{" "}
-                m²
+              <p className="text-xl font-semibold leading-tight tracking-[-0.02em] tabular-nums">
+                {formatNumber(brandTotal, 0)} m²
               </p>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {t("stockByBrand.totalStock")}
@@ -426,7 +433,7 @@ export function BentoStatGrid({
               role="img"
               aria-label={brandRows
                 .map(
-                  (b) => `${b.label}: ${b.value.toFixed(0)} m² (${b.pctLabel})`,
+                  (b) => `${b.label}: ${formatNumber(b.value, 0)} m² (${b.pctLabel})`,
                 )
                 .join(", ")}
               className="mt-4 flex h-2 w-full gap-0.5 overflow-hidden rounded-full bg-muted"
@@ -438,71 +445,75 @@ export function BentoStatGrid({
                     key={b.name}
                     className="h-full min-w-1 first:rounded-l-full last:rounded-r-full"
                     style={{ width: `${b.pct}%`, background: b.color }}
-                    title={`${b.label}: ${b.value.toFixed(0)} m²`}
+                    title={`${b.label}: ${formatNumber(b.value, 0)} m²`}
                   />
                 ))}
             </div>
-            <ul
-              className="mt-4 grid flex-1 grid-cols-1 gap-3 sm:grid-cols-[repeat(var(--brand-cols),minmax(0,1fr))]"
-              style={
-                { "--brand-cols": brandRows.length } as React.CSSProperties
-              }
-            >
-              {brandRows.map((b) => {
-                const isZero = b.pct === 0;
-                return (
-                  <li
-                    key={b.name}
-                    className="flex flex-col rounded-xl border p-3"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="flex min-w-0 items-center gap-2">
-                        <span
-                          aria-hidden="true"
-                          className={cn(
-                            "size-2 shrink-0 rounded-full",
-                            isZero && "border border-muted-foreground/60",
-                          )}
-                          style={isZero ? undefined : { background: b.color }}
-                        />
-                        <span
-                          className={cn(
-                            "truncate text-sm font-medium",
-                            isZero && "text-muted-foreground",
-                          )}
-                          title={b.label}
-                        >
-                          {b.label}
-                        </span>
-                      </span>
-                      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                        {b.pctLabel}
-                      </span>
-                    </div>
-                    <p
+            {/* Ranked breakdown — the bar above already shows share, so rows
+                carry the numbers: product count, all-time sold, stock, share. */}
+            <table className="mt-4 w-full text-sm tabular-nums">
+              <thead>
+                <tr className="border-b text-[11px] font-medium tracking-wider text-muted-foreground uppercase">
+                  <th className="pb-2 text-left font-medium">
+                    {t("stockByBrand.colBrand")}
+                  </th>
+                  <th className="hidden pb-2 text-right font-medium sm:table-cell">
+                    {t("stockByBrand.colProducts")}
+                  </th>
+                  <th className="hidden pb-2 text-right font-medium sm:table-cell">
+                    {t("stockByBrand.colSold")}
+                  </th>
+                  <th className="pb-2 text-right font-medium">
+                    {t("stockByBrand.colStock")}
+                  </th>
+                  <th className="w-14 pb-2 text-right font-medium">
+                    {t("stockByBrand.colShare")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {brandRows.map((b) => {
+                  const isZero = b.pct === 0;
+                  return (
+                    <tr
+                      key={b.name}
                       className={cn(
-                        "mt-2 mb-3 text-lg font-semibold leading-tight tabular-nums",
+                        "border-b last:border-0",
                         isZero && "text-muted-foreground",
                       )}
                     >
-                      {b.value.toLocaleString("en-US", {
-                        maximumFractionDigits: 0,
-                      })}{" "}
-                      m²
-                    </p>
-                    <div
-                      className="mt-auto h-1 overflow-hidden rounded-full bg-muted"
-                      aria-hidden="true"
-                    >
-                      <div
-                        className="h-full rounded-full"
-                        style={{ width: `${b.pct}%`, background: b.color }}
-                      />
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+                      <td className="py-2.5">
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span
+                            aria-hidden="true"
+                            className={cn(
+                              "size-2 shrink-0 rounded-full",
+                              isZero && "border border-muted-foreground/60",
+                            )}
+                            style={isZero ? undefined : { background: b.color }}
+                          />
+                          <span className="truncate font-medium" title={b.label}>
+                            {b.label}
+                          </span>
+                        </span>
+                      </td>
+                      <td className="hidden py-2.5 text-right sm:table-cell">
+                        {b.products}
+                      </td>
+                      <td className="hidden py-2.5 text-right sm:table-cell">
+                        {formatNumber(b.sold)} m²
+                      </td>
+                      <td className="py-2.5 text-right font-semibold">
+                        {formatNumber(b.value)} m²
+                      </td>
+                      <td className="py-2.5 text-right text-muted-foreground">
+                        {b.pctLabel}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </>
         )}
       </CardShell>
@@ -511,7 +522,7 @@ export function BentoStatGrid({
           Brand; side by side on tablet. */}
       <div
         className={cn(
-          "grid min-w-0 gap-4 md:col-span-2 xl:col-span-6 xl:grid-cols-1 xl:auto-rows-fr",
+          "grid min-w-0 gap-3 md:col-span-2 xl:col-span-6 xl:grid-cols-1 xl:auto-rows-fr",
           isAdmin && "md:grid-cols-2",
         )}
       >
@@ -522,7 +533,7 @@ export function BentoStatGrid({
             label={t("totalSold.label")}
             value={<CountUp value={totalSold} decimals={2} suffix=" m²" />}
             description={t("totalSold.description", {
-              sold: skirtingSold.toFixed(2),
+              sold: formatNumber(skirtingSold),
             })}
           />
         </CardShell>
@@ -539,7 +550,7 @@ export function BentoStatGrid({
                     <Button
                       variant="outline"
                       size="icon"
-                      className="size-9 rounded-lg text-muted-foreground hover:text-foreground"
+                      className="size-8 rounded-lg text-muted-foreground hover:text-foreground"
                       onClick={onToggleStockValue}
                       aria-pressed={stockValueRevealed}
                       aria-label={
@@ -573,7 +584,7 @@ export function BentoStatGrid({
                       ••••••• ETB
                     </span>
                   ) : stockValue > 0 ? (
-                    `${stockValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ETB`
+                    formatETB(stockValue)
                   ) : (
                     <span className="text-base font-medium text-muted-foreground">
                       {t("totalStockValue.noPriceData")}
