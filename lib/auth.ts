@@ -37,6 +37,18 @@ export async function getRole(userId: string): Promise<string | null> {
   return profile?.role ?? null;
 }
 
+/** Read routes: any signed-in user with a role (admin, seller or viewer).
+ * Catalog, stock and sales data are internal to the shop, never public. */
+export async function requireUser(
+  request?: Request,
+): Promise<(User & { role: string }) | null> {
+  const user = await getRequestUser(request);
+  if (!user) return null;
+  const role = await getRole(user.id);
+  if (!role) return null;
+  return { ...user, role };
+}
+
 /** Admin-only routes (catalog management, user roles, etc). */
 export async function requireAdmin(request?: Request): Promise<User | null> {
   const user = await getRequestUser(request);

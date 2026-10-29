@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createRequestClient } from "@/lib/supabase/server";
 import { logAudit } from "@/lib/audit";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireUser } from "@/lib/auth";
 import { pickSortColumn } from "@/lib/postgrest";
 import { parseBody } from "@/lib/validate";
 import { z } from "zod";
@@ -11,6 +11,10 @@ const createBrandSchema = z.object({ name: z.string().trim().min(1, "Name is req
 
 export async function GET(request: Request) {
   try {
+    const user = await requireUser(request);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
@@ -18,7 +22,7 @@ export async function GET(request: Request) {
     const sortBy = pickSortColumn(searchParams.get("sortBy") || "name", SORTABLE_COLUMNS, "name");
     const order = searchParams.get("order") || "asc";
 
-    const supabase = await createClient();
+    const supabase = await createRequestClient(request);
     let query = supabase.from("brands").select("*", { count: "exact" });
 
     if (search) {

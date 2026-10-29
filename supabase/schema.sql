@@ -704,28 +704,28 @@ ALTER TABLE return_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE return_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE return_request_items ENABLE ROW LEVEL SECURITY;
 -- Finishes
-CREATE POLICY "Public Read Finishes" ON finishes FOR
-SELECT USING (true);
+CREATE POLICY "Authenticated Read Finishes" ON finishes FOR
+SELECT TO authenticated USING (true);
 CREATE POLICY "Admin All Finishes" ON finishes FOR ALL USING (get_my_role() = 'admin');
 -- Brands
-CREATE POLICY "Public Read Brands" ON brands FOR
-SELECT USING (true);
+CREATE POLICY "Authenticated Read Brands" ON brands FOR
+SELECT TO authenticated USING (true);
 CREATE POLICY "Admin All Brands" ON brands FOR ALL USING (get_my_role() = 'admin');
 -- Ceramic Types
-CREATE POLICY "Public Read Types" ON ceramic_types FOR
-SELECT USING (true);
+CREATE POLICY "Authenticated Read Types" ON ceramic_types FOR
+SELECT TO authenticated USING (true);
 CREATE POLICY "Admin All Types" ON ceramic_types FOR ALL USING (get_my_role() = 'admin');
 -- Ceramics
-CREATE POLICY "Public Read Ceramics" ON ceramics FOR
-SELECT USING (true);
+CREATE POLICY "Authenticated Read Ceramics" ON ceramics FOR
+SELECT TO authenticated USING (true);
 CREATE POLICY "Admin All Ceramics" ON ceramics FOR ALL USING (get_my_role() = 'admin');
 -- Stock Entries
-CREATE POLICY "Public Read Stock" ON stock_entries FOR
-SELECT USING (true);
+CREATE POLICY "Authenticated Read Stock" ON stock_entries FOR
+SELECT TO authenticated USING (true);
 CREATE POLICY "Admin All StockEntries" ON stock_entries FOR ALL USING (get_my_role() = 'admin');
 -- Sales
-CREATE POLICY "Public Read Sales" ON sales FOR
-SELECT USING (true);
+CREATE POLICY "Authenticated Read Sales" ON sales FOR
+SELECT TO authenticated USING (true);
 CREATE POLICY "Admin All Sales" ON sales FOR ALL USING (get_my_role() = 'admin');
 -- User profiles
 CREATE POLICY "Users can read own profile" ON user_profiles FOR
@@ -752,11 +752,11 @@ SELECT USING (
   );
 CREATE POLICY "Admin all order items" ON order_items FOR ALL USING (get_my_role() = 'admin');
 -- Returns — same convention as sales/stock_entries: public read, admin all.
-CREATE POLICY "Public Read Returns" ON returns FOR
-SELECT USING (true);
+CREATE POLICY "Authenticated Read Returns" ON returns FOR
+SELECT TO authenticated USING (true);
 CREATE POLICY "Admin All Returns" ON returns FOR ALL USING (get_my_role() = 'admin');
-CREATE POLICY "Public Read Return Items" ON return_items FOR
-SELECT USING (true);
+CREATE POLICY "Authenticated Read Return Items" ON return_items FOR
+SELECT TO authenticated USING (true);
 CREATE POLICY "Admin All Return Items" ON return_items FOR ALL USING (get_my_role() = 'admin');
 -- Return Requests — same convention as Orders: writes go through the
 -- service-role client in route handlers (seller create, admin approve/reject).

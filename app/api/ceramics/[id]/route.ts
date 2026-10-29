@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createRequestClient } from "@/lib/supabase/server";
 import { logAudit } from "@/lib/audit";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireUser } from "@/lib/auth";
 import { parseBody } from "@/lib/validate";
 import { z } from "zod";
 
@@ -18,8 +18,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const user = await requireUser(request);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const { id } = await params;
-    const supabase = await createClient();
+    const supabase = await createRequestClient(request);
     // Read from the inventory view, never the raw table — it's the only
     // place current/initial/sold stock are computed, and it keeps this
     // response shape identical to GET /api/ceramics (list).

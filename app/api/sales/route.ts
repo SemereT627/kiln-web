@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
-import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { requireSeller } from "@/lib/auth";
+import { createServiceClient, createRequestClient } from "@/lib/supabase/server";
+import { requireSeller, requireUser } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { sanitizeSearchTerm } from "@/lib/postgrest";
 
 export async function GET(request: Request) {
   try {
+    const user = await requireUser(request);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
@@ -15,7 +19,7 @@ export async function GET(request: Request) {
     const dateFrom = searchParams.get("dateFrom");
     const dateTo = searchParams.get("dateTo");
 
-    const supabase = await createClient();
+    const supabase = await createRequestClient(request);
 
     // Resolved up front so we can short-circuit with an empty result when
     // the order has no linked sales, instead of building a query with an

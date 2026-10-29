@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createRequestClient } from "@/lib/supabase/server";
 import { logAudit } from "@/lib/audit";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin, requireUser } from "@/lib/auth";
 import { pickSortColumn } from "@/lib/postgrest";
 import { parseBody } from "@/lib/validate";
 import { z } from "zod";
@@ -18,6 +18,10 @@ const createCeramicTypeSchema = z.object({
 
 export async function GET(request: Request) {
   try {
+    const user = await requireUser(request);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "10");
@@ -27,7 +31,7 @@ export async function GET(request: Request) {
     const brandId = searchParams.get("brandId");
     const finishId = searchParams.get("finishId");
 
-    const supabase = await createClient();
+    const supabase = await createRequestClient(request);
     let query = supabase
       .from("ceramic_types")
       .select("*, brand:brands(name), finish:finishes(name)", { count: "exact" });

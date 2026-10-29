@@ -51,8 +51,8 @@ Client-side: `lib/supabase/client.ts` → `createBrowserClient()`.
 
 All routes follow this pattern:
 
-1. Call `requireAdmin()` for write operations (returns `null` if not admin → 403)
-2. Use `createClient()` for reads (RLS applies), `createServiceClient()` for admin writes
+1. Call `requireAdmin()` for write operations (returns `null` if not admin → 403); read routes call `requireUser()` (any signed-in role → else 401)
+2. Use `createRequestClient(request)` for reads (RLS applies; forwards the mobile Bearer token), `createServiceClient()` for admin writes
 3. Query `vw_ceramics_inventory` view for ceramic data (never the raw `ceramics` table for reads)
 
 ### Database
@@ -102,7 +102,7 @@ Frontend uses **TanStack React Query** for all data fetching/mutation. No Redux 
 ### Auth & Roles
 
 - Three roles: `admin` (full access), `seller` (record sales/orders + view catalog/stock — mobile app + web), `viewer` (read-only)
-- RLS itself only grants admin ALL / public SELECT — `INSERT`/`UPDATE`/`DELETE` require `get_my_role() = 'admin'`. Seller writes (direct sales, order submission) don't go through RLS: they hit API routes gated by `requireSeller()` that use `createServiceClient()` (service role, bypasses RLS)
+- RLS grants admin ALL and SELECT to `authenticated` only (no anon reads; migration 0011) — `INSERT`/`UPDATE`/`DELETE` require `get_my_role() = 'admin'`. Seller writes (direct sales, order submission) don't go through RLS: they hit API routes gated by `requireSeller()` that use `createServiceClient()` (service role, bypasses RLS)
 - `requireAdmin()` / `requireSeller()` in `lib/auth.ts` resolve the user from either the session cookie (web) or an `Authorization: Bearer` token (mobile app, no cookies)
 - `user_profiles` row auto-created on signup via `handle_new_user()` trigger
 - No self-signup: `/signup` is "Request access" → `access_requests` row (public `POST /api/access-requests`). Admin approves/rejects on the Users page; approval creates the user via `auth.admin.generateLink` and emails an invite through Resend (`lib/email.ts`). The link hits `GET /api/auth/confirm` (`verifyOtp`) → `/set-password`. Supabase's own "Allow new users to sign up" should be OFF
