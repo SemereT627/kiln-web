@@ -1,5 +1,10 @@
 import type { Metadata } from "next";
-import { Poppins, Fraunces } from "next/font/google";
+import {
+  Inter,
+  Geist_Mono,
+  Noto_Sans_Ethiopic,
+  Fraunces,
+} from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { NextIntlClientProvider } from "next-intl";
@@ -9,10 +14,23 @@ import { UserProvider } from "@/components/user-provider";
 import { QueryProvider } from "@/components/query-provider";
 import { Toaster } from "sonner";
 
-const poppins = Poppins({
-  weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-poppins",
+// Generic variable names (--font-body / --font-code) so swapping the font
+// family only touches this file, never globals.css.
+const inter = Inter({
+  variable: "--font-body",
   subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-code",
+  subsets: ["latin"],
+});
+
+// Inter has no Ethiopic glyphs — bank names, notes etc. are often Amharic, so
+// give them a matching fallback instead of whatever the OS picks.
+const notoEthiopic = Noto_Sans_Ethiopic({
+  variable: "--font-ethiopic",
+  subsets: ["ethiopic"],
 });
 
 const fraunces = Fraunces({
@@ -45,10 +63,10 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={`${poppins.variable} ${fraunces.variable} h-full antialiased`}
+      className={`${inter.variable} ${geistMono.variable} ${notoEthiopic.variable} ${fraunces.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col font-poppins">
+      <body className="min-h-full flex flex-col">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <ThemeProvider
             attribute="class"
