@@ -29,6 +29,7 @@ import {
   Shield,
   UserPlus,
   Trash2,
+  KeyRound,
   X,
 } from "lucide-react";
 import { useUser } from "@/components/user-provider";
@@ -59,6 +60,7 @@ export default function AdminUsersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [addUserOpen, setAddUserOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<UserRow | null>(null);
+  const [mfaResetTarget, setMfaResetTarget] = useState<UserRow | null>(null);
 
   const {
     data: users = [],
@@ -124,6 +126,28 @@ export default function AdminUsersPage() {
     },
   });
 
+  const resetMfaMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const res = await fetch("/api/admin/users/mfa", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to reset two-step sign-in");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast.success("Two-step sign-in reset");
+      setMfaResetTarget(null);
+    },
+    onError: (err: any) => {
+      toast.error(err.message);
+    },
+  });
+
   const filteredUsers = users.filter(
     (user) =>
       user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -175,6 +199,13 @@ export default function AdminUsersPage() {
               Set as {role}
             </DropdownMenuItem>
           ))}
+          <DropdownMenuItem
+            className="text-xs font-medium"
+            onClick={() => setMfaResetTarget(user)}
+          >
+            <KeyRound className="size-3 mr-2" />
+            Reset 2FA
+          </DropdownMenuItem>
           <DropdownMenuItem
             className="text-xs font-medium text-destructive focus:text-destructive"
             onClick={() => setDeleteTarget(user)}
@@ -397,6 +428,14 @@ export default function AdminUsersPage() {
         confirmLabel="Delete User"
         destructive
         onConfirm={() => deleteTarget && deleteUserMutation.mutate(deleteTarget.id)}
+      />
+      <ConfirmDialog
+        open={!!mfaResetTarget}
+        onOpenChange={(open) => !open && setMfaResetTarget(null)}
+        title="Reset two-step sign-in?"
+        description={`${mfaResetTarget?.full_name ?? mfaResetTarget?.email ?? "This user"}'s authenticator will be removed. They'll set up a new one the next time they sign in on the web.`}
+        confirmLabel="Reset 2FA"
+        onConfirm={() => mfaResetTarget && resetMfaMutation.mutate(mfaResetTarget.id)}
       />
     </div>
   );

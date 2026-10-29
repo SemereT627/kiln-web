@@ -71,6 +71,27 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
+  // Two-step sign-in: every dashboard page needs a session that has passed
+  // the authenticator-code step (aal2). /mfa is where that happens (enrol or
+  // verify); /set-password comes first for invited users, who have no
+  // authenticator yet. getAuthenticatorAssuranceLevel reads the session JWT
+  // locally — no extra network round-trip.
+  const onMfa = strippedPath.startsWith("/mfa");
+  const mfaExempt = onMfa || strippedPath.startsWith("/set-password");
+  const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  const verified = aal?.currentLevel === "aal2";
+  if (!verified && !mfaExempt) {
+    const mfaUrl = request.nextUrl.clone();
+    mfaUrl.pathname = "/en/mfa";
+    mfaUrl.search = "";
+    return NextResponse.redirect(mfaUrl);
+  }
+  if (verified && onMfa) {
+    const dashboardUrl = request.nextUrl.clone();
+    dashboardUrl.pathname = "/en/dashboard";
+    return NextResponse.redirect(dashboardUrl);
+  }
+
   // Protect /admin routes — same role check as requireAdmin() in lib/auth.ts,
   // reused directly since it's just a service-role lookup by id (no
   // session/cookie dependency to conflict with the client wired up above).
