@@ -3,9 +3,10 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthShell } from "@/components/auth-shell";
+import { cn } from "@/lib/utils";
+import { TRUSTED_DEVICE_DAYS } from "@/lib/device-trust";
 import { AlertCircle, Loader2 } from "lucide-react";
 
 type Mode =
@@ -22,6 +23,7 @@ type Mode =
 export default function MfaPage() {
   const [mode, setMode] = useState<Mode>({ kind: "loading" });
   const [code, setCode] = useState("");
+  const [trustDevice, setTrustDevice] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -77,6 +79,12 @@ export default function MfaPage() {
       setSubmitting(false);
       return;
     }
+    // Best-effort: failing here only means the 30-minute sign-out still applies.
+    await fetch("/api/auth/device-trust", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ trust: trustDevice }),
+    }).catch(() => {});
     // Full load so the proxy sees the upgraded (aal2) session cookie.
     window.location.assign("/en/dashboard");
   }
@@ -136,20 +144,67 @@ export default function MfaPage() {
             <Label htmlFor="code" className="text-sm font-medium">
               6-digit code
             </Label>
-            <Input
-              id="code"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              pattern="[0-9]{6}"
-              maxLength={6}
-              placeholder="123456"
-              value={code}
-              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-              autoFocus
-              required
-              className="h-11 text-center font-mono text-lg tracking-[0.4em]"
-            />
+            {/* One real input (paste, autofill, screen readers) drawn as 6 boxes. */}
+            <div className="group relative">
+              <input
+                id="code"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                maxLength={6}
+                value={code}
+                onChange={(e) => {
+                  setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
+                  setError(null);
+                }}
+                autoFocus
+                required
+                aria-invalid={!!error}
+                className="absolute inset-0 h-full w-full cursor-text opacity-0"
+              />
+              <div className="pointer-events-none grid grid-cols-6 gap-2" aria-hidden="true">
+                {Array.from({ length: 6 }, (_, i) => {
+                  const active = i === code.length;
+                  return (
+                    <div
+                      key={i}
+                      className={cn(
+                        "flex h-12 items-center justify-center rounded-lg border bg-background font-mono text-xl font-semibold transition-colors",
+                        error
+                          ? "border-destructive"
+                          : code[i]
+                            ? "border-primary/60"
+                            : active
+                              ? "border-input group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/30"
+                              : "border-input",
+                      )}
+                    >
+                      {code[i] ??
+                        (active && (
+                          <span className="hidden h-6 w-px animate-pulse bg-foreground group-focus-within:block" />
+                        ))}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
+
+          <label className="flex select-none items-start gap-2.5 text-sm">
+            <input
+              type="checkbox"
+              checked={trustDevice}
+              onChange={(e) => setTrustDevice(e.target.checked)}
+              className="mt-0.5 size-4 flex-none rounded border-input accent-primary"
+            />
+            <span>
+              <span className="font-medium text-foreground">
+                Keep me signed in on this device for {TRUSTED_DEVICE_DAYS} days
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                Skips the 30-minute inactivity sign-out. Not on a shared computer.
+              </span>
+            </span>
+          </label>
 
           {error && (
             <div className="flex items-start gap-2 rounded-lg border border-destructive/15 bg-destructive/8 px-3 py-2.5 text-sm text-destructive">

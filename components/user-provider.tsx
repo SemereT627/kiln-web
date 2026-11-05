@@ -63,7 +63,14 @@ export function useUserActions() {
   return useContext(UserContext);
 }
 
-export function UserProvider({ children }: { children: ReactNode }) {
+export function UserProvider({
+  children,
+  trustedDevice = false,
+}: {
+  children: ReactNode;
+  /** "Keep me signed in" was ticked at the code step: no inactivity sign-out. */
+  trustedDevice?: boolean;
+}) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
@@ -173,7 +180,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }
 
   // Activate session-timeout tracking only while a user is logged in.
-  useSessionTimeout(profile !== null);
+  useSessionTimeout(profile !== null && !trustedDevice);
 
   return (
     <UserContext.Provider
