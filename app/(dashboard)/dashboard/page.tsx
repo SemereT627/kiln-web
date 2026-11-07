@@ -31,7 +31,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
 } from "recharts";
 import { useTranslations } from "next-intl";
 import { useUser } from "@/components/user-provider";
@@ -305,11 +304,24 @@ export default function Dashboard() {
           <div className="grid gap-3 lg:grid-cols-7 items-stretch">
             {/* Bar chart — top tile products */}
             <Card className="lg:col-span-4 h-115 flex flex-col shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-              <CardHeader className="shrink-0">
-                <CardTitle>{t("topTileProducts.title")}</CardTitle>
-                <CardDescription>
-                  {t("topTileProducts.description")}
-                </CardDescription>
+              <CardHeader className="shrink-0 flex flex-row items-start justify-between gap-4">
+                <div className="space-y-1.5">
+                  <CardTitle>{t("topTileProducts.title")}</CardTitle>
+                  <CardDescription>
+                    {t("topTileProducts.description")}
+                  </CardDescription>
+                </div>
+                {/* Plain HTML legend: Recharts' <Legend> measures itself into the chart store and loops ("Maximum update depth") while the sidebar resizes. */}
+                <div className="flex shrink-0 items-center gap-3 pt-0.5 text-xs text-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <span className="size-2 rounded-full bg-(--chart-1)" />
+                    {t("topTileProducts.currentStock")}
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="size-2 rounded-full bg-(--chart-2) opacity-85" />
+                    {t("topTileProducts.totalSold")}
+                  </span>
+                </div>
               </CardHeader>
               <CardContent className="flex-1 min-h-0 pl-2">
                 <div className="h-full">
@@ -344,19 +356,6 @@ export default function Dashboard() {
                         }}
                         cursor={{ fill: "var(--muted)", opacity: 0.4 }}
                         formatter={(v, name) => [`${formatNumber(Number(v))} m²`, name]}
-                      />
-                      <Legend
-                        verticalAlign="top"
-                        align="right"
-                        height={32}
-                        iconType="circle"
-                        iconSize={8}
-                        wrapperStyle={{ fontSize: 12 }}
-                        formatter={(value) => (
-                          <span className="text-xs text-foreground">
-                            {value}
-                          </span>
-                        )}
                       />
                       <Bar
                         dataKey="stock"
