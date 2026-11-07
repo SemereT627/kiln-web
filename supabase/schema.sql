@@ -926,3 +926,42 @@ ALTER POLICY "Users can update own profile" ON user_profiles
 ALTER FUNCTION get_sales_day_summary(timestamptz, timestamptz, integer, integer)
   SET search_path = public;
 
+
+-- ===== 0014-seller-read-scope.sql =====
+
+ALTER VIEW vw_ceramics_inventory SET (security_invoker = false);
+REVOKE ALL ON vw_ceramics_inventory FROM anon, authenticated;
+GRANT SELECT ON vw_ceramics_inventory TO authenticated;
+
+DROP POLICY "Authenticated Read Sales" ON sales;
+CREATE POLICY "Read sales: viewers, or own sales" ON sales FOR SELECT TO authenticated
+USING (
+  (SELECT get_my_role()) = 'viewer'
+  OR sold_by = (SELECT auth.uid())
+  OR EXISTS (
+    SELECT 1 FROM order_items oi JOIN orders o ON o.id = oi.order_id
+    WHERE oi.sale_id = sales.id AND o.seller_id = (SELECT auth.uid())
+  )
+);
+
+DROP POLICY "Authenticated Read Stock" ON stock_entries;
+CREATE POLICY "Read stock entries: viewers" ON stock_entries FOR SELECT TO authenticated
+USING ((SELECT get_my_role()) = 'viewer');
+
+DROP POLICY "Authenticated Read Returns" ON returns;
+CREATE POLICY "Read returns: viewers, or own orders" ON returns FOR SELECT TO authenticated
+USING (
+  (SELECT get_my_role()) = 'viewer'
+  OR EXISTS (SELECT 1 FROM orders o WHERE o.id = returns.order_id AND o.seller_id = (SELECT auth.uid()))
+);
+
+DROP POLICY "Authenticated Read Return Items" ON return_items;
+CREATE POLICY "Read return items: viewers, or own orders" ON return_items FOR SELECT TO authenticated
+USING (
+  (SELECT get_my_role()) = 'viewer'
+  OR EXISTS (
+    SELECT 1 FROM returns r JOIN orders o ON o.id = r.order_id
+    WHERE r.id = return_items.return_id AND o.seller_id = (SELECT auth.uid())
+  )
+);
+
