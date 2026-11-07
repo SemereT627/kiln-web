@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   ScrollText,
   ClipboardCheck,
+  DatabaseBackup,
 } from "lucide-react";
 
 /**
@@ -62,6 +63,7 @@ export const orderApprovalsItem: NavItem = {
 export const adminItems: NavItem[] = [
   { titleKey: "users", href: "/admin/users", icon: ShieldCheck },
   { titleKey: "auditLogs", href: "/admin/audit-logs", icon: ScrollText },
+  { titleKey: "backups", href: "/admin/backups", icon: DatabaseBackup },
 ];
 
 const NAV_GROUPS: { groupKey: NavGroupKey; items: NavItem[] }[] = [

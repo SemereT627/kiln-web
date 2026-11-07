@@ -22,7 +22,9 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 RESEND_API_KEY=
 RESEND_FROM_EMAIL=          # e.g. "Kiln <noreply@yourdomain>" (verified Resend domain)
-NEXT_PUBLIC_SITE_URL=       # optional; base URL for links in emails (defaults to request origin)
+NEXT_PUBLIC_SITE_URL=       # optional; base URL for links in emails (defaults to the Vercel production domain)
+BLOB_READ_WRITE_TOKEN=      # private Vercel Blob store for backups (set by connecting the store in Vercel)
+CRON_SECRET=                # Vercel Cron sends it as a Bearer token to /api/cron/backup
 ```
 
 ## Architecture
@@ -94,6 +96,10 @@ React Query cache  →  UI components
 ```
 
 Frontend uses **TanStack React Query** for all data fetching/mutation. No Redux store is actively used despite the dependency.
+
+### Backups
+
+`lib/backup.ts`: Vercel Cron (`vercel.json`, daily 00:00 UTC) hits `/api/cron/backup`, which writes every public table as one gzipped JSON to a private Vercel Blob store (`backups/`, kept 30 days) and copies new product images once (`images/`). Admin page `/admin/backups`: back up now, download, and "Restore deleted" — inserts rows missing by id, never overwrites existing rows (undoes deletions, not edits). Auth accounts (`auth.users`) aren't backed up. Add new tables to `BACKUP_TABLES` in parent-before-child order.
 
 ### Ethiopian Calendar
 
