@@ -130,6 +130,15 @@ export async function runBackup() {
     contentType: "application/gzip",
   });
 
+  // Read it back and check every table's row count, so a backup that can't
+  // be opened is reported as a failure tonight, not discovered at restore time.
+  const check = await readBackup(pathname);
+  for (const table of BACKUP_TABLES) {
+    if (check.tables[table]?.length !== tables[table].length) {
+      throw new Error(`Backup ${pathname} failed verification (${table})`);
+    }
+  }
+
   const cutoff = Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000;
   const expired = (await listBlobPaths("backups/")).filter((b) => b.uploadedAt.getTime() < cutoff);
   if (expired.length > 0) await del(expired.map((b) => b.pathname));

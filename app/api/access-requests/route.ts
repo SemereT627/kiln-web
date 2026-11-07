@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/server";
 import { parseBody } from "@/lib/validate";
+import { getAdminEmails } from "@/lib/admin-emails";
 import {
   sendEmail,
   siteUrl,
@@ -56,18 +57,7 @@ export async function POST(request: Request) {
   }
 
   // Best-effort notifications — a mail failure doesn't undo the request.
-  const { data: admins } = await supabase
-    .from("user_profiles")
-    .select("id")
-    .eq("role", "admin");
-  const adminEmails = (
-    await Promise.all(
-      (admins ?? []).map(async (a) => {
-        const { data } = await supabase.auth.admin.getUserById(a.id);
-        return data?.user?.email ?? null;
-      }),
-    )
-  ).filter((e): e is string => !!e);
+  const adminEmails = await getAdminEmails();
 
   await Promise.all([
     sendEmail({ to: email, ...requestReceivedEmail(fullName) }),

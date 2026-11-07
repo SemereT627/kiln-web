@@ -123,6 +123,18 @@ function footnote(text: string) {
   return `<p style="margin:24px 0 0;font-size:13px;line-height:1.5;color:${C.muted};">${text}</p>`;
 }
 
+export function backupFailedEmail({ error, backupsUrl }: { error: string; backupsUrl: string }) {
+  return {
+    subject: "Kiln nightly backup failed",
+    html: layout(`
+      <p style="${P}">Tonight's automatic backup didn't complete:</p>
+      <p style="${P}font-family:monospace;font-size:13px;">${escapeHtml(error)}</p>
+      <p style="${P}margin-bottom:0;">Open Backups and click “Back up now”. If that fails too, check the Vercel logs.</p>
+      ${button(backupsUrl, "Open Backups")}`),
+    text: `Tonight's automatic Kiln backup didn't complete:\n\n${error}\n\nOpen Backups and click "Back up now": ${backupsUrl}`,
+  };
+}
+
 export function requestReceivedEmail(fullName: string) {
   const name = escapeHtml(fullName);
   return {

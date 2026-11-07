@@ -45,6 +45,7 @@ export default function BackupsPage() {
   const [restoreTarget, setRestoreTarget] = useState<Backup | null>(null);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [report, setReport] = useState<RestoreReport | null>(null);
+  const [openedAt] = useState(() => Date.now());
 
   const { data: backups, isLoading, error } = useQuery<Backup[]>({
     queryKey: backupsKey,
@@ -82,6 +83,9 @@ export default function BackupsPage() {
   });
 
   const busy = backupNow.isPending || restore.isPending;
+  // Nightly job + an hour of cron slack + margin: older than this means it's not running.
+  const stale =
+    !!backups?.length && openedAt - new Date(backups[0].uploadedAt).getTime() > 36 * 60 * 60 * 1000;
   const changedTables = report
     ? Object.entries(report.tables).filter(([, t]) => t.restored > 0 || t.failed > 0)
     : [];
@@ -100,6 +104,16 @@ export default function BackupsPage() {
           Back up now
         </Button>
       </div>
+
+      {stale && (
+        <div className="flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/8 px-3 py-2.5 text-sm text-amber-700 dark:text-amber-400">
+          <AlertCircle className="mt-0.5 size-4 shrink-0" />
+          <span>
+            The latest backup is from {formatDateTime(backups![0].uploadedAt)} — the nightly backup hasn&apos;t run since.
+            Click “Back up now”, and check the Vercel cron job.
+          </span>
+        </div>
+      )}
 
       {message && (
         <div
