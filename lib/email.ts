@@ -45,9 +45,15 @@ export async function sendEmail({
   }
 }
 
-/** Public base URL for links in emails. */
+/** Public base URL for links in emails. Never built from the request's Host
+ * header in production (a spoofed Host would put a foreign domain in invite
+ * links); VERCEL_PROJECT_PRODUCTION_URL is set by Vercel on every deploy. */
 export function siteUrl(request: Request) {
-  return (process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin).replace(/\/$/, "");
+  const production = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  return (
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (production ? `https://${production}` : new URL(request.url).origin)
+  ).replace(/\/$/, "");
 }
 
 // ── Templates ──────────────────────────────────────────────────────────

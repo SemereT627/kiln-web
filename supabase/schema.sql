@@ -907,3 +907,22 @@ CREATE POLICY "Writes need two-step sign-in (update)" ON return_request_items AS
 TO authenticated USING ((auth.jwt() ->> 'aal') = 'aal2');
 CREATE POLICY "Writes need two-step sign-in (delete)" ON return_request_items AS RESTRICTIVE FOR DELETE
 TO authenticated USING ((auth.jwt() ->> 'aal') = 'aal2');
+
+-- ===== 0013-security-hardening.sql =====
+
+ALTER TABLE sales ADD CONSTRAINT sales_price_at_sale_positive CHECK (price_at_sale > 0);
+ALTER TABLE order_items ADD CONSTRAINT order_items_price_at_sale_positive CHECK (price_at_sale > 0);
+
+CREATE POLICY "Reads need two-step sign-in" ON access_requests AS RESTRICTIVE FOR SELECT
+TO authenticated USING ((auth.jwt() ->> 'aal') = 'aal2');
+CREATE POLICY "Reads need two-step sign-in" ON audit_logs AS RESTRICTIVE FOR SELECT
+TO authenticated USING ((auth.jwt() ->> 'aal') = 'aal2');
+CREATE POLICY "Other profiles need two-step sign-in" ON user_profiles AS RESTRICTIVE FOR SELECT
+TO authenticated USING (id = auth.uid() OR (auth.jwt() ->> 'aal') = 'aal2');
+
+ALTER POLICY "Users can update own profile" ON user_profiles
+  WITH CHECK (id = auth.uid() AND role = get_my_role());
+
+ALTER FUNCTION get_sales_day_summary(timestamptz, timestamptz, integer, integer)
+  SET search_path = public;
+

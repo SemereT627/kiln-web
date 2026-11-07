@@ -51,11 +51,14 @@ export async function POST(request: Request) {
       .select("id, price_per_unit")
       .in("id", ceramicIds);
     const priceMap = new Map<string, number>(
-      (ceramics || []).map((c: { id: string; price_per_unit: number | null }) => [c.id, c.price_per_unit ?? 0]),
+      (ceramics || [])
+        .filter((c: { price_per_unit: number | null }) => Number(c.price_per_unit) > 0)
+        .map((c: { id: string; price_per_unit: number | null }) => [c.id, Number(c.price_per_unit)]),
     );
 
-    // Stale mobile catalog cache can reference a deleted/renamed ceramic —
-    // reject the whole order rather than silently inserting it at price 0.
+    // Stale mobile catalog cache can reference a deleted/renamed ceramic, or
+    // a product may have no price yet — reject the whole order rather than
+    // inserting it at price 0.
     if (ceramicIds.some((cid) => !priceMap.has(cid))) {
       results.push({ clientId: order.clientId, status: "rejected", reason: "invalid_ceramic" });
       continue;
@@ -84,8 +87,13 @@ export async function POST(request: Request) {
           .from("orders")
           .select("id")
           .eq("client_id", order.clientId)
-          .single();
-        results.push({ clientId: order.clientId, status: "synced", id: existing?.id ?? "" });
+          .eq("seller_id", seller.id)
+          .maybeSingle();
+        results.push(
+          existing
+            ? { clientId: order.clientId, status: "synced", id: existing.id }
+            : { clientId: order.clientId, status: "rejected", reason: "invalid_payload" },
+        );
         continue;
       }
       console.error("orders/sync insert order failed", order.clientId, orderError);
@@ -104,6 +112,9 @@ export async function POST(request: Request) {
 
     if (itemsError) {
       console.error("orders/sync insert order_items failed", order.clientId, itemsError);
+      // Remove the empty order, or the client's retry would hit the
+      // client_id unique index and be told "synced" for an order with no items.
+      await supabase.from("orders").delete().eq("id", newOrder.id);
       results.push({ clientId: order.clientId, status: "rejected", reason: "unknown_error" });
       continue;
     }

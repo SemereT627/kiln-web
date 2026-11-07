@@ -9,6 +9,8 @@ import {
   adminNewRequestEmail,
 } from "@/lib/email";
 
+const MAX_REQUESTS_PER_HOUR = 10;
+
 const requestSchema = z.object({
   fullName: z.string().trim().min(1, "Full name is required").max(100),
   email: z.string().trim().toLowerCase().email("Invalid email address"),
@@ -30,6 +32,17 @@ export async function POST(request: Request) {
   if (website) return NextResponse.json({ success: true });
 
   const supabase = await createServiceClient();
+
+  // Throttle before writing: past this many requests an hour, store nothing
+  // and send no email, so the form can't be used to spam inboxes from our
+  // verified Resend domain. Same success answer either way.
+  // shortcut: global (not per-IP) limit, move to Vercel Firewall rate limiting if real traffic ever hits it.
+  const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const { count: recent } = await supabase
+    .from("access_requests")
+    .select("id", { count: "exact", head: true })
+    .gte("created_at", since);
+  if ((recent ?? 0) >= MAX_REQUESTS_PER_HOUR) return NextResponse.json({ success: true });
 
   const { error } = await supabase
     .from("access_requests")

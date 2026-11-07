@@ -6,7 +6,6 @@ type SyncItem = {
   clientId: string;
   ceramicId: string;
   quantity: number;
-  priceAtSale?: number | null;
   soldAt: string;
 };
 
@@ -23,7 +22,13 @@ type SyncResult =
  * back as synced rather than an error. The existing `trg_check_sale_stock`
  * trigger enforces the oversell rule at insert time — a rejection there is
  * reported as `insufficient_stock` so the app can surface "Sync Failed".
+ *
+ * Price always comes from the catalog (a client-sent price is ignored), and
+ * `soldAt` must fall inside the offline window so sales can't be backdated
+ * into closed periods.
  */
+const MAX_OFFLINE_MS = 30 * 24 * 60 * 60 * 1000;
+const MAX_CLOCK_SKEW_MS = 5 * 60 * 1000;
 export async function POST(request: Request) {
   const seller = await requireSeller(request);
   if (!seller) {
@@ -37,7 +42,18 @@ export async function POST(request: Request) {
   const results: SyncResult[] = [];
 
   for (const item of items) {
-    if (!item.clientId || !item.ceramicId || !item.quantity || !item.soldAt) {
+    const soldAt = Date.parse(item.soldAt);
+    const now = Date.now();
+    if (
+      !item.clientId ||
+      !item.ceramicId ||
+      typeof item.quantity !== "number" ||
+      !Number.isFinite(item.quantity) ||
+      item.quantity <= 0 ||
+      !Number.isFinite(soldAt) ||
+      soldAt > now + MAX_CLOCK_SKEW_MS ||
+      soldAt < now - MAX_OFFLINE_MS
+    ) {
       results.push({
         clientId: item.clientId ?? "unknown",
         status: "rejected",
@@ -46,21 +62,18 @@ export async function POST(request: Request) {
       continue;
     }
 
-    let priceAtSale = item.priceAtSale ?? null;
-    if (priceAtSale === null) {
-      const { data: ceramic } = await supabase
-        .from("vw_ceramics_inventory")
-        .select("price_per_unit")
-        .eq("id", item.ceramicId)
-        .single();
-      // Stale mobile catalog cache can reference a deleted/renamed ceramic —
-      // reject rather than silently inserting the sale at price 0.
-      if (!ceramic) {
-        results.push({ clientId: item.clientId, status: "rejected", reason: "invalid_ceramic" });
-        continue;
-      }
-      priceAtSale = ceramic.price_per_unit ?? 0;
+    const { data: ceramic } = await supabase
+      .from("vw_ceramics_inventory")
+      .select("price_per_unit")
+      .eq("id", item.ceramicId)
+      .single();
+    // Stale mobile catalog cache can reference a deleted/renamed ceramic, or
+    // the product may have no price yet — reject rather than insert at 0.
+    if (!ceramic || !(Number(ceramic.price_per_unit) > 0)) {
+      results.push({ clientId: item.clientId, status: "rejected", reason: "invalid_ceramic" });
+      continue;
     }
+    const priceAtSale = Number(ceramic.price_per_unit);
 
     const { error } = await supabase.from("sales").insert([
       {
@@ -68,7 +81,7 @@ export async function POST(request: Request) {
         quantity: item.quantity,
         price_at_sale: priceAtSale,
         sold_by: seller.id,
-        sold_at: item.soldAt,
+        sold_at: new Date(soldAt).toISOString(),
         client_id: item.clientId,
       },
     ]);

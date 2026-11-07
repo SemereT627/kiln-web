@@ -25,6 +25,9 @@ export async function POST(request: Request) {
     if (!Array.isArray(rows) || rows.length === 0) {
       return NextResponse.json({ error: "No rows provided" }, { status: 400 });
     }
+    if (rows.length > 5000) {
+      return NextResponse.json({ error: "Import at most 5,000 rows at a time" }, { status: 400 });
+    }
 
     const supabase = await createServiceClient();
 

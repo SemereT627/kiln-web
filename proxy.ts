@@ -75,10 +75,13 @@ export async function proxy(request: NextRequest) {
   // the authenticator-code step (aal2). /mfa is where that happens (enrol or
   // verify); /set-password comes first for invited users, who have no
   // authenticator yet. getAuthenticatorAssuranceLevel reads the session JWT
-  // locally — no extra network round-trip.
+  // locally — no extra network round-trip. The /set-password exemption only
+  // applies while the user has no verified authenticator (nextLevel aal1),
+  // so a password alone can't be used to change the password.
   const onMfa = strippedPath.startsWith("/mfa");
-  const mfaExempt = onMfa || strippedPath.startsWith("/set-password");
   const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  const mfaExempt =
+    onMfa || (strippedPath.startsWith("/set-password") && aal?.nextLevel !== "aal2");
   const verified = aal?.currentLevel === "aal2";
   if (!verified && !mfaExempt) {
     const mfaUrl = request.nextUrl.clone();

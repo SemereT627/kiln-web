@@ -124,13 +124,22 @@ export async function GET(request: Request) {
   }
 }
 
+class InvalidSaleError extends Error {}
+
+function isValidQuantity(q: unknown) {
+  return typeof q === "number" && Number.isFinite(q) && q > 0;
+}
+
 async function resolvePrice(
   supabase: Awaited<ReturnType<typeof createServiceClient>>,
   ceramicId: string,
   priceAtSale: unknown,
 ) {
   if (priceAtSale !== undefined && priceAtSale !== null) {
-    return parseFloat(priceAtSale as string);
+    // Sellers may negotiate a price on the web New Sale form, but never 0, negative or NaN.
+    const price = Number(priceAtSale);
+    if (!Number.isFinite(price) || price <= 0) throw new InvalidSaleError("Price must be greater than 0");
+    return price;
   }
   const { data: ceramic } = await supabase
     .from("vw_ceramics_inventory")
@@ -170,7 +179,7 @@ export async function POST(request: Request) {
       }[] = [];
 
       for (const item of items) {
-        if (!item.ceramicId || !item.quantity) {
+        if (!item.ceramicId || !isValidQuantity(item.quantity)) {
           results.push({
             ceramicId: item.ceramicId,
             success: false,
@@ -179,7 +188,14 @@ export async function POST(request: Request) {
           continue;
         }
 
-        const priceAtSale = await resolvePrice(supabase, item.ceramicId, item.priceAtSale);
+        let priceAtSale: number;
+        try {
+          priceAtSale = await resolvePrice(supabase, item.ceramicId, item.priceAtSale);
+        } catch (e) {
+          if (!(e instanceof InvalidSaleError)) throw e;
+          results.push({ ceramicId: item.ceramicId, success: false, error: e.message });
+          continue;
+        }
 
         const { data, error } = await supabase
           .from("sales")
@@ -218,7 +234,7 @@ export async function POST(request: Request) {
 
     const { ceramicId, quantity } = body;
 
-    if (!ceramicId || !quantity) {
+    if (!ceramicId || !isValidQuantity(quantity)) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -256,9 +272,10 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("POST Sale Error:", error);
     const isOversell = error.message?.includes("exceeds current stock");
+    const isInvalid = error instanceof InvalidSaleError;
     return NextResponse.json(
       { error: error.message },
-      { status: isOversell ? 400 : 500 }
+      { status: isOversell || isInvalid ? 400 : 500 }
     );
   }
 }

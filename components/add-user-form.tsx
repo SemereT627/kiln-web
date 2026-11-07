@@ -147,9 +147,9 @@ export function AddUserForm({ open, onOpenChange, onSuccess }: AddUserFormProps)
                   name="new-user-password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Minimum 6 characters"
+                  placeholder="Minimum 8 characters"
                   autoComplete="new-password"
-                  minLength={6}
+                  minLength={8}
                   required
                 />
               </div>
@@ -197,7 +197,7 @@ export function AddUserForm({ open, onOpenChange, onSuccess }: AddUserFormProps)
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !email || password.length < 6}>
+            <Button type="submit" disabled={loading || !email || password.length < 8}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {loading ? "Creating…" : "Create User"}
             </Button>
