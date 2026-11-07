@@ -10,7 +10,7 @@ import { ThemeProvider } from "next-themes";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { cookies } from "next/headers";
-import { TRUSTED_DEVICE_COOKIE, isTrustedDevice } from "@/lib/device-trust";
+import { TRUSTED_DEVICE_COOKIE, trustedUntil } from "@/lib/device-trust";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserProvider } from "@/components/user-provider";
 import { QueryProvider } from "@/components/query-provider";
@@ -64,7 +64,7 @@ export default async function RootLayout({
   const messages = await getMessages();
   // httpOnly, so only the server can read it — passed down to switch off the
   // inactivity sign-out on a device the user chose to stay signed in on.
-  const trustedDevice = isTrustedDevice((await cookies()).get(TRUSTED_DEVICE_COOKIE)?.value);
+  const trustedDeviceUntil = trustedUntil((await cookies()).get(TRUSTED_DEVICE_COOKIE)?.value);
 
   return (
     <html
@@ -82,7 +82,7 @@ export default async function RootLayout({
           >
             <QueryProvider>
               <TooltipProvider>
-                <UserProvider trustedDevice={trustedDevice}>
+                <UserProvider trustedUntil={trustedDeviceUntil}>
                   {children}
                   <Toaster richColors closeButton position="top-right" />
                 </UserProvider>

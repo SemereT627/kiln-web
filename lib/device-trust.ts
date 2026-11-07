@@ -5,6 +5,8 @@
 export const TRUSTED_DEVICE_COOKIE = "trusted_until";
 export const TRUSTED_DEVICE_DAYS = 30;
 
-export function isTrustedDevice(value: string | undefined, now = Date.now()): boolean {
-  return Number(value) > now;
+/** Expiry (ms) while the device is trusted, else null. */
+export function trustedUntil(value: string | undefined, now = Date.now()): number | null {
+  const until = Number(value);
+  return until > now ? until : null;
 }

@@ -35,6 +35,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { OtpInput } from "@/components/otp-input";
+import { useUserActions } from "@/components/user-provider";
+import { TRUSTED_DEVICE_DAYS } from "@/lib/device-trust";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { formatDate, formatDateTime } from "@/lib/utils";
 
@@ -116,6 +120,10 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
 
+  const router = useRouter();
+  const { trustedUntil } = useUserActions();
+  const [savingTrust, setSavingTrust] = useState(false);
+
   const [replaceOpen, setReplaceOpen] = useState(false);
   const [signOutOthersOpen, setSignOutOthersOpen] = useState(false);
 
@@ -178,6 +186,23 @@ export default function ProfilePage() {
     toast.success("Password updated");
     setNewPassword("");
     setConfirmPassword("");
+  }
+
+  async function setTrust(trust: boolean) {
+    setSavingTrust(true);
+    const res = await fetch("/api/auth/device-trust", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ trust }),
+    }).catch(() => null);
+    if (res?.ok) {
+      // Re-renders the root layout, which reads the new cookie.
+      router.refresh();
+      toast.success(trust ? `Kept signed in on this device for ${TRUSTED_DEVICE_DAYS} days` : "This device signs out after inactivity again");
+    } else {
+      toast.error("Couldn't update this device");
+    }
+    setSavingTrust(false);
   }
 
   async function signOut(scope: "local" | "others") {
@@ -339,12 +364,20 @@ export default function ProfilePage() {
                 <div>
                   {aal === "aal2" ? "Verified with your authenticator" : "Not yet verified with your authenticator"}
                 </div>
-                <div>Signs out automatically after {INACTIVITY_MINUTES} minutes of inactivity</div>
+                <div>
+                  {trustedUntil
+                    ? `Kept signed in until ${formatDate(new Date(trustedUntil))} — no inactivity sign-out`
+                    : `Signs out automatically after ${INACTIVITY_MINUTES} minutes of inactivity`}
+                </div>
               </dl>
             </div>
           </div>
 
           <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setTrust(!trustedUntil)} disabled={savingTrust}>
+              {savingTrust && <Loader2 className="size-4 animate-spin" />}
+              {trustedUntil ? "Stop keeping me signed in" : `Keep me signed in for ${TRUSTED_DEVICE_DAYS} days`}
+            </Button>
             <Button variant="outline" onClick={() => setSignOutOthersOpen(true)}>
               Sign out other devices
             </Button>
@@ -482,16 +515,15 @@ function ReplaceAuthenticatorDialog({
             </p>
             <div className="space-y-2">
               <Label htmlFor="newCode">6-digit code</Label>
-              <Input
+              <OtpInput
                 id="newCode"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
                 value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                className="h-11 text-center font-mono text-lg tracking-[0.4em]"
+                onChange={(v) => {
+                  setCode(v);
+                  setError(null);
+                }}
+                invalid={!!error}
                 autoFocus
-                required
               />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}

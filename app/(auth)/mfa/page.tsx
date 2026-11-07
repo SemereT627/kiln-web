@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { AuthShell } from "@/components/auth-shell";
-import { cn } from "@/lib/utils";
+import { OtpInput } from "@/components/otp-input";
 import { TRUSTED_DEVICE_DAYS } from "@/lib/device-trust";
 import { AlertCircle, Loader2 } from "lucide-react";
 
@@ -144,49 +144,16 @@ export default function MfaPage() {
             <Label htmlFor="code" className="text-sm font-medium">
               6-digit code
             </Label>
-            {/* One real input (paste, autofill, screen readers) drawn as 6 boxes. */}
-            <div className="group relative">
-              <input
-                id="code"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                maxLength={6}
-                value={code}
-                onChange={(e) => {
-                  setCode(e.target.value.replace(/\D/g, "").slice(0, 6));
-                  setError(null);
-                }}
-                autoFocus
-                required
-                aria-invalid={!!error}
-                className="absolute inset-0 h-full w-full cursor-text opacity-0"
-              />
-              <div className="pointer-events-none grid grid-cols-6 gap-2" aria-hidden="true">
-                {Array.from({ length: 6 }, (_, i) => {
-                  const active = i === code.length;
-                  return (
-                    <div
-                      key={i}
-                      className={cn(
-                        "flex h-12 items-center justify-center rounded-lg border bg-background font-mono text-xl font-semibold transition-colors",
-                        error
-                          ? "border-destructive"
-                          : code[i]
-                            ? "border-primary/60"
-                            : active
-                              ? "border-input group-focus-within:border-primary group-focus-within:ring-2 group-focus-within:ring-primary/30"
-                              : "border-input",
-                      )}
-                    >
-                      {code[i] ??
-                        (active && (
-                          <span className="hidden h-6 w-px animate-pulse bg-foreground group-focus-within:block" />
-                        ))}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <OtpInput
+              id="code"
+              value={code}
+              onChange={(v) => {
+                setCode(v);
+                setError(null);
+              }}
+              invalid={!!error}
+              autoFocus
+            />
           </div>
 
           <label className="flex select-none items-start gap-2.5 text-sm">

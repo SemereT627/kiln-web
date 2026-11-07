@@ -41,6 +41,8 @@ type UserContextType = {
   isLoading: boolean;
   updateLocale: (locale: string) => Promise<void>;
   refresh: () => Promise<void>;
+  /** "Keep me signed in" expiry (ms) on this browser, or null. */
+  trustedUntil: number | null;
 };
 
 const UserContext = createContext<UserContextType>({
@@ -48,6 +50,7 @@ const UserContext = createContext<UserContextType>({
   isLoading: true,
   updateLocale: async () => {},
   refresh: async () => {},
+  trustedUntil: null,
 });
 
 export function useUser() {
@@ -65,11 +68,11 @@ export function useUserActions() {
 
 export function UserProvider({
   children,
-  trustedDevice = false,
+  trustedUntil = null,
 }: {
   children: ReactNode;
   /** "Keep me signed in" was ticked at the code step: no inactivity sign-out. */
-  trustedDevice?: boolean;
+  trustedUntil?: number | null;
 }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -180,7 +183,7 @@ export function UserProvider({
   }
 
   // Activate session-timeout tracking only while a user is logged in.
-  useSessionTimeout(profile !== null && !trustedDevice);
+  useSessionTimeout(profile !== null && trustedUntil === null);
 
   return (
     <UserContext.Provider
@@ -190,6 +193,7 @@ export function UserProvider({
         updateLocale,
         // Expose a silent refresh so callers don't trigger the skeleton.
         refresh: () => load(false),
+        trustedUntil,
       }}
     >
       {children}
