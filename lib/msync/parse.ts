@@ -19,7 +19,7 @@ type Parser = (sender: string, body: string) => Parsed | null;
  * forward. Sent to phones on pairing and every heartbeat, so adding a bank
  * here reaches them within ~15 minutes. Everything else stays on the phone.
  */
-export const BANK_SENDERS: string[] = ["Awash Bank", "AwashBank"];
+export const BANK_SENDERS: string[] = ["CBE", "Awash Bank", "AwashBank"];
 
 const amount = (s: string) => Number(s.replace(/,/g, ""));
 
