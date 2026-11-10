@@ -101,6 +101,10 @@ Frontend uses **TanStack React Query** for all data fetching/mutation. No Redux 
 
 `lib/backup.ts`: Vercel Cron (`vercel.json`, daily 00:00 UTC) hits `/api/cron/backup`, which writes every public table as one gzipped JSON to a private Vercel Blob store (`backups/`, kept 30 days) and copies new product images once (`images/`). Admin page `/admin/backups`: back up now, download, and "Restore deleted" — inserts rows missing by id, never overwrites existing rows (undoes deletions, not edits). Auth accounts (`auth.users`) aren't backed up. Add new tables to `BACKUP_TABLES` in parent-before-child order.
 
+### mSync (bank SMS)
+
+Paired Android phones forward bank SMS to `/api/msync/v1/*`; admins see them on `/admin/payments`. Self-contained so it can become its own service — read `MSYNC.md` before touching `lib/msync` (ESLint enforces the import boundary).
+
 ### Ethiopian Calendar
 
 `lib/ethiopian-calendar.ts` + `ethiopian-date` package handle ET↔Gregorian conversion. Used in `POST /api/sales/import` for batch imports with ET dates.

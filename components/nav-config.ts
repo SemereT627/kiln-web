@@ -11,6 +11,7 @@ import {
   ScrollText,
   ClipboardCheck,
   DatabaseBackup,
+  Landmark,
 } from "lucide-react";
 
 /**
@@ -60,6 +61,13 @@ export const orderApprovalsItem: NavItem = {
   icon: ClipboardCheck,
 };
 
+/** Bank SMS forwarded by mSync phones (admin-only, under /admin). */
+export const paymentsItem: NavItem = {
+  titleKey: "payments",
+  href: "/admin/payments",
+  icon: Landmark,
+};
+
 export const adminItems: NavItem[] = [
   { titleKey: "users", href: "/admin/users", icon: ShieldCheck },
   { titleKey: "auditLogs", href: "/admin/audit-logs", icon: ScrollText },
@@ -69,7 +77,7 @@ export const adminItems: NavItem[] = [
 const NAV_GROUPS: { groupKey: NavGroupKey; items: NavItem[] }[] = [
   { groupKey: "overview", items: [...overviewItems, analyticsItem] },
   { groupKey: "catalog", items: catalogItems },
-  { groupKey: "sales", items: [...salesItems, orderApprovalsItem] },
+  { groupKey: "sales", items: [...salesItems, orderApprovalsItem, paymentsItem] },
   { groupKey: "administration", items: adminItems },
 ];
 

@@ -30,6 +30,8 @@ export const BACKUP_TABLES = [
   "return_request_items",
   "access_requests",
   "audit_logs",
+  "msync_devices",
+  "msync_messages",
 ] as const;
 
 const IMAGE_BUCKET = "ceramic-images";

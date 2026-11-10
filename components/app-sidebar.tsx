@@ -30,6 +30,7 @@ import {
   catalogItems,
   salesItems,
   orderApprovalsItem,
+  paymentsItem,
   adminItems,
   findNavTrail,
 } from "@/components/nav-config";
@@ -219,6 +220,7 @@ export function AppSidebar() {
               ? [
                   ...salesItems,
                   { ...orderApprovalsItem, badge: pendingOrderCount },
+                  paymentsItem,
                 ]
               : salesItems
           }
