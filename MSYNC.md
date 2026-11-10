@@ -37,6 +37,9 @@ All JSON over HTTPS. Phones get the server URL from the person pairing them.
 - `POST /api/msync/v1/heartbeat` with the key `{ appVersion?, queued? }` →
   `{ ok, label, senders }`. Every ~15 min; the dashboard flags a phone silent >40 min.
 
+- `POST /api/msync/v1/unpair` with the key → `{ ok }`. The phone's Disconnect;
+  revokes the key and removes it from the dashboard.
+
 Keys are `msk_` + 32 random bytes; only their SHA-256 is stored. Removing a
 phone in the dashboard revokes it immediately.
 
