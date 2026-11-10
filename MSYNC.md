@@ -45,7 +45,9 @@ phone in the dashboard revokes it immediately.
 Phones send raw text from bank senders only; the sender list
 (`BANK_SENDERS` in `parse.ts`) reaches phones on pairing and every heartbeat. `lib/msync/parse.ts` holds one
 parser per bank (sender id + text → amount, payer, reference). Unrecognised
-messages are stored as `unparsed` and shown with their raw text. Adding or
+messages are stored as `unparsed` and shown with their raw text. Parsers so far:
+CBE, Awash. After changing one, run `node lib/msync/parse.check.ts` (samples
+keep each bank's exact wording with fake names and numbers). Adding or
 fixing a bank never needs a phone update.
 
 ## Splitting into its own service
