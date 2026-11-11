@@ -25,6 +25,8 @@ RESEND_FROM_EMAIL=          # e.g. "Kiln <noreply@yourdomain>" (verified Resend 
 NEXT_PUBLIC_SITE_URL=       # optional; base URL for links in emails (defaults to the Vercel production domain)
 BLOB_READ_WRITE_TOKEN=      # private Vercel Blob store for backups (set by connecting the store in Vercel)
 CRON_SECRET=                # Vercel Cron sends it as a Bearer token to /api/cron/backup
+MSYNC_URL=                  # https://msync.semere.app (bank SMS payments service)
+MSYNC_API_KEY=              # Kiln project key from the mSync dashboard (server-side only)
 ```
 
 ## Architecture
@@ -103,7 +105,7 @@ Frontend uses **TanStack React Query** for all data fetching/mutation. No Redux 
 
 ### mSync (bank SMS)
 
-Paired Android phones forward bank SMS to `/api/msync/v1/*`; admins see them on `/admin/payments`. Self-contained so it can become its own service — read `MSYNC.md` before touching `lib/msync` (ESLint enforces the import boundary).
+Bank SMS from the shop phones is handled by the separate mSync service (https://msync.semere.app, repo `msync-web`). Kiln only reads its own project's payments and phones through `lib/msync/client.ts` (`MSYNC_URL` + `MSYNC_API_KEY`, server-side); `/admin/payments` polls it every 30 s. Phones are added and removed on the mSync dashboard, not here.
 
 ### Ethiopian Calendar
 

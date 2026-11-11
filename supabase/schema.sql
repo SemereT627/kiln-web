@@ -1024,3 +1024,10 @@ USING ((SELECT get_my_role()) = 'admin' AND (auth.jwt() ->> 'aal') = 'aal2');
 -- Live list on the Payments page.
 ALTER PUBLICATION supabase_realtime ADD TABLE msync_messages;
 
+
+
+-- ===== 0016-drop-msync.sql =====
+
+-- mSync moved to its own service (msync-web); the old tables are no longer used.
+DROP TABLE IF EXISTS msync_messages;
+DROP TABLE IF EXISTS msync_devices;
