@@ -1,31 +1,19 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Landmark, Loader2, Plus, Smartphone, Trash2 } from "lucide-react";
+import { ExternalLink, Landmark, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ConfirmDialog } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
-import { createClient } from "@/lib/supabase/client";
-import { subscribeToPayments } from "@/lib/msync/live";
 import type { Payment, PhoneStatus } from "@/lib/msync/client";
 import { formatDateTime, formatNumber } from "@/lib/utils";
 
 const paymentsKey = ["admin", "msync", "payments"];
 const phonesKey = ["admin", "msync", "phones"];
+const MSYNC_DASHBOARD = "https://msync.semere.app";
 // A phone checks in every ~15 minutes; past this it's probably not forwarding.
 const OFFLINE_AFTER_MS = 40 * 60 * 1000;
 
@@ -37,69 +25,27 @@ async function getJson<T>(url: string): Promise<T> {
 }
 
 export default function PaymentsPage() {
-  const queryClient = useQueryClient();
-  const channelId = useId();
   const [openedAt] = useState(() => Date.now());
-  const [addOpen, setAddOpen] = useState(false);
-  const [label, setLabel] = useState("");
-  const [pairing, setPairing] = useState<{ code: string; expiresAt: string } | null>(null);
-  const [removeTarget, setRemoveTarget] = useState<PhoneStatus | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const seen = useRef<Set<string> | null>(null);
 
-  const payments = useQuery({ queryKey: paymentsKey, queryFn: () => getJson<Payment[]>("/api/admin/msync/payments") });
+  // mSync has no realtime: poll, and toast when a new message shows up.
+  const payments = useQuery({
+    queryKey: paymentsKey,
+    queryFn: () => getJson<Payment[]>("/api/admin/msync/payments"),
+    refetchInterval: 30_000,
+  });
   const phones = useQuery({
     queryKey: phonesKey,
     queryFn: () => getJson<PhoneStatus[]>("/api/admin/msync/phones"),
     refetchInterval: 60_000,
   });
 
-  useEffect(
-    () =>
-      subscribeToPayments(createClient(), `msync-payments-${channelId}`, () => {
-        queryClient.invalidateQueries({ queryKey: paymentsKey });
-        queryClient.invalidateQueries({ queryKey: phonesKey });
-        toast.info("Bank message received");
-      }),
-    [queryClient, channelId],
-  );
-
-  const addPhone = useMutation({
-    mutationFn: async () => {
-      const res = await fetch("/api/admin/msync/phones", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Couldn't create a code");
-      return json as { code: string; expiresAt: string };
-    },
-    onSuccess: (p) => {
-      setPairing(p);
-      queryClient.invalidateQueries({ queryKey: phonesKey });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const removePhone = useMutation({
-    mutationFn: async (id: string) => {
-      const res = await fetch(`/api/admin/msync/phones/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Couldn't remove the phone");
-    },
-    onSuccess: () => {
-      toast.success("Phone removed — it can no longer send messages");
-      queryClient.invalidateQueries({ queryKey: phonesKey });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  function closeAdd(open: boolean) {
-    setAddOpen(open);
-    if (!open) {
-      setLabel("");
-      setPairing(null);
-    }
-  }
+  useEffect(() => {
+    if (!payments.data) return;
+    if (seen.current && payments.data.some((m) => !seen.current!.has(m.id))) toast.info("Bank message received");
+    seen.current = new Set(payments.data.map((m) => m.id));
+  }, [payments.data]);
 
   return (
     <div className="flex flex-col gap-4 h-full overflow-hidden animate-in fade-in duration-500">
@@ -110,9 +56,11 @@ export default function PaymentsPage() {
             Bank messages forwarded by the shop phones running mSync. A signal to cross-check — the bank statement is the final word.
           </p>
         </div>
-        <Button onClick={() => setAddOpen(true)}>
-          <Plus className="size-4" />
-          Add phone
+        <Button asChild variant="outline">
+          <a href={MSYNC_DASHBOARD} target="_blank" rel="noreferrer">
+            <ExternalLink className="size-4" />
+            Manage phones
+          </a>
         </Button>
       </div>
 
@@ -120,7 +68,7 @@ export default function PaymentsPage() {
         {phones.isLoading ? (
           <Skeleton className="h-14 w-64" />
         ) : !phones.data?.length ? (
-          <p className="text-sm text-muted-foreground">No phones connected yet.</p>
+          <p className="text-sm text-muted-foreground">No phones connected yet. Add one on the mSync dashboard.</p>
         ) : (
           phones.data.map((p) => {
             const online = p.lastSeenAt && openedAt - new Date(p.lastSeenAt).getTime() < OFFLINE_AFTER_MS;
@@ -148,9 +96,6 @@ export default function PaymentsPage() {
                         : "Paired, not seen yet"}
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" className="size-7" aria-label={`Remove ${p.label}`} onClick={() => setRemoveTarget(p)}>
-                  <Trash2 className="size-3.5" />
-                </Button>
               </div>
             );
           })
@@ -204,64 +149,6 @@ export default function PaymentsPage() {
         )}
       </div>
 
-      <Dialog open={addOpen} onOpenChange={closeAdd}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{pairing ? "Enter this in mSync" : "Add a phone"}</DialogTitle>
-            <DialogDescription>
-              {pairing
-                ? "Open mSync on the phone and enter the server and code below. The code works once and expires in 10 minutes."
-                : "Give the phone a name you'll recognise, e.g. “Owner phone”."}
-            </DialogDescription>
-          </DialogHeader>
-          {pairing ? (
-            <div className="space-y-3 rounded-lg border bg-muted/30 p-4 text-center">
-              <div>
-                <div className="text-xs text-muted-foreground">Server</div>
-                <div className="font-mono text-sm select-all">{typeof window !== "undefined" ? window.location.origin : ""}</div>
-              </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Code</div>
-                <div className="font-mono text-3xl font-semibold tracking-widest select-all">{pairing.code}</div>
-              </div>
-            </div>
-          ) : (
-            <form
-              className="space-y-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                addPhone.mutate();
-              }}
-            >
-              <Label htmlFor="phoneLabel">Phone name</Label>
-              <Input id="phoneLabel" value={label} onChange={(e) => setLabel(e.target.value)} maxLength={40} autoFocus />
-            </form>
-          )}
-          <DialogFooter>
-            {pairing ? (
-              <Button onClick={() => closeAdd(false)}>Done</Button>
-            ) : (
-              <Button onClick={() => addPhone.mutate()} disabled={!label.trim() || addPhone.isPending}>
-                {addPhone.isPending && <Loader2 className="size-4 animate-spin" />}
-                Get pairing code
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <ConfirmDialog
-        open={removeTarget !== null}
-        onOpenChange={(open) => !open && setRemoveTarget(null)}
-        title={`Remove ${removeTarget?.label ?? "phone"}?`}
-        description="Its key stops working immediately and it can no longer send messages. Messages it already sent stay. You can pair it again with a new code."
-        confirmLabel="Remove"
-        destructive
-        onConfirm={() => {
-          if (removeTarget) removePhone.mutate(removeTarget.id);
-          setRemoveTarget(null);
-        }}
-      />
     </div>
   );
 }
