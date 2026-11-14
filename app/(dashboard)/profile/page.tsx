@@ -20,13 +20,6 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -49,7 +42,6 @@ const INACTIVITY_MINUTES = 30;
 interface Profile {
   full_name: string | null;
   role: string;
-  locale: string | null;
   created_at: string;
 }
 
@@ -113,7 +105,6 @@ export default function ProfilePage() {
   const [aal, setAal] = useState<string | null>(null);
 
   const [fullName, setFullName] = useState("");
-  const [locale, setLocale] = useState("en-US");
   const [savingProfile, setSavingProfile] = useState(false);
 
   const [newPassword, setNewPassword] = useState("");
@@ -145,13 +136,12 @@ export default function ProfilePage() {
       setUser(user);
       const { data } = await supabase
         .from("user_profiles")
-        .select("full_name, role, locale, created_at")
+        .select("full_name, role, created_at")
         .eq("id", user.id)
         .single();
       if (data) {
         setProfile(data);
         setFullName(data.full_name ?? "");
-        setLocale(data.locale ?? "en-US");
       }
       await loadFactors();
     })();
@@ -163,7 +153,7 @@ export default function ProfilePage() {
     setSavingProfile(true);
     const { error } = await supabase
       .from("user_profiles")
-      .update({ full_name: fullName.trim(), locale })
+      .update({ full_name: fullName.trim() })
       .eq("id", user.id);
     setSavingProfile(false);
     if (error) toast.error(error.message);
@@ -250,7 +240,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <Section icon={UserRound} title="Personal info" description="How your name appears to the team, and your language.">
+      <Section icon={UserRound} title="Personal info" description="How your name appears to the team.">
         <form onSubmit={saveProfile} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="fullName">Full name</Label>
@@ -266,18 +256,6 @@ export default function ProfilePage() {
             <Label htmlFor="email">Email</Label>
             <Input id="email" value={user.email ?? ""} disabled readOnly />
             <p className="text-xs text-muted-foreground">Ask an administrator to change your email.</p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="locale">Language</Label>
-            <Select value={locale} onValueChange={setLocale}>
-              <SelectTrigger id="locale" className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="en-US">English</SelectItem>
-                <SelectItem value="am-ET">Amharic (አማርኛ)</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
           <Button type="submit" disabled={savingProfile}>
             {savingProfile && <Loader2 className="size-4 animate-spin" />}
