@@ -12,6 +12,12 @@ import {
   TopbarClock,
 } from "@/components/dashboard/topbar-greeting";
 import { TopbarBreadcrumb } from "@/components/topbar-breadcrumb";
+import { Lexend } from "next/font/google";
+
+// Trial: Lexend for the dashboard only. Swaps the body font variable on :root
+// (not a wrapper) so dialogs and toasts, which portal to <body>, use it too.
+// Rollback = delete these lines and the <style> below.
+const lexend = Lexend({ subsets: ["latin"] });
 
 export default function DashboardLayout({
   children,
@@ -20,6 +26,7 @@ export default function DashboardLayout({
 }) {
   return (
     <SidebarProvider>
+      <style>{`:root { --font-body: ${lexend.style.fontFamily}; }`}</style>
       <div className="flex h-svh w-full overflow-hidden">
         <AppSidebar />
         <SidebarInset className="flex flex-col flex-1 overflow-hidden">
