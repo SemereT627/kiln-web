@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 /**
  * 6-digit code drawn as 6 boxes over one real input, so paste, SMS/password
  * manager autofill (autoComplete="one-time-code") and screen readers all
- * behave like a normal text field.
+ * behave like a normal text field. Submits its form once all 6 digits are in.
  */
 export function OtpInput({
   id,
@@ -26,9 +26,16 @@ export function OtpInput({
         id={id}
         inputMode="numeric"
         autoComplete="one-time-code"
-        maxLength={6}
+        // No maxLength: a pasted "228 400" or "228-400" must reach the digit filter whole.
         value={value}
-        onChange={(e) => onChange(e.target.value.replace(/\D/g, "").slice(0, 6))}
+        onChange={(e) => {
+          const next = e.target.value.replace(/\D/g, "").slice(0, 6);
+          onChange(next);
+          // Sixth digit typed or pasted: submit the form. Deferred so the
+          // form's handler runs after React has the new value.
+          const form = e.target.form;
+          if (next.length === 6 && value.length < 6 && form) setTimeout(() => form.requestSubmit());
+        }}
         autoFocus={autoFocus}
         required
         aria-invalid={invalid}
