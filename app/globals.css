@@ -242,3 +242,35 @@
     animation: none;
   }
 }
+
+/* Theme toggle: circular reveal from the button (components/theme-toggle.tsx
+   sets --vt-x/--vt-y/--vt-r before startViewTransition). Declared in CSS so it
+   starts in the same frame the snapshot is taken. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  animation: none;
+  z-index: 1;
+}
+::view-transition-new(root) {
+  animation: vt-reveal-grow 550ms cubic-bezier(0.65, 0, 0.35, 1);
+  z-index: 2;
+}
+:root.vt-reverse::view-transition-old(root) {
+  animation: vt-reveal-shrink 550ms cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  z-index: 2;
+}
+:root.vt-reverse::view-transition-new(root) {
+  animation: none;
+  z-index: 1;
+}
+@keyframes vt-reveal-grow {
+  from { clip-path: circle(0px at var(--vt-x) var(--vt-y)); }
+  to { clip-path: circle(var(--vt-r) at var(--vt-x) var(--vt-y)); }
+}
+@keyframes vt-reveal-shrink {
+  from { clip-path: circle(var(--vt-r) at var(--vt-x) var(--vt-y)); }
+  to { clip-path: circle(0px at var(--vt-x) var(--vt-y)); }
+}
