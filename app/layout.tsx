@@ -12,7 +12,8 @@ import { getLocale, getMessages } from "next-intl/server";
 import { cookies } from "next/headers";
 import { TRUSTED_DEVICE_COOKIE, trustedUntil } from "@/lib/device-trust";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { UserProvider } from "@/components/user-provider";
+import { UserProvider, type UserProfile } from "@/components/user-provider";
+import { createClient } from "@/lib/supabase/server";
 import { QueryProvider } from "@/components/query-provider";
 import { Toaster } from "sonner";
 
@@ -55,6 +56,22 @@ export const metadata: Metadata = {
   },
 };
 
+/** Signed-in user's profile for the first paint (null when signed out). */
+async function loadInitialUser(): Promise<UserProfile | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data } = await supabase
+    .from("user_profiles")
+    .select("full_name, role, locale")
+    .eq("id", user.id)
+    .single();
+  if (!data) return null;
+  return { id: user.id, full_name: data.full_name, role: data.role, locale: data.locale ?? "en-US", email: user.email ?? null };
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -65,6 +82,7 @@ export default async function RootLayout({
   // httpOnly, so only the server can read it — passed down to switch off the
   // inactivity sign-out on a device the user chose to stay signed in on.
   const trustedDeviceUntil = trustedUntil((await cookies()).get(TRUSTED_DEVICE_COOKIE)?.value);
+  const initialUser = await loadInitialUser();
 
   return (
     <html
@@ -82,7 +100,7 @@ export default async function RootLayout({
           >
             <QueryProvider>
               <TooltipProvider>
-                <UserProvider trustedUntil={trustedDeviceUntil}>
+                <UserProvider trustedUntil={trustedDeviceUntil} initialUser={initialUser}>
                   {children}
                   <Toaster richColors closeButton position="top-right" />
                 </UserProvider>

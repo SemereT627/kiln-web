@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
+import { isAuthRetryableFetchError } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { useSessionTimeout } from "@/hooks/use-session-timeout";
 import { normalizeLocale } from "@/i18n/locale";
@@ -28,7 +29,7 @@ function readLocaleCookie(): string | undefined {
     ?.split("=")[1];
 }
 
-type UserProfile = {
+export type UserProfile = {
   id: string;
   full_name: string | null;
   role: "admin" | "viewer";
@@ -69,13 +70,16 @@ export function useUserActions() {
 export function UserProvider({
   children,
   trustedUntil = null,
+  initialUser = null,
 }: {
   children: ReactNode;
+  /** Profile resolved on the server, so the first paint already knows the role. */
+  initialUser?: UserProfile | null;
   /** "Keep me signed in" was ticked at the code step: no inactivity sign-out. */
   trustedUntil?: number | null;
 }) {
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [profile, setProfile] = useState<UserProfile | null>(initialUser);
+  const [isLoading, setIsLoading] = useState(!initialUser);
   const supabase = createClient();
   const router = useRouter();
 
@@ -87,11 +91,16 @@ export function UserProvider({
    *                     the skeleton on tab focus / token refresh.
    */
   async function load(showLoading = false) {
-    if (showLoading) setIsLoading(true);
-
     const {
       data: { user },
+      error: userError,
     } = await supabase.auth.getUser();
+
+    // A network blip isn't a sign-out: keep what we have instead of blanking the app.
+    if (isAuthRetryableFetchError(userError)) {
+      setIsLoading(false);
+      return;
+    }
 
     if (!user) {
       setProfile(null);
@@ -99,11 +108,18 @@ export function UserProvider({
       return;
     }
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("user_profiles")
       .select("id, full_name, role, locale")
       .eq("id", user.id)
       .single();
+
+    // Same: a failed read must not downgrade an admin to "viewer" (hides menu items).
+    if (error) {
+      setProfile((prev) => prev ?? { id: user.id, full_name: null, role: "viewer", locale: "en-US", email: user.email ?? null });
+      setIsLoading(false);
+      return;
+    }
 
     const locale = data?.locale ?? "en-US";
     setProfile({

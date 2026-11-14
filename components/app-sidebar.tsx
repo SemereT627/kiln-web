@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { ArrowUpRight } from "lucide-react";
@@ -114,6 +115,13 @@ export function AppSidebar() {
   const user = useUser();
   const isLoading = useUserLoading();
   const isAdmin = user?.role === "admin";
+  const router = useRouter();
+
+  // Session gone (expired or signed out elsewhere): go to sign-in rather than
+  // leaving an empty dashboard that says "User".
+  useEffect(() => {
+    if (!isLoading && !user) router.replace("/login");
+  }, [isLoading, user, router]);
 
   useOrdersRealtime(isAdmin);
   const { data: pendingOrders } = useQuery({
