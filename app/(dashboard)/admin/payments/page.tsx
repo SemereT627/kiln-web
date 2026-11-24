@@ -141,7 +141,7 @@ export default function PaymentsPage() {
                     )}
                   </TableCell>
                   <TableCell className="font-mono text-xs">{m.reference ?? "—"}</TableCell>
-                  <TableCell className="text-muted-foreground">{m.deviceLabel ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{m.phone ?? "—"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

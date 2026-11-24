@@ -4,7 +4,7 @@
  */
 export type Payment = {
   id: string;
-  deviceLabel: string | null;
+  phone: string | null;
   sender: string;
   body: string;
   receivedAt: string;
@@ -38,6 +38,8 @@ async function get<T>(path: string): Promise<T> {
   return res.json();
 }
 
-export const listPayments = (limit = 200) => get<Payment[]>(`/api/v1/payments?limit=${limit}`);
+// mSync pages payments as { data, nextCursor }; the first page (newest) is all Kiln shows.
+export const listPayments = async (limit = 200) =>
+  (await get<{ data: Payment[] }>(`/api/v1/payments?limit=${limit}`)).data;
 
 export const listPhones = () => get<PhoneStatus[]>("/api/v1/phones");
