@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { EmptyState } from "@/components/empty-state";
 import type { Payment, PhoneStatus } from "@/lib/msync/client";
-import { formatDateTime, formatNumber } from "@/lib/utils";
+import { formatBirr, formatDateTime } from "@/lib/utils";
 
 const paymentsKey = ["admin", "msync", "payments"];
 const phonesKey = ["admin", "msync", "phones"];
@@ -129,7 +129,14 @@ export default function PaymentsPage() {
                   <TableCell className="whitespace-nowrap">{formatDateTime(m.receivedAt)}</TableCell>
                   <TableCell>{m.bank ?? m.sender}</TableCell>
                   <TableCell className="text-right font-medium tabular-nums">
-                    {m.amount !== null ? `${m.currency ?? "ETB"} ${formatNumber(m.amount)}` : "—"}
+                    {m.amount === null ? (
+                      "—"
+                    ) : m.kind === "debit" ? (
+                      // Money sent is not a payment received: marked and coloured apart.
+                      <span className="text-destructive">−{formatBirr(Number(m.amount), m.currency ?? "ETB")}</span>
+                    ) : (
+                      formatBirr(Number(m.amount), m.currency ?? "ETB")
+                    )}
                   </TableCell>
                   <TableCell className="max-w-md">
                     {m.kind === "unparsed" || expanded === m.id ? (

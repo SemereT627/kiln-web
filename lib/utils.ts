@@ -18,6 +18,11 @@ export function formatQuantity(value: number, unit = "m²") {
   return `${formatNumber(value)} ${unit}`
 }
 
+/** Birr amount with the Birr sign, e.g. 2400 -> "Br 2,400.00". Other currencies show their code instead. */
+export function formatBirr(value: number, currency = "ETB") {
+  return `${currency === "ETB" ? "Br" : currency} ${formatNumber(value)}`
+}
+
 /** Formats an ETB amount with thousands separators (e.g. 334820 -> "334,820.00 ETB"). */
 export function formatETB(value: number) {
   return `${formatNumber(value)} ETB`
