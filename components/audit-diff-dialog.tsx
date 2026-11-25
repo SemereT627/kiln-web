@@ -2,14 +2,13 @@
 
 import Link from "next/link";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { ExternalLink } from "lucide-react";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { ExternalLink, ScrollText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type DiffStatus = "added" | "removed" | "changed" | "unchanged";
@@ -78,22 +77,22 @@ function CeramicItemsValue({
         : "bg-muted/40 text-muted-foreground";
 
   return (
-    <div className={cn("flex flex-col gap-1 rounded-md p-2 text-xs", toneClass)}>
+    <div className={cn("flex flex-col gap-2 rounded-xl p-3 text-xs", toneClass)}>
       {items.map((item, i) => {
         const ceramicId = String(item.ceramicId ?? "");
         const ceramic = ceramicLookup?.get(ceramicId);
         const { ceramicId: _omit, ...rest } = item;
         void _omit;
         return (
-          <div key={i} className="flex items-baseline justify-between gap-2">
-            <span className="font-medium">
+          <div key={i} className="min-w-0">
+            <p className="font-medium break-words">
               {ceramic ? `${ceramic.name} (${ceramic.productId})` : ceramicId || "—"}
-            </span>
-            <span className="shrink-0 font-mono opacity-80">
+            </p>
+            <p className="font-mono break-words opacity-80">
               {Object.entries(rest)
                 .map(([k, v]) => `${k}: ${v}`)
                 .join(", ")}
-            </span>
+            </p>
           </div>
         );
       })}
@@ -120,7 +119,7 @@ function ValueDisplay({
         ? "bg-emerald-500/5 text-emerald-700 dark:text-emerald-400"
         : "bg-muted/40 text-muted-foreground";
   return (
-    <pre className={cn("whitespace-pre-wrap break-all rounded-md p-2 text-xs", toneClass)}>
+    <pre className={cn("whitespace-pre-wrap break-all rounded-xl p-3 text-xs", toneClass)}>
       {formatValue(value)}
     </pre>
   );
@@ -148,36 +147,46 @@ export function AuditDiffDialog({
   const rows = diffRows(before, after);
   const isOrder = targetTable === "orders";
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">
-        <DialogHeader>
-          <DialogTitle>{title ?? "Change details"}</DialogTitle>
-          <DialogDescription>
-            Full before/after diff recorded for this event.
-          </DialogDescription>
-        </DialogHeader>
+  const label = (text: string) => (
+    <p className="mb-1.5 text-[11px] font-medium text-muted-foreground">{text}</p>
+  );
 
-        {targetId && (
-          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/30 px-3 py-2">
-            <span className="font-mono text-[11px] text-muted-foreground">
-              ID: {targetId}
-            </span>
-            {isOrder && (
-              <Button asChild size="sm" variant="outline" className="h-7 gap-1.5 text-xs">
-                <Link href={`/sales/log?order=${targetId}`}>
+  // Side panel rather than a centred modal: long values get the full height
+  // and before/after stack instead of squeezing side by side.
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="gap-0 overflow-y-auto data-[side=right]:w-full data-[side=right]:sm:max-w-lg">
+        <SheetHeader className="flex-row items-start gap-3 border-b border-dashed p-5 pr-12">
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-ink text-ink-foreground">
+            <ScrollText className="size-4" />
+          </span>
+          <div className="min-w-0">
+            <SheetTitle className="break-words">{title ?? "Change details"}</SheetTitle>
+            <SheetDescription>Full before/after diff recorded for this event.</SheetDescription>
+          </div>
+        </SheetHeader>
+
+        <div className="flex flex-col gap-3 p-5">
+          {targetId && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-muted px-4 py-3">
+              <span className="min-w-0 break-all font-mono text-[11px] text-muted-foreground">
+                {targetId}
+              </span>
+              {isOrder && (
+                <Link
+                  href={`/sales/log?order=${targetId}`}
+                  className="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-ink px-3 text-xs font-medium text-ink outline-none transition-colors hover:bg-ink hover:text-ink-foreground focus-visible:ring-2 focus-visible:ring-ring/50"
+                >
                   View in Sales Log
                   <ExternalLink className="size-3" />
                 </Link>
-              </Button>
-            )}
-          </div>
-        )}
+              )}
+            </div>
+          )}
 
-        {rows ? (
-          <div className="flex flex-col gap-2">
-            {rows.map((row) => (
-              <div key={row.key} className="rounded-lg border p-3">
+          {rows ? (
+            rows.map((row) => (
+              <section key={row.key} className="rounded-2xl border border-dashed p-4">
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-mono text-xs font-semibold">{row.key}</span>
                   <span
@@ -190,30 +199,18 @@ export function AuditDiffDialog({
                   </span>
                 </div>
                 {row.status !== "unchanged" ? (
-                  <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  <div className="mt-3 flex flex-col gap-3">
                     <div>
-                      <p className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-                        Before
-                      </p>
-                      <ValueDisplay
-                        value={row.beforeVal}
-                        ceramicLookup={ceramicLookup}
-                        tone="before"
-                      />
+                      {label("Before")}
+                      <ValueDisplay value={row.beforeVal} ceramicLookup={ceramicLookup} tone="before" />
                     </div>
                     <div>
-                      <p className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-                        After
-                      </p>
-                      <ValueDisplay
-                        value={row.afterVal}
-                        ceramicLookup={ceramicLookup}
-                        tone="after"
-                      />
+                      {label("After")}
+                      <ValueDisplay value={row.afterVal} ceramicLookup={ceramicLookup} tone="after" />
                     </div>
                   </div>
                 ) : (
-                  <div className="mt-2">
+                  <div className="mt-3">
                     <ValueDisplay
                       value={row.afterVal ?? row.beforeVal}
                       ceramicLookup={ceramicLookup}
@@ -221,30 +218,26 @@ export function AuditDiffDialog({
                     />
                   </div>
                 )}
+              </section>
+            ))
+          ) : (
+            <>
+              <div>
+                {label("Before")}
+                <pre className="whitespace-pre-wrap break-all rounded-xl bg-muted/40 p-3 text-xs">
+                  {before != null ? JSON.stringify(before, null, 2) : "—"}
+                </pre>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <p className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-                Before
-              </p>
-              <pre className="whitespace-pre-wrap break-all rounded-md bg-muted/40 p-3 text-xs">
-                {before != null ? JSON.stringify(before, null, 2) : "—"}
-              </pre>
-            </div>
-            <div>
-              <p className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground">
-                After
-              </p>
-              <pre className="whitespace-pre-wrap break-all rounded-md bg-muted/40 p-3 text-xs">
-                {after != null ? JSON.stringify(after, null, 2) : "—"}
-              </pre>
-            </div>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+              <div>
+                {label("After")}
+                <pre className="whitespace-pre-wrap break-all rounded-xl bg-muted/40 p-3 text-xs">
+                  {after != null ? JSON.stringify(after, null, 2) : "—"}
+                </pre>
+              </div>
+            </>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
   );
 }

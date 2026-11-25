@@ -24,98 +24,83 @@
     }
   },
   "Dashboard": {
-    "liveDashboard": "የቀጥታ ዳሽቦርድ",
-    "welcomeBack": "እንኳን ደህና ተመለሱ፣ {name}",
-    "greetingFallback": "ዳሽቦርድ",
-    "overview": {
-      "eyebrow": "አጠቃላይ እይታ",
-      "title": "ቁልፍ መለኪያዎች",
-      "description": "በሁሉም ምርቶች ላይ የክምችት መጠን እና የካታሎግ ጤንነት አጭር እይታ።"
-    },
-    "trends": {
-      "eyebrow": "አዝማሚያዎች",
-      "title": "የክምችት እንቅስቃሴ እና ተግባር",
-      "description": "ከፍተኛ ሽያጭ ያላቸው ንጣፍ ምርቶችዎ እንዴት እየተንቀሳቀሱ እንዳሉ፣ እና በቅርብ ጊዜ የተለወጠውን ያሳያል።"
-    },
-    "health": {
-      "eyebrow": "የክምችት ጤንነት",
-      "title": "ስርጭት እና ማንቂያዎች",
-      "description": "ክምችትዎ የት እንዳለ እና በቅርቡ መሞላት ያለበትን ያሳያል።"
-    },
-    "topTileProducts": {
-      "title": "ከፍተኛ የንጣፍ ምርቶች",
-      "description": "የአሁኑ ክምችት ከጠቅላላ የምንጊዜም ሽያጭ ጋር ለ8ቱ ከፍተኛ ክምችት ላላቸው የንጣፍ ምርቶች (m²)። ስክርቲንግ አልተካተተም።",
-      "currentStock": "የአሁኑ ክምችት",
-      "totalSold": "የተሸጠ (ሁሉም ጊዜ)"
-    },
-    "recentInventory": {
-      "title": "የቅርብ ጊዜ ክምችት",
-      "description": "በቅርቡ የተጨመሩ ወይም የተስተካከሉ ምርቶች።",
-      "viewAll": "ሁሉንም ይመልከቱ"
-    },
-    "stockByTileSize": {
-      "title": "በንጣፍ መጠን የተከፋፈለ ክምችት",
-      "description": "የአሁኑ m² ክምችት በንጣፍ መጠኖች ስርጭት።",
-      "totalStock": "ጠቅላላ ክምችት",
-      "noData": "እስካሁን የተመዘገበ የንጣፍ ክምችት የለም",
-      "rowDetail": "{count} ምርቶች · በአጠቃላይ {sold} m² ተሽጧል"
-    },
     "attentionRequired": {
       "title": "ትኩረት ያስፈልጋል",
-      "description": "ዝቅተኛ ወይም ያለቀባቸው ምርቶች።",
-      "allGood": "ሁሉም ምርቶች በበቂ ሁኔታ ተከማችተዋል",
-      "allGoodDescription": "አሁን ምንም መሞላት የሚያስፈልገው ነገር የለም።",
-      "outCount": "{count} አልቋል",
-      "lowCount": "{count} ዝቅተኛ"
+      "description": "ዝቅተኛ ወይም ያለቀባቸው ምርቶች።"
     },
-    "lowStockModal": {
-      "title": "ዝቅተኛ ክምችት ማንቂያዎች",
-      "description": "{count, plural, one {# ምርት} other {# ምርቶች}} ከ5 ክፍል በታች።"
-    }
-  },
-  "BentoStatGrid": {
-    "totalProducts": {
-      "label": "ጠቅላላ ምርቶች",
-      "description": "በካታሎግ ውስጥ ልዩ ዕቃዎች"
-    },
-    "tileStock": {
-      "label": "የንጣፍ ክምችት",
-      "description": "{sold} m² ተሽጧል · {count} ምርቶች"
-    },
-    "skirtingStock": {
-      "label": "የስክርቲንግ ክምችት",
-      "description": "{sold} m ተሽጧል · {count} ምርቶች",
-      "pieces": "{count} ቁራጭ"
-    },
-    "lowStockAlerts": {
-      "label": "ዝቅተኛ ክምችት ማንቂያዎች",
-      "allWellStocked": "ሁሉም ምርቶች በበቂ ሁኔታ አሉ",
-      "viewList": "ዝርዝሩን ይመልከቱ",
-      "left": "{stock} {unit} ቀርቷል"
-    },
-    "stockByBrand": {
-      "label": "በብራንድ የተከፋፈለ ክምችት",
-      "description": "በሁሉም ብራንዶች ላይ ያለ ስርጭት",
-      "noData": "እስካሁን የተመዘገበ የንጣፍ ክምችት የለም",
-      "other": "ሌሎች",
-      "totalStock": "ጠቅላላ ክምችት",
-      "colBrand": "ብራንድ",
-      "colProducts": "ምርቶች",
-      "colSold": "የተሸጠ (በአጠቃላይ)",
-      "colStock": "ክምችት",
-      "colShare": "ድርሻ"
-    },
-    "totalSold": {
-      "label": "ጠቅላላ የተሸጠ",
-      "description": "+ {sold} m ስክርቲንግ ተሽጧል"
-    },
-    "totalStockValue": {
-      "label": "ጠቅላላ የክምችት ዋጋ",
-      "showAria": "ጠቅላላ የክምችት ዋጋን አሳይ",
-      "hideAria": "ጠቅላላ የክምችት ዋጋን ደብቅ",
-      "hiddenAria": "ዋጋው ተደብቋል",
+    "workspace": {
+      "products": "{count, plural, one {# ምርት} other {# ምርቶች}}",
+      "stockValue": "የክምችት ዋጋ",
+      "showValue": "ጠቅላላ የክምችት ዋጋ አሳይ",
+      "hideValue": "ጠቅላላ የክምችት ዋጋ ደብቅ",
+      "valueHidden": "ዋጋው ተደብቋል",
       "noPriceData": "የዋጋ መረጃ የለም",
-      "description": "ዋጋ ያላቸው ምርቶች ብቻ · ሚስጥራዊ"
+      "settings": "ቅንብሮች",
+      "catalog": "ካታሎግ"
+    },
+    "stockHealth": {
+      "title": "የክምችት ሁኔታ",
+      "total": "ጠቅላላ ምርቶች",
+      "inStock": "በክምችት",
+      "low": "ዝቅተኛ",
+      "out": "ያለቀ"
+    },
+    "breakdown": {
+      "title": "የሽያጭ ዝርዝር",
+      "totalLabel": "ጠቅላላ የሰድር ሽያጭ (m²)",
+      "details": "ዝርዝር",
+      "daily": "በቀን",
+      "weekly": "በሳምንት",
+      "monthly": "በወር",
+      "annually": "በዓመት",
+      "periodAria": "የገበታ ጊዜ",
+      "more": "ተጨማሪ",
+      "salesLog": "የሽያጭ መዝገብ",
+      "analytics": "ትንታኔ",
+      "tiles": "የተሸጠ ሰድር",
+      "skirting": "የተሸጠ ስከርቲንግ",
+      "transactions": "ሽያጮች",
+      "tooltipUnit": "m² ተሽጧል",
+      "tooltipTx": "{count, plural, one {# ሽያጭ} other {# ሽያጮች}}",
+      "noBrandSales": "እስካሁን የሰድር ሽያጭ የለም"
+    },
+    "orders": {
+      "title": "ትዕዛዞች እና ሽያጮች",
+      "subtitle": "ሁሉም ጊዜ",
+      "refresh": "አድስ",
+      "status": "ሁኔታ",
+      "share": "ድርሻ",
+      "count": "ትዕዛዞች",
+      "approved": "ጸድቋል",
+      "pending": "በመጠባበቅ ላይ",
+      "rejected": "ውድቅ",
+      "last7": "ያለፉት 7 ቀናት",
+      "prevWeek": "ቀዳሚ 7 ቀናት",
+      "nextWeek": "ቀጣይ 7 ቀናት",
+      "tilesSold": "የተሸጠ ሰድር (m²)",
+      "transactions": "ሽያጮች",
+      "skirting": "m ስከርቲንግ",
+      "details": "ዝርዝር"
+    },
+    "topProducts": {
+      "title": "በብዛት የተሸጡ ምርቶች",
+      "product": "ምርት",
+      "share": "ድርሻ",
+      "sold": "የተሸጠ (m²)",
+      "other": "ሌሎች",
+      "noData": "እስካሁን የሰድር ሽያጭ የለም"
+    },
+    "sellThrough": {
+      "title": "ሽያጭ በመጠን",
+      "subtitle": "ሰድሮች · ሁሉም ጊዜ",
+      "report": "ሪፖርት ክፈት",
+      "inventory": "ክምችት",
+      "analytics": "ትንታኔ",
+      "rateLabel": "ከሰድር ክምችት የተሸጠ",
+      "allTime": "የተሸጠ ÷ (የተሸጠ + ያለ)",
+      "sold": "የተሸጠ",
+      "inStock": "በክምችት",
+      "noData": "እስካሁን የሰድር ክምችት የለም"
     }
   },
   "Inventory": {

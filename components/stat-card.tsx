@@ -9,8 +9,8 @@ import type { LucideIcon } from "lucide-react";
 export type StatCardVariant = "neutral" | "primary" | "success" | "warning" | "danger" | "info";
 
 const STAT_ICON_STYLES: Record<StatCardVariant, string> = {
-  neutral: "bg-muted text-muted-foreground",
-  primary: "bg-primary/10 text-primary",
+  neutral: "bg-ink text-ink-foreground",
+  primary: "bg-primary text-primary-foreground",
   success: "bg-success/10 text-success",
   warning: "bg-warning/15 text-warning-foreground dark:text-warning",
   danger: "bg-destructive/10 text-destructive",
@@ -32,11 +32,11 @@ export function StatCard({
   variant: StatCardVariant;
   action?: React.ReactNode;
 }) {
-  // Same anatomy as the dashboard metric cards (bento-stat-grid.tsx): label
+  // Label
   // left with the icon (and optional action) right, then value, then
   // supporting text pinned to the bottom so cards in a row line up.
   return (
-    <div className="flex min-w-0 flex-col rounded-2xl border bg-card px-4 py-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+    <div className="flex min-w-0 flex-col rounded-[20px] bg-card px-5 py-4">
       <div className="flex h-8 items-center justify-between gap-3">
         <p className="min-w-0 truncate text-sm font-medium text-muted-foreground">
           {title}
@@ -45,7 +45,7 @@ export function StatCard({
           {action}
           <div
             className={cn(
-              "flex size-8 items-center justify-center rounded-lg",
+              "flex size-8 items-center justify-center rounded-full",
               STAT_ICON_STYLES[variant],
             )}
           >

@@ -51,6 +51,7 @@ import { CeramicForm } from "@/components/ceramic-form";
 import { useUser } from "@/components/user-provider";
 import { formatEthiopian } from "@/lib/ethiopian-calendar";
 import { cn, formatDate, formatDateTime, formatETB, formatNumber } from "@/lib/utils";
+import { PageLayout } from "@/components/page-layout";
 
 interface StockEntry {
   id: string;
@@ -82,7 +83,7 @@ const PAYMENT_LABEL: Record<string, string> = {
 };
 
 const TH_CLASS =
-  "sticky top-0 z-10 bg-card text-[11px] uppercase tracking-wider font-semibold text-muted-foreground";
+  "sticky top-0 z-10 bg-card";
 
 export default function ProductDetailPage({
   params,
@@ -174,15 +175,15 @@ export default function ProductDetailPage({
   };
 
   return (
-    <div className="flex h-full flex-col animate-in fade-in duration-500">
-      <div className="flex-1 min-h-0 -m-4 p-4 overflow-y-auto overflow-x-hidden space-y-4 no-scrollbar">
-        {/* Header */}
-        <div className="space-y-3">
+    <PageLayout
+      aside={
+        <>
+        <div className="space-y-3 rounded-[20px] bg-card p-5">
           <BackLink />
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0 space-y-1">
               <div className="flex flex-wrap items-center gap-2">
-                <h1 className="font-mono text-2xl font-semibold tracking-tight sm:text-3xl">
+                <h1 className="font-mono text-xl font-semibold tracking-tight sm:text-2xl">
                   {ceramic.productId}
                 </h1>
                 <StockBadge stock={ceramic.currentStock} />
@@ -214,9 +215,50 @@ export default function ProductDetailPage({
             )}
           </div>
         </div>
-
-        {/* KPIs */}
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <Card>
+          <CardContent className="space-y-4">
+            {ceramic.imageUrl ? (
+              <button
+                type="button"
+                onClick={() => setImageOpen(true)}
+                aria-label={`View ${ceramic.productId} image full size`}
+                className="group/image relative block w-full cursor-zoom-in overflow-hidden rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+              >
+                <ProductImage
+                  src={ceramic.imageUrl}
+                  alt={ceramic.name}
+                  className="aspect-4/3 w-full rounded-xl border border-border/60"
+                  iconSize="lg"
+                  sizes="(min-width: 1024px) 320px, 100vw"
+                  fit="cover"
+                />
+                {/* Hover/focus hint that the image opens full screen */}
+                <span className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition-opacity duration-200 group-hover/image:opacity-100 group-focus-visible/image:opacity-100">
+                  <span className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-sm font-medium text-white">
+                    <Expand className="size-4" />
+                    Preview
+                  </span>
+                </span>
+              </button>
+            ) : (
+              <ProductImage
+                src={null}
+                alt={ceramic.name}
+                className="aspect-4/3 w-full rounded-xl border border-border/60"
+                iconSize="lg"
+              />
+            )}
+            <dl className="divide-y text-sm">
+              <SpecRow label="Brand" value={ceramic.brand} />
+              <SpecRow label="Size" value={ceramic.size} />
+              <SpecRow label="Finish" value={ceramic.finish} />
+              <SpecRow label="Unit" value={unit} />
+              <SpecRow label="Registered" value={formatDate(ceramic.createdAt)} />
+              <SpecRow label="Last updated" value={formatDateTime(ceramic.updatedAt)} />
+            </dl>
+          </CardContent>
+        </Card>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
           <StatCard
             title="Current stock"
             value={`${formatNumber(ceramic.currentStock)} ${unit}`}
@@ -256,180 +298,136 @@ export default function ProductDetailPage({
             variant="info"
           />
         </div>
+        </>
+      }
+    >
 
-        {/* Stock over time + specs */}
-        <div className="grid gap-3 lg:grid-cols-7">
-          {/* Stretches to the specs card beside it; min height for single-column layouts. */}
-          <Card className="lg:col-span-5 min-h-80 flex flex-col shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <CardHeader className="shrink-0">
-              <CardTitle>Stock over time</CardTitle>
-              <CardDescription>
-                Running stock level after each restock, adjustment, return and
-                sale.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1 min-h-0 pl-2">
-              {loadingEntries || loadingSales ? (
-                <Skeleton className="h-full w-full rounded-lg" />
-              ) : stockSeries.length < 2 ? (
-                <p className="py-10 text-center text-sm text-muted-foreground">
-                  Not enough movements yet to chart.
-                </p>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={stockSeries}>
-                    <defs>
-                      <linearGradient id="stockFill" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.3} />
-                        <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      vertical={false}
-                      stroke="var(--border)"
-                    />
-                    <XAxis
-                      dataKey="at"
-                      fontSize={12}
-                      tickLine={false}
-                      axisLine={false}
-                      minTickGap={40}
-                      tickFormatter={(v) => formatDate(v)}
-                      tick={{ fill: "var(--muted-foreground)" }}
-                    />
-                    <YAxis
-                      fontSize={12}
-                      tickLine={false}
-                      axisLine={false}
-                      tickFormatter={(v) => `${formatNumber(v, 0)} ${unit}`}
-                      tick={{ fill: "var(--muted-foreground)" }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        borderRadius: "10px",
-                        border: "1px solid var(--border)",
-                        background: "var(--popover)",
-                        color: "var(--popover-foreground)",
-                        boxShadow: "0 8px 24px -8px rgba(0,0,0,0.2)",
-                      }}
-                      labelFormatter={(v) => formatDateTime(String(v))}
-                      formatter={(v) => [`${formatNumber(Number(v))} ${unit}`, "Stock"]}
-                    />
-                    <Area
-                      type="stepAfter"
-                      dataKey="stock"
-                      stroke="var(--chart-1)"
-                      strokeWidth={2}
-                      fill="url(#stockFill)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
-            </CardContent>
-          </Card>
 
-          <Card className="lg:col-span-2 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-            <CardContent className="space-y-4">
-              {ceramic.imageUrl ? (
-                <button
-                  type="button"
-                  onClick={() => setImageOpen(true)}
-                  aria-label={`View ${ceramic.productId} image full size`}
-                  className="group/image relative block w-full cursor-zoom-in overflow-hidden rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                >
-                  <ProductImage
-                    src={ceramic.imageUrl}
-                    alt={ceramic.name}
-                    className="aspect-4/3 w-full rounded-xl border border-border/60"
-                    iconSize="lg"
-                    sizes="(min-width: 1024px) 320px, 100vw"
-                    fit="cover"
+        <Card className="min-h-80 shrink-0 flex flex-col">
+          <CardHeader className="shrink-0">
+            <CardTitle>Stock over time</CardTitle>
+            <CardDescription>
+              Running stock level after each restock, adjustment, return and
+              sale.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex-1 min-h-0 pl-2">
+            {loadingEntries || loadingSales ? (
+              <Skeleton className="h-full w-full rounded-lg" />
+            ) : stockSeries.length < 2 ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">
+                Not enough movements yet to chart.
+              </p>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={stockSeries}>
+                  <defs>
+                    <linearGradient id="stockFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="var(--chart-1)" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="var(--chart-1)" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="var(--border)"
                   />
-                  {/* Hover/focus hint that the image opens full screen */}
-                  <span className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition-opacity duration-200 group-hover/image:opacity-100 group-focus-visible/image:opacity-100">
-                    <span className="flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-sm font-medium text-white">
-                      <Expand className="size-4" />
-                      Preview
+                  <XAxis
+                    dataKey="at"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    minTickGap={40}
+                    tickFormatter={(v) => formatDate(v)}
+                    tick={{ fill: "var(--muted-foreground)" }}
+                  />
+                  <YAxis
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v) => `${formatNumber(v, 0)} ${unit}`}
+                    tick={{ fill: "var(--muted-foreground)" }}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      borderRadius: "10px",
+                      border: "1px solid var(--border)",
+                      background: "var(--popover)",
+                      color: "var(--popover-foreground)",
+                      boxShadow: "0 8px 24px -8px rgba(0,0,0,0.2)",
+                    }}
+                    labelFormatter={(v) => formatDateTime(String(v))}
+                    formatter={(v) => [`${formatNumber(Number(v))} ${unit}`, "Stock"]}
+                  />
+                  <Area
+                    type="stepAfter"
+                    dataKey="stock"
+                    stroke="var(--chart-1)"
+                    strokeWidth={2}
+                    fill="url(#stockFill)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+
+      {/* History tables */}
+      <Card className="min-h-0 gap-0 py-0">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
+          <div className="inline-flex gap-1 rounded-full bg-muted p-1">
+            {(
+              [
+                { value: "movements", label: "Stock movements", count: entries?.length },
+                { value: "sales", label: "Sales", count: sales?.length },
+              ] as const
+            ).map((t) => {
+              const active = tab === t.value;
+              return (
+                <button
+                  key={t.value}
+                  onClick={() => setTab(t.value)}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
+                    active
+                      ? "bg-ink text-ink-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {t.label}
+                  {t.count !== undefined && (
+                    <span
+                      className={cn(
+                        "rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums",
+                        active
+                          ? "bg-primary/10 text-primary"
+                          : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {t.count}
                     </span>
-                  </span>
+                  )}
                 </button>
-              ) : (
-                <ProductImage
-                  src={null}
-                  alt={ceramic.name}
-                  className="aspect-4/3 w-full rounded-xl border border-border/60"
-                  iconSize="lg"
-                />
-              )}
-              <dl className="divide-y text-sm">
-                <SpecRow label="Brand" value={ceramic.brand} />
-                <SpecRow label="Size" value={ceramic.size} />
-                <SpecRow label="Finish" value={ceramic.finish} />
-                <SpecRow label="Unit" value={unit} />
-                <SpecRow label="Registered" value={formatDate(ceramic.createdAt)} />
-                <SpecRow label="Last updated" value={formatDateTime(ceramic.updatedAt)} />
-              </dl>
-            </CardContent>
-          </Card>
+              );
+            })}
+          </div>
+          {tab === "sales" && sales && sales.length > 0 && (
+            <p className="text-sm text-muted-foreground tabular-nums">
+              {formatNumber(sales.reduce((s, r) => s + r.quantity, 0))} {unit}{" "}
+              · {formatETB(salesRevenue)}
+            </p>
+          )}
         </div>
 
-        {/* History tables */}
-        <Card className="gap-0 py-0 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3">
-            <div className="inline-flex gap-1 rounded-lg border bg-muted/30 p-1">
-              {(
-                [
-                  { value: "movements", label: "Stock movements", count: entries?.length },
-                  { value: "sales", label: "Sales", count: sales?.length },
-                ] as const
-              ).map((t) => {
-                const active = tab === t.value;
-                return (
-                  <button
-                    key={t.value}
-                    onClick={() => setTab(t.value)}
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                      active
-                        ? "bg-background text-foreground shadow-xs"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {t.label}
-                    {t.count !== undefined && (
-                      <span
-                        className={cn(
-                          "rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums",
-                          active
-                            ? "bg-primary/10 text-primary"
-                            : "bg-muted text-muted-foreground",
-                        )}
-                      >
-                        {t.count}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-            {tab === "sales" && sales && sales.length > 0 && (
-              <p className="text-sm text-muted-foreground tabular-nums">
-                {formatNumber(sales.reduce((s, r) => s + r.quantity, 0))} {unit}{" "}
-                · {formatETB(salesRevenue)}
-              </p>
-            )}
-          </div>
-
-          <div className="max-h-120 overflow-auto">
-            {tab === "movements" ? (
-              <MovementsTable entries={entries} loading={loadingEntries} unit={unit} />
-            ) : (
-              <SalesTable sales={sales} loading={loadingSales} unit={unit} />
-            )}
-          </div>
-        </Card>
-      </div>
+        <div className="min-h-0 flex-1 overflow-auto">
+          {tab === "movements" ? (
+            <MovementsTable entries={entries} loading={loadingEntries} unit={unit} />
+          ) : (
+            <SalesTable sales={sales} loading={loadingSales} unit={unit} />
+          )}
+        </div>
+      </Card>
 
       {ceramic.imageUrl && (
         <ImageLightbox
@@ -459,7 +457,7 @@ export default function ProductDetailPage({
           )}
         </>
       )}
-    </div>
+    </PageLayout>
   );
 }
 

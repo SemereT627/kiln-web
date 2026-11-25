@@ -34,6 +34,7 @@ import { TRUSTED_DEVICE_DAYS } from "@/lib/device-trust";
 import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/page-header";
 import { formatDate, formatDateTime } from "@/lib/utils";
+import { PageLayout } from "@/components/page-layout";
 
 const MIN_PASSWORD = 8;
 // Mirrors TIMEOUT_DURATION in hooks/use-session-timeout.ts.
@@ -83,7 +84,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="grid gap-4 rounded-xl border bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] md:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] md:gap-8">
+    <section className="grid gap-4 rounded-[20px] bg-card p-5 md:grid-cols-[minmax(0,15rem)_minmax(0,1fr)] md:gap-8">
       <div>
         <div className="flex items-center gap-2">
           <Icon className="size-4 text-muted-foreground" />
@@ -218,27 +219,35 @@ export default function ProfilePage() {
   const factor = factors[0];
 
   return (
-    <div className="mx-auto max-w-4xl space-y-4 pb-8 animate-in fade-in duration-500">
-      <PageHeader title="Profile" description="Your account, password, sign-in security and sessions." />
+    <PageLayout
+      aside={
+        <>
+        <PageHeader
+          card
+          title="Profile"
+          description="Your account, password, sign-in security and sessions."
+        />
+        <div className="flex flex-wrap items-center gap-4 rounded-[20px] bg-card p-5">
+          <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-semibold text-primary-foreground">
+            {initials}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-lg font-semibold">{profile.full_name || "Unnamed"}</p>
+            <p className="truncate text-sm text-muted-foreground">{user.email}</p>
+          </div>
+          <div className="flex flex-col items-start gap-1 sm:items-end">
+            <Badge variant="secondary" className="capitalize">
+              {profile.role}
+            </Badge>
+            <span className="text-xs text-muted-foreground">
+              Member since {formatDate(profile.created_at)}
+            </span>
+          </div>
+        </div>
+        </>
+      }
+    >
 
-      {/* Account summary */}
-      <div className="flex flex-wrap items-center gap-4 rounded-xl border bg-card p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-        <div className="flex size-14 shrink-0 items-center justify-center rounded-full bg-primary text-lg font-semibold text-primary-foreground">
-          {initials}
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-lg font-semibold">{profile.full_name || "Unnamed"}</p>
-          <p className="truncate text-sm text-muted-foreground">{user.email}</p>
-        </div>
-        <div className="flex flex-col items-start gap-1 sm:items-end">
-          <Badge variant="secondary" className="capitalize">
-            {profile.role}
-          </Badge>
-          <span className="text-xs text-muted-foreground">
-            Member since {formatDate(profile.created_at)}
-          </span>
-        </div>
-      </div>
 
       <Section icon={UserRound} title="Personal info" description="How your name appears to the team.">
         <form onSubmit={saveProfile} className="space-y-4">
@@ -387,7 +396,7 @@ export default function ProfilePage() {
           onReplaced={loadFactors}
         />
       )}
-    </div>
+    </PageLayout>
   );
 }
 

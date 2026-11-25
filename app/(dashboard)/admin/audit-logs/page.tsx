@@ -36,6 +36,8 @@ import { AuditDiffDialog, type CeramicLookup } from "@/components/audit-diff-dia
 import { DateRangePicker } from "@/components/date-range-picker";
 import { AlertCircle, Calendar, Filter, Search, User, X } from "lucide-react";
 import { cn, formatDateTime } from "@/lib/utils";
+import { PageHeader } from "@/components/page-header";
+import { AsideCard, PageLayout } from "@/components/page-layout";
 
 const TARGET_TABLES = [
   { value: "brands", label: "Brands" },
@@ -197,24 +199,21 @@ export default function AuditLogsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4 h-full overflow-hidden animate-in fade-in duration-500">
-      <div className="shrink-0">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          Audit Logs
-        </h1>
-        <p className="text-muted-foreground text-sm mt-0.5">
-          Who did what, and the before/after diff, across the system.
-        </p>
-      </div>
-
-      <div className="flex-1 flex flex-col overflow-hidden rounded-lg border">
-        <div className="bg-muted/30 border-b shrink-0 py-3.5 px-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative flex-1 min-w-25 max-w-sm">
+    <PageLayout
+      aside={
+        <>
+        <PageHeader
+          card
+          title="Audit Logs"
+          description={<>Who did what, and the before/after diff, across the system.</>}
+        />
+        <AsideCard>
+          <div className="flex flex-col gap-3">
+            <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by actor or target ID..."
-                className="pl-8 bg-background h-9"
+                placeholder="Search logs"
+                className="pl-8 h-9 rounded-full border-transparent bg-muted dark:bg-muted"
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -236,19 +235,21 @@ export default function AuditLogsPage() {
               )}
             </div>
 
+            {/* Filters and date range share the second row */}
+            <div className="flex gap-3">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="outline"
                   size="sm"
                   className={cn(
-                    "h-9 gap-2",
+                    "h-9 shrink-0 gap-2",
                     hasActiveFilters && "border-primary bg-primary/5",
                   )}
                   aria-label="Filters"
                 >
                   <Filter className="h-4 w-4" />
-                  <span className="hidden sm:inline">Filters</span>
+                  <span>Filters</span>
                   {hasActiveFilters && (
                     <Badge
                       variant="secondary"
@@ -291,27 +292,33 @@ export default function AuditLogsPage() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <DateRangePicker from={dateFrom} to={dateTo} onChange={changeDateRange} />
+            <DateRangePicker className="min-w-0 flex-1" from={dateFrom} to={dateTo} onChange={changeDateRange} />
+            </div>
           </div>
-        </div>
+        </AsideCard>
+        </>
+      }
+    >
+
+      <div className="min-h-0 flex flex-col overflow-hidden rounded-[20px] bg-card">
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 flex flex-col overflow-auto">
             <Table className="min-w-175">
               <TableHeader className="border-b">
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="sticky top-0 z-10 bg-background pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-card pl-4">
                     When
                   </TableHead>
-                  <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-card">
                     Actor
                   </TableHead>
-                  <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-card">
                     Action
                   </TableHead>
-                  <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-card">
                     Target
                   </TableHead>
-                  <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-card">
                     Diff
                   </TableHead>
                 </TableRow>
@@ -401,7 +408,7 @@ export default function AuditLogsPage() {
             </Table>
           </div>
         </div>
-        <div className="flex items-center justify-between border-t px-4 py-3 shrink-0 bg-muted/30">
+        <div className="flex items-center justify-between border-t border-dashed px-4 py-3 shrink-0">
           <span className="text-xs text-muted-foreground">
             <span className="font-medium text-foreground">{total}</span> events
           </span>
@@ -419,7 +426,7 @@ export default function AuditLogsPage() {
                 />
               </PaginationItem>
               <PaginationItem>
-                <span className="flex h-8 items-center rounded-lg border bg-background px-3 text-xs font-medium tabular-nums">
+                <span className="flex h-8 items-center rounded-full bg-muted px-3 text-xs font-medium tabular-nums">
                   {page} / {totalPages}
                 </span>
               </PaginationItem>
@@ -449,6 +456,6 @@ export default function AuditLogsPage() {
         targetId={selectedLog?.targetId}
         ceramicLookup={ceramicLookup}
       />
-    </div>
+    </PageLayout>
   );
 }

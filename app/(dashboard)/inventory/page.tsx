@@ -12,11 +12,9 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge"; // still used for brand + filter count badges
 import {
   Search,
   Plus,
-  Filter,
   MoreHorizontal,
   Download,
   Trash2,
@@ -27,6 +25,7 @@ import {
   X,
   PackageSearch,
   Layers,
+  ChevronRight,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -58,6 +57,14 @@ import { useUser } from "@/components/user-provider";
 import { useTranslations } from "next-intl";
 import { PageHeader } from "@/components/page-header";
 import { StockBreakdownDialog } from "@/components/inventory/stock-breakdown-dialog";
+import { AsideCard, PageLayout } from "@/components/page-layout";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 export default function InventoryPage() {
   const t = useTranslations("Inventory");
@@ -242,68 +249,57 @@ export default function InventoryPage() {
   ];
 
   return (
-    <div className="flex flex-col gap-4 h-full overflow-hidden animate-in fade-in duration-500">
-      <PageHeader
-        title={t("title")}
-        description={t("subtitle")}
-        actions={
-          <>
-            <Button variant="outline" size="sm" aria-label={t("export")}>
-              <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">{t("export")}</span>
-            </Button>
-            {isAdmin && (
-              <Button size="sm" onClick={handleAdd}>
-                <Plus className="h-4 w-4" />
-                {t("addProduct")}
+    <PageLayout
+      aside={
+        <>
+        <PageHeader
+          card
+          title={t("title")}
+          description={t("subtitle")}
+          actions={
+            <>
+              <Button variant="outline" size="sm" aria-label={t("export")}>
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">{t("export")}</span>
               </Button>
-            )}
-          </>
-        }
-      />
-
-      {(isLoading || byType.length > 0) && (
-        <div className="shrink-0">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2"
-            disabled={isLoading}
-            onClick={() => {
-              setIsStockDrawerOpen(true);
-            }}
-          >
-            <Layers className="h-4 w-4" />
-            {t("showTotalStock")}
-            {!isLoading && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs font-bold tabular-nums">
-                {formatNumber(totalStockSqm)}
-                <span className="text-[9px] font-medium text-muted-foreground">
-                  m²
-                </span>
-                {totalStockLinear > 0 && (
-                  <>
-                    <span className="text-muted-foreground/40">+</span>
-                    {formatNumber(totalStockLinear)}
-                    <span className="text-[9px] font-medium text-muted-foreground">
-                      m
-                    </span>
-                  </>
-                )}
+              {isAdmin && (
+                <Button size="sm" onClick={handleAdd}>
+                  <Plus className="h-4 w-4" />
+                  {t("addProduct")}
+                </Button>
+              )}
+            </>
+          }
+        >
+          {(isLoading || byType.length > 0) && (
+            <button
+              type="button"
+              disabled={isLoading}
+              onClick={() => setIsStockDrawerOpen(true)}
+              className="flex w-full items-center gap-3 rounded-2xl bg-muted px-3 py-2.5 text-left outline-none transition-colors hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+            >
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-ink text-ink-foreground">
+                <Layers className="size-4" />
               </span>
-            )}
-          </Button>
-        </div>
-      )}
-
-      <div className="flex-1 flex flex-col overflow-hidden rounded-lg border">
-        <div className="bg-muted/30 border-b shrink-0 py-3.5 px-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="relative flex-1 min-w-25 max-w-sm">
+              <span className="min-w-0 flex-1">
+                <span className="block text-xs text-muted-foreground">{t("showTotalStock")}</span>
+                <span className="block truncate text-sm font-semibold tabular-nums">
+                  {isLoading
+                    ? "…"
+                    : `${formatNumber(totalStockSqm)} m²${totalStockLinear > 0 ? ` + ${formatNumber(totalStockLinear)} m` : ""}`}
+                </span>
+              </span>
+              <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+            </button>
+          )}
+        </PageHeader>
+        <AsideCard>
+          <div className="flex flex-col gap-3">
+            <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder={t("searchPlaceholder")}
-                className="pl-8 bg-background h-9"
+                className="pl-8 h-9 rounded-full border-transparent bg-muted dark:bg-muted"
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -325,124 +321,67 @@ export default function InventoryPage() {
               )}
             </div>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "h-9 gap-2",
-                    hasActiveFilters && "border-primary bg-primary/5",
-                  )}
-                  aria-label={t("filters")}
-                >
-                  <Filter className="h-4 w-4" />
-                  <span className="hidden sm:inline">{t("filters")}</span>
-                  {hasActiveFilters && (
-                    <Badge
-                      variant="secondary"
-                      className="ml-1 h-5 px-1.5 text-[10px] font-bold"
-                    >
-                      {
-                        [
-                          selectedBrand,
-                          selectedFinish,
-                          selectedSize,
-                          selectedStatus,
-                        ].filter((v) => v !== "all").length
-                      }
-                    </Badge>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                className="w-56"
-                portal={false}
-              >
-                <DropdownMenuLabel>{t("filterBrand")}</DropdownMenuLabel>
-                <DropdownMenuRadioGroup
-                  value={selectedBrand}
-                  onValueChange={setSelectedBrand}
-                >
-                  <DropdownMenuRadioItem value="all">
-                    {t("allBrands")}
-                  </DropdownMenuRadioItem>
-                  {brands.map((brand: any) => (
-                    <DropdownMenuRadioItem key={brand.id} value={brand.id}>
-                      {brand.name}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-
-                <DropdownMenuSeparator />
-
-                <DropdownMenuLabel>{t("filterFinish")}</DropdownMenuLabel>
-                <DropdownMenuRadioGroup
-                  value={selectedFinish}
-                  onValueChange={setSelectedFinish}
-                >
-                  <DropdownMenuRadioItem value="all">
-                    {t("allFinishes")}
-                  </DropdownMenuRadioItem>
-                  {finishes.map((finish: any) => (
-                    <DropdownMenuRadioItem key={finish.id} value={finish.id}>
-                      {finish.name}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-
-                <DropdownMenuSeparator />
-
-                <DropdownMenuLabel>{t("filterSize")}</DropdownMenuLabel>
-                <DropdownMenuRadioGroup
-                  value={selectedSize}
-                  onValueChange={setSelectedSize}
-                >
-                  <DropdownMenuRadioItem value="all">
-                    {t("allSizes")}
-                  </DropdownMenuRadioItem>
-                  {sizes.map((size: string) => (
-                    <DropdownMenuRadioItem key={size} value={size}>
-                      {size}
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-
-                <DropdownMenuSeparator />
-
-                <DropdownMenuLabel>{t("filterStatus")}</DropdownMenuLabel>
-                <DropdownMenuRadioGroup
-                  value={selectedStatus}
-                  onValueChange={setSelectedStatus}
-                >
-                  <DropdownMenuRadioItem value="all">
-                    {t("allStatus")}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="in">
-                    {t("statusIn")}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="low">
-                    {t("statusLow")}
-                  </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="out">
-                    {t("statusOut")}
-                  </DropdownMenuRadioItem>
-                </DropdownMenuRadioGroup>
-
-                {hasActiveFilters && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      className="justify-center text-primary font-medium"
-                      onClick={clearFilters}
-                    >
-                      {t("clearFilters")}
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="grid gap-2">
+              {[
+                {
+                  label: t("filterBrand"),
+                  value: selectedBrand,
+                  onChange: setSelectedBrand,
+                  all: t("allBrands"),
+                  options: brands.map((b: { id: string; name: string }) => ({ value: b.id, label: b.name })),
+                },
+                {
+                  label: t("filterFinish"),
+                  value: selectedFinish,
+                  onChange: setSelectedFinish,
+                  all: t("allFinishes"),
+                  options: finishes.map((fi: { id: string; name: string }) => ({ value: fi.id, label: fi.name })),
+                },
+                {
+                  label: t("filterSize"),
+                  value: selectedSize,
+                  onChange: setSelectedSize,
+                  all: t("allSizes"),
+                  options: sizes.map((size: string) => ({ value: size, label: size })),
+                },
+                {
+                  label: t("filterStatus"),
+                  value: selectedStatus,
+                  onChange: setSelectedStatus,
+                  all: t("allStatus"),
+                  options: [
+                    { value: "in", label: t("statusIn") },
+                    { value: "low", label: t("statusLow") },
+                    { value: "out", label: t("statusOut") },
+                  ],
+                },
+              ].map((fl) => (
+                <Select key={fl.label} value={fl.value} onValueChange={fl.onChange}>
+                  <SelectTrigger
+                    aria-label={fl.label}
+                    className={cn(
+                      "h-9 w-full rounded-full border-transparent bg-muted dark:bg-muted",
+                      fl.value !== "all" && "text-primary",
+                    )}
+                  >
+                    <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                      <span className="text-muted-foreground">{fl.label}</span>
+                      <span className="truncate font-medium">
+                        <SelectValue />
+                      </span>
+                    </span>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{fl.all}</SelectItem>
+                    {fl.options.map((o: { value: string; label: string }) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ))}
+            </div>
 
             {hasActiveFilters && (
               <Button
@@ -497,14 +436,20 @@ export default function InventoryPage() {
               </Button>
             </div>
           </div>
-        </div>
+        </AsideCard>
+        </>
+      }
+    >
+
+
+      <div className="min-h-0 flex flex-col overflow-hidden rounded-[20px] bg-card">
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex flex-col overflow-auto">
             <Table className="min-w-200">
               <TableHeader className="border-b">
                 <TableRow className="hover:bg-transparent">
                   <TableHead
-                    className="pl-4 sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    className="pl-4 sticky top-0 z-10 bg-card cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("name")}
                   >
                     <div className="flex items-center gap-1">
@@ -512,7 +457,7 @@ export default function InventoryPage() {
                     </div>
                   </TableHead>
                   <TableHead
-                    className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    className="sticky top-0 z-10 bg-card cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("brand_name")}
                   >
                     <div className="flex items-center gap-1">
@@ -520,7 +465,7 @@ export default function InventoryPage() {
                     </div>
                   </TableHead>
                   <TableHead
-                    className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    className="sticky top-0 z-10 bg-card cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("size")}
                   >
                     <div className="flex items-center gap-1">
@@ -528,7 +473,7 @@ export default function InventoryPage() {
                     </div>
                   </TableHead>
                   <TableHead
-                    className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    className="sticky top-0 z-10 bg-card cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("finish_name")}
                   >
                     <div className="flex items-center gap-1">
@@ -536,7 +481,7 @@ export default function InventoryPage() {
                     </div>
                   </TableHead>
                   <TableHead
-                    className="text-right sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    className="text-right sticky top-0 z-10 bg-card cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("initial_stock")}
                   >
                     <div className="flex items-center justify-end gap-1">
@@ -544,7 +489,7 @@ export default function InventoryPage() {
                     </div>
                   </TableHead>
                   <TableHead
-                    className="text-right sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    className="text-right sticky top-0 z-10 bg-card cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("sold_stock")}
                   >
                     <div className="flex items-center justify-end gap-1">
@@ -552,18 +497,18 @@ export default function InventoryPage() {
                     </div>
                   </TableHead>
                   <TableHead
-                    className="text-right sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    className="text-right sticky top-0 z-10 bg-card cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("current_stock")}
                   >
                     <div className="flex items-center justify-end gap-1">
                       {t("columns.stock")} {getSortIcon("current_stock")}
                     </div>
                   </TableHead>
-                  <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-card">
                     {t("columns.status")}
                   </TableHead>
                   {isAdmin && (
-                    <TableHead className="sticky top-0 right-0 z-20 w-12 bg-background border-l text-center text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    <TableHead className="sticky top-0 right-0 z-20 w-12 bg-card text-center">
                       {t("actions")}
                     </TableHead>
                   )}
@@ -604,7 +549,7 @@ export default function InventoryPage() {
                         <Skeleton className="h-3 w-3 rounded-full" />
                       </TableCell>
                       {isAdmin && (
-                        <TableCell className="sticky right-0 z-10 bg-background border-l" />
+                        <TableCell className="sticky right-0 z-10 bg-card" />
                       )}
                     </TableRow>
                   ))
@@ -751,7 +696,7 @@ export default function InventoryPage() {
                           </div>
                         </TableCell>
                         {isAdmin && (
-                          <TableCell className="sticky right-0 z-10 bg-background border-l transition-colors group-hover:bg-muted/40">
+                          <TableCell className="sticky right-0 z-10 bg-card transition-colors group-hover:bg-muted/40">
                             <DropdownMenu>
                               <div className="flex justify-center">
                                 <DropdownMenuTrigger
@@ -824,7 +769,7 @@ export default function InventoryPage() {
                 />
               </PaginationItem>
               <PaginationItem>
-                <span className="flex h-8 items-center rounded-lg border bg-background px-3 text-xs font-medium tabular-nums">
+                <span className="flex h-8 items-center rounded-full bg-muted px-3 text-xs font-medium tabular-nums">
                   {currentPage} / {totalPages}
                 </span>
               </PaginationItem>
@@ -878,6 +823,6 @@ export default function InventoryPage() {
           setConfirmDeleteId(null);
         }}
       />
-    </div>
+    </PageLayout>
   );
 }

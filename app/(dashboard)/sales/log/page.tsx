@@ -44,6 +44,8 @@ import { StatCard } from "@/components/stat-card";
 import { DateRangePicker } from "@/components/date-range-picker";
 import { EmptyState } from "@/components/empty-state";
 import { formatETB, formatNumber, formatQuantity } from "@/lib/utils";
+import { PageHeader } from "@/components/page-header";
+import { PageLayout } from "@/components/page-layout";
 
 interface SaleRecord {
   id: string;
@@ -239,72 +241,96 @@ function SalesLogPageInner() {
 
 
   return (
-    <div className="flex flex-col gap-4 h-full overflow-hidden animate-in fade-in duration-500">
+    <PageLayout
+      aside={
+        <>
+        <PageHeader
+          card
+          title="Sales Log"
+          description={<>Click a date to view that day&apos;s transactions.</>}
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <DateRangePicker
+              from={dateFrom}
+              to={dateTo}
+              onChange={changeDateRange}
+              placeholder="Filter"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9"
+              onClick={() => {
+                setImportOpen(true);
+                setImportResult(null);
+                setImportText("");
+              }}
+            >
+              <Upload className="h-4 w-4" />
+              Import Log
+            </Button>
+          </div>
+        </PageHeader>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-1">
+          <StatCard
+            title="Total Transactions"
+            value={totalTransactions}
+            subtext={
+              daysCount > 0
+                ? `≈ ${formatNumber(perDay(totalTransactions), 1)} per sales day`
+                : "No sales recorded yet"
+            }
+            icon={History}
+            variant="info"
+          />
+          <StatCard
+            title="Total Quantity Sold"
+            value={
+              <span className="flex flex-wrap items-baseline gap-x-2">
+                <span>
+                  {formatNumber(totalTileSold)}{" "}
+                  <span className="text-base font-medium text-muted-foreground">
+                    m²
+                  </span>
+                </span>
+                {totalSkirtingSold > 0 && (
+                  <span className="text-xs font-normal tracking-normal text-muted-foreground">
+                    + {formatQuantity(totalSkirtingSold, "m")} skirting
+                  </span>
+                )}
+              </span>
+            }
+            subtext={
+              daysCount > 0
+                ? `≈ ${formatNumber(perDay(totalTileSold))} m² of tiles per sales day`
+                : "No sales recorded yet"
+            }
+            icon={Package}
+            variant="success"
+          />
+          <div className="col-span-2 flex *:w-full sm:col-span-1 xl:col-span-1">
+            <StatCard
+              title="Days Recorded"
+              value={daysCount}
+              subtext={
+                dateFrom || dateTo
+                  ? "Days with sales in the selected range"
+                  : "Days with at least one sale"
+              }
+              icon={Calendar}
+              variant="neutral"
+            />
+          </div>
+        </div>
+        </>
+      }
+    >
       {/* Header */}
-      <div className="shrink-0">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          Sales Log
-        </h1>
-        <p className="text-muted-foreground text-sm mt-0.5">
-          Click a date to view that day&apos;s transactions.
-        </p>
-      </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 shrink-0 sm:grid-cols-3">
-        <StatCard
-          title="Total Transactions"
-          value={totalTransactions}
-          subtext={
-            daysCount > 0
-              ? `≈ ${formatNumber(perDay(totalTransactions), 1)} per sales day`
-              : "No sales recorded yet"
-          }
-          icon={History}
-          variant="info"
-        />
-        <StatCard
-          title="Total Quantity Sold"
-          value={
-            <span className="flex flex-wrap items-baseline gap-x-2">
-              <span>
-                {formatNumber(totalTileSold)}{" "}
-                <span className="text-base font-medium text-muted-foreground">
-                  m²
-                </span>
-              </span>
-              {totalSkirtingSold > 0 && (
-                <span className="text-xs font-normal tracking-normal text-muted-foreground">
-                  + {formatQuantity(totalSkirtingSold, "m")} skirting
-                </span>
-              )}
-            </span>
-          }
-          subtext={
-            daysCount > 0
-              ? `≈ ${formatNumber(perDay(totalTileSold))} m² of tiles per sales day`
-              : "No sales recorded yet"
-          }
-          icon={Package}
-          variant="success"
-        />
-        <div className="col-span-2 flex *:w-full sm:col-span-1">
-          <StatCard
-            title="Days Recorded"
-            value={daysCount}
-            subtext={
-              dateFrom || dateTo
-                ? "Days with sales in the selected range"
-                : "Days with at least one sale"
-            }
-            icon={Calendar}
-            variant="neutral"
-          />
-        </div>
-      </div>
 
       {/* Dates table */}
-      <div className="flex-1 min-h-0 flex flex-col gap-3 overflow-hidden">
+      <div className="min-h-0 flex flex-col gap-3 overflow-hidden">
         {error ? (
           <div className="h-full flex items-center justify-center">
             <div className="text-center max-w-sm">
@@ -318,44 +344,21 @@ function SalesLogPageInner() {
             </div>
           </div>
         ) : (
-          <div className="flex-1 min-h-0 flex flex-col overflow-hidden rounded-lg border">
-            <div className="bg-muted/30 border-b shrink-0 py-3.5 px-4">
-              <div className="flex flex-wrap items-center justify-end gap-2">
-                <DateRangePicker
-                  from={dateFrom}
-                  to={dateTo}
-                  onChange={changeDateRange}
-                  placeholder="Filter"
-                />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-9"
-                  onClick={() => {
-                    setImportOpen(true);
-                    setImportResult(null);
-                    setImportText("");
-                  }}
-                >
-                  <Upload className="h-4 w-4" />
-                  Import Log
-                </Button>
-              </div>
-            </div>
+          <div className="min-h-0 flex flex-col overflow-hidden rounded-[20px] bg-card">
             <div className="flex-1 flex flex-col overflow-auto">
               <Table className="min-w-125">
                 <TableHeader className="border-b">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="sticky top-0 z-10 bg-background pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    <TableHead className="sticky top-0 z-10 bg-card pl-4">
                       Date
                     </TableHead>
-                    <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    <TableHead className="sticky top-0 z-10 bg-card text-right">
                       Transactions
                     </TableHead>
-                    <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    <TableHead className="sticky top-0 z-10 bg-card text-right">
                       Total Sold
                     </TableHead>
-                    <TableHead className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    <TableHead className="sticky top-0 z-10 bg-card text-right">
                       Revenue
                     </TableHead>
                   </TableRow>
@@ -502,7 +505,7 @@ function SalesLogPageInner() {
                   />
                 </PaginationItem>
                 <PaginationItem>
-                  <span className="flex h-8 items-center rounded-lg border bg-background px-3 text-xs font-medium tabular-nums">
+                  <span className="flex h-8 items-center rounded-full bg-muted px-3 text-xs font-medium tabular-nums">
                     {currentPage} / {totalPages}
                   </span>
                 </PaginationItem>
@@ -616,6 +619,6 @@ function SalesLogPageInner() {
         </DialogContent>
       </Dialog>
 
-    </div>
+    </PageLayout>
   );
 }

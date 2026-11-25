@@ -28,6 +28,7 @@ import { EmptyState } from "@/components/empty-state";
 import { StatCard } from "@/components/stat-card";
 import { formatEthiopian } from "@/lib/ethiopian-calendar";
 import { cn, formatETB, formatNumber } from "@/lib/utils";
+import { PageLayout } from "@/components/page-layout";
 
 interface SaleRecord {
   id: string;
@@ -62,7 +63,7 @@ const PAYMENT_LABEL: Record<string, string> = {
 };
 
 const TH =
-  "sticky top-0 z-10 bg-card text-[11px] uppercase tracking-wider font-semibold text-muted-foreground";
+  "sticky top-0 z-10 bg-card";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -198,14 +199,14 @@ function SalesDay({ date }: { date: string }) {
   const isToday = date === toDateParam(new Date());
 
   return (
-    <div className="flex h-full flex-col animate-in fade-in duration-500">
-      <div className="flex-1 min-h-0 -m-4 p-4 overflow-y-auto overflow-x-hidden space-y-4 no-scrollbar">
-        {/* Header with day navigation */}
-        <div className="space-y-3">
+    <PageLayout
+      aside={
+        <>
+        <div className="space-y-3 rounded-[20px] bg-card p-5">
           <BackLink />
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
                 {day.toLocaleDateString("en-US", {
                   weekday: "long",
                   month: "short",
@@ -235,152 +236,156 @@ function SalesDay({ date }: { date: string }) {
             </div>
           </div>
         </div>
-
-        {isLoading ? (
-          <DaySkeleton />
-        ) : isError ? (
-          <EmptyState
-            icon={Receipt}
-            variant="warning"
-            title="Couldn't load this day"
-            description="Check your connection and try again."
-          />
-        ) : transactions.length === 0 ? (
-          <EmptyState icon={Receipt} title="No sales on this day" description="Use the arrows to move to another day." />
-        ) : (
+        {!isLoading && !isError && transactions.length > 0 && (
           <>
-            <div
-              className={cn(
-                "grid gap-3 md:grid-cols-2",
-                summary.linear > 0 ? "xl:grid-cols-4" : "xl:grid-cols-3",
-              )}
-            >
+          <div
+            className={cn(
+              "grid gap-3 md:grid-cols-2 xl:grid-cols-1",
+            )}
+          >
+            <StatCard
+              title="Revenue"
+              value={formatETB(summary.revenue)}
+              subtext="At recorded sale prices"
+              icon={Banknote}
+              variant="primary"
+            />
+            <StatCard
+              title="Tiles sold"
+              value={`${formatNumber(summary.sqm)} m²`}
+              icon={Layers}
+              variant="success"
+            />
+            {summary.linear > 0 && (
               <StatCard
-                title="Revenue"
-                value={formatETB(summary.revenue)}
-                subtext="At recorded sale prices"
-                icon={Banknote}
-                variant="primary"
+                title="Skirting sold"
+                value={`${formatNumber(summary.linear)} m`}
+                icon={Ruler}
+                variant="info"
               />
-              <StatCard
-                title="Tiles sold"
-                value={`${formatNumber(summary.sqm)} m²`}
-                icon={Layers}
-                variant="success"
-              />
-              {summary.linear > 0 && (
-                <StatCard
-                  title="Skirting sold"
-                  value={`${formatNumber(summary.linear)} m`}
-                  icon={Ruler}
-                  variant="info"
-                />
-              )}
-              <StatCard
-                title="Transactions"
-                value={transactions.length.toLocaleString("en-US")}
-                subtext={`${transactions.filter((t) => !t.orderId).length} direct · ${transactions.filter((t) => t.orderId).length} orders`}
-                icon={Receipt}
-                variant="neutral"
-              />
-            </div>
-
-            {/* How the money came in */}
-            <div className="flex flex-wrap gap-x-6 gap-y-1.5 rounded-lg border bg-card px-4 py-3 text-sm">
-              {summary.byPayment.map((p) => (
-                <span key={p.key} className="tabular-nums">
-                  <span className="text-muted-foreground">{p.label}</span>{" "}
-                  <span className="font-semibold">{formatETB(p.amount)}</span>
-                </span>
-              ))}
-            </div>
-
-            <div className="overflow-hidden rounded-lg border bg-card">
-              <div className="overflow-x-auto">
-                <Table className="min-w-190">
-                  <TableHeader>
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className={cn(TH, "w-20 pl-4")}>Time</TableHead>
-                      <TableHead className={TH}>Source</TableHead>
-                      <TableHead className={TH}>Product</TableHead>
-                      <TableHead className={cn(TH, "text-right")}>Qty</TableHead>
-                      <TableHead className={cn(TH, "text-right")}>Price</TableHead>
-                      <TableHead className={cn(TH, "pr-4 text-right")}>Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {transactions.map((t) => {
-                      const highlighted = !!highlightOrderId && t.orderId === highlightOrderId;
-                      const source = (
-                        <div className="flex flex-col gap-1">
-                          <span className="text-sm">
-                            {t.orderId ? (
-                              <>
-                                Order{" "}
-                                <span className="font-mono text-xs">#{t.orderId.slice(0, 8)}</span>
-                              </>
-                            ) : (
-                              "Direct sale"
-                            )}
-                          </span>
-                          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            {t.sellerName ?? "Unknown seller"}
-                            {t.paymentMethod && (
-                              <Badge variant="outline" className="h-4 px-1.5 text-[10px]">
-                                {PAYMENT_LABEL[t.paymentMethod]}
-                              </Badge>
-                            )}
-                          </span>
-                        </div>
-                      );
-
-                      // Single-item transactions take one row; multi-item
-                      // orders get a header row and indented lines.
-                      if (t.items.length === 1) {
-                        return (
-                          <SaleRow
-                            key={t.key}
-                            time={formatTime(t.at)}
-                            source={source}
-                            sale={t.items[0]}
-                            highlighted={highlighted}
-                          />
-                        );
-                      }
-                      return (
-                        <Fragment key={t.key}>
-                          <TableRow className={cn("hover:bg-transparent", highlighted && "bg-primary/8")}>
-                            <TableCell className="pl-4 align-top text-sm tabular-nums text-muted-foreground">
-                              {formatTime(t.at)}
-                            </TableCell>
-                            <TableCell className="align-top">{source}</TableCell>
-                            <TableCell colSpan={3} className="align-top text-sm text-muted-foreground">
-                              {t.items.length} items
-                            </TableCell>
-                            <TableCell className="pr-4 text-right align-top font-semibold tabular-nums">
-                              {formatETB(t.total)}
-                            </TableCell>
-                          </TableRow>
-                          {t.items.map((s, i) => (
-                            <SaleRow
-                              key={s.id}
-                              sale={s}
-                              nested
-                              last={i === t.items.length - 1}
-                              highlighted={highlighted}
-                            />
-                          ))}
-                        </Fragment>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
+            )}
+            <StatCard
+              title="Transactions"
+              value={transactions.length.toLocaleString("en-US")}
+              subtext={`${transactions.filter((t) => !t.orderId).length} direct · ${transactions.filter((t) => t.orderId).length} orders`}
+              icon={Receipt}
+              variant="neutral"
+            />
+          </div>
+          <div className="flex flex-wrap gap-x-6 gap-y-1.5 rounded-[20px] bg-card px-5 py-3.5 text-sm">
+            {summary.byPayment.map((p) => (
+              <span key={p.key} className="tabular-nums">
+                <span className="text-muted-foreground">{p.label}</span>{" "}
+                <span className="font-semibold">{formatETB(p.amount)}</span>
+              </span>
+            ))}
+          </div>
           </>
         )}
-      </div>
-    </div>
+        </>
+      }
+    >
+
+      {isLoading ? (
+        <DaySkeleton />
+      ) : isError ? (
+        <EmptyState
+          icon={Receipt}
+          variant="warning"
+          title="Couldn't load this day"
+          description="Check your connection and try again."
+        />
+      ) : transactions.length === 0 ? (
+        <EmptyState icon={Receipt} title="No sales on this day" description="Use the arrows to move to another day." />
+      ) : (
+        <>
+
+
+          <div className="flex min-h-0 flex-col overflow-hidden rounded-[20px] bg-card">
+            <div className="min-h-0 flex-1 overflow-auto">
+              <Table className="min-w-190">
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className={cn(TH, "w-20 pl-4")}>Time</TableHead>
+                    <TableHead className={TH}>Source</TableHead>
+                    <TableHead className={TH}>Product</TableHead>
+                    <TableHead className={cn(TH, "text-right")}>Qty</TableHead>
+                    <TableHead className={cn(TH, "text-right")}>Price</TableHead>
+                    <TableHead className={cn(TH, "pr-4 text-right")}>Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {transactions.map((t) => {
+                    const highlighted = !!highlightOrderId && t.orderId === highlightOrderId;
+                    const source = (
+                      <div className="flex flex-col gap-1">
+                        <span className="text-sm">
+                          {t.orderId ? (
+                            <>
+                              Order{" "}
+                              <span className="font-mono text-xs">#{t.orderId.slice(0, 8)}</span>
+                            </>
+                          ) : (
+                            "Direct sale"
+                          )}
+                        </span>
+                        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          {t.sellerName ?? "Unknown seller"}
+                          {t.paymentMethod && (
+                            <Badge variant="outline" className="h-4 px-1.5 text-[10px]">
+                              {PAYMENT_LABEL[t.paymentMethod]}
+                            </Badge>
+                          )}
+                        </span>
+                      </div>
+                    );
+
+                    // Single-item transactions take one row; multi-item
+                    // orders get a header row and indented lines.
+                    if (t.items.length === 1) {
+                      return (
+                        <SaleRow
+                          key={t.key}
+                          time={formatTime(t.at)}
+                          source={source}
+                          sale={t.items[0]}
+                          highlighted={highlighted}
+                        />
+                      );
+                    }
+                    return (
+                      <Fragment key={t.key}>
+                        <TableRow className={cn("hover:bg-transparent", highlighted && "bg-primary/8")}>
+                          <TableCell className="pl-4 align-top text-sm tabular-nums text-muted-foreground">
+                            {formatTime(t.at)}
+                          </TableCell>
+                          <TableCell className="align-top">{source}</TableCell>
+                          <TableCell colSpan={3} className="align-top text-sm text-muted-foreground">
+                            {t.items.length} items
+                          </TableCell>
+                          <TableCell className="pr-4 text-right align-top font-semibold tabular-nums">
+                            {formatETB(t.total)}
+                          </TableCell>
+                        </TableRow>
+                        {t.items.map((s, i) => (
+                          <SaleRow
+                            key={s.id}
+                            sale={s}
+                            nested
+                            last={i === t.items.length - 1}
+                            highlighted={highlighted}
+                          />
+                        ))}
+                      </Fragment>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </>
+      )}
+    </PageLayout>
   );
 }
 

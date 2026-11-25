@@ -16,6 +16,8 @@ import {
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { formatDateTime } from "@/lib/utils";
+import { PageHeader } from "@/components/page-header";
+import { PageLayout } from "@/components/page-layout";
 
 type Backup = { pathname: string; size: number; uploadedAt: string };
 type RestoreReport = {
@@ -91,55 +93,62 @@ export default function BackupsPage() {
     : [];
 
   return (
-    <div className="flex flex-col gap-4 h-full overflow-hidden animate-in fade-in duration-500">
-      <div className="flex shrink-0 items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Backups</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            A copy of all data and product images is saved off-site every night and kept for 30 days.
-          </p>
-        </div>
-        <Button onClick={() => { setMessage(null); backupNow.mutate(); }} disabled={busy}>
-          {backupNow.isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
-          Back up now
-        </Button>
-      </div>
-
-      {stale && (
-        <div className="flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/8 px-3 py-2.5 text-sm text-amber-700 dark:text-amber-400">
-          <AlertCircle className="mt-0.5 size-4 shrink-0" />
-          <span>
-            The latest backup is from {formatDateTime(backups![0].uploadedAt)} — the nightly backup hasn&apos;t run since.
-            Click “Back up now”, and check the Vercel cron job.
-          </span>
-        </div>
-      )}
-
-      {message && (
-        <div
-          className={
-            message.ok
-              ? "flex items-start gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/8 px-3 py-2.5 text-sm text-emerald-700 dark:text-emerald-400"
-              : "flex items-start gap-2 rounded-lg border border-destructive/15 bg-destructive/8 px-3 py-2.5 text-sm text-destructive"
+    <PageLayout
+      aside={
+        <>
+        <PageHeader
+          card
+          title="Backups"
+          description={<>A copy of all data and product images is saved off-site every night and kept for 30 days.</>}
+          actions={
+            <>
+              <Button onClick={() => { setMessage(null); backupNow.mutate(); }} disabled={busy}>
+                {backupNow.isPending ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
+                Back up now
+              </Button>
+            </>
           }
         >
-          {message.ok ? <CheckCircle2 className="mt-0.5 size-4 shrink-0" /> : <AlertCircle className="mt-0.5 size-4 shrink-0" />}
-          <div>
-            <p>{message.text}</p>
-            {changedTables.length > 0 && (
-              <ul className="mt-1 text-xs text-muted-foreground">
-                {changedTables.map(([table, t]) => (
-                  <li key={table}>
-                    {table}: {t.restored} restored{t.failed > 0 && `, ${t.failed} couldn't be restored`}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </div>
-      )}
+          {stale && (
+            <div className="flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/8 px-3 py-2.5 text-sm text-amber-700 dark:text-amber-400">
+              <AlertCircle className="mt-0.5 size-4 shrink-0" />
+              <span>
+                The latest backup is from {formatDateTime(backups![0].uploadedAt)} — the nightly backup hasn&apos;t run since.
+                Click “Back up now”, and check the Vercel cron job.
+              </span>
+            </div>
+          )}
+          {message && (
+            <div
+              className={
+                message.ok
+                  ? "flex items-start gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/8 px-3 py-2.5 text-sm text-emerald-700 dark:text-emerald-400"
+                  : "flex items-start gap-2 rounded-lg border border-destructive/15 bg-destructive/8 px-3 py-2.5 text-sm text-destructive"
+              }
+            >
+              {message.ok ? <CheckCircle2 className="mt-0.5 size-4 shrink-0" /> : <AlertCircle className="mt-0.5 size-4 shrink-0" />}
+              <div>
+                <p>{message.text}</p>
+                {changedTables.length > 0 && (
+                  <ul className="mt-1 text-xs text-muted-foreground">
+                    {changedTables.map(([table, t]) => (
+                      <li key={table}>
+                        {table}: {t.restored} restored{t.failed > 0 && `, ${t.failed} couldn't be restored`}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
+        </PageHeader>
+        </>
+      }
+    >
 
-      <div className="flex-1 overflow-auto rounded-lg border">
+
+
+      <div className="min-h-0 overflow-auto rounded-[20px] bg-card">
         {isLoading ? (
           <div className="space-y-2 p-4">
             {Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-10 w-full" />)}
@@ -208,6 +217,6 @@ export default function BackupsPage() {
           setRestoreTarget(null);
         }}
       />
-    </div>
+    </PageLayout>
   );
 }
