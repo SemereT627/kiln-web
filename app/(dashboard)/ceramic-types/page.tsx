@@ -67,6 +67,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PageHeader } from "@/components/page-header";
+import { PageLayout } from "@/components/page-layout";
 
 
 export default function CeramicTypesPage() {
@@ -267,30 +268,29 @@ export default function CeramicTypesPage() {
   ];
 
   return (
-    <div className="flex flex-col gap-4 h-full overflow-y-auto animate-in fade-in duration-500">
-      <PageHeader
-        title="Ceramic Types"
-        description="Define brand, size, and finish combinations."
-        actions={
-          <>
-            {isAdmin && (
-              <Button size="sm" onClick={handleAddClick}>
-                <Plus className="h-4 w-4" />
-                Add Type
-              </Button>
-            )}
-          </>
-        }
-      />
-
-      <div className="flex flex-col overflow-hidden rounded-lg border">
-        <div className="py-3.5 px-5 border-b shrink-0 bg-muted/30">
+    <PageLayout
+      aside={
+        <PageHeader
+          card
+          title="Ceramic Types"
+          description="Define brand, size, and finish combinations."
+          actions={
+            <>
+              {isAdmin && (
+                <Button size="sm" onClick={handleAddClick}>
+                  <Plus className="h-4 w-4" />
+                  Add Type
+                </Button>
+              )}
+            </>
+          }
+        >
           <div className="flex flex-wrap items-center gap-3">
             <div className="relative flex-1 min-w-[140px] max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search types by size..."
-                className="pl-9 h-9"
+                placeholder="Search types"
+                className="pl-9 h-9 rounded-full border-transparent bg-muted dark:bg-muted"
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -398,31 +398,35 @@ export default function CeramicTypesPage() {
               </Button>
             </div>
           </div>
-        </div>
+        </PageHeader>
+      }
+    >
+
+      <div className="flex min-h-0 flex-col overflow-hidden rounded-[20px] bg-card">
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex flex-col overflow-auto">
             <Table className="min-w-175">
               <TableHeader className="border-b">
                 <TableRow className="hover:bg-transparent">
                   <TableHead
-                    className="sticky top-0 z-10 bg-background pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    className="sticky top-0 z-10 bg-card pl-4 cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("size")}
                   >
                     <div className="flex items-center gap-1">
                       Size {getSortIcon("size")}
                     </div>
                   </TableHead>
-                  <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-card">
                     Brand
                   </TableHead>
-                  <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-card">
                     Finish
                   </TableHead>
-                  <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-card">
                     Unit
                   </TableHead>
                   <TableHead
-                    className="sticky top-0 z-10 bg-background text-right text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    className="sticky top-0 z-10 bg-card text-right cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("price_per_unit")}
                   >
                     <div className="flex items-center justify-end gap-1">
@@ -430,7 +434,7 @@ export default function CeramicTypesPage() {
                     </div>
                   </TableHead>
                   {isAdmin && (
-                    <TableHead className="sticky top-0 right-0 z-20 w-20 bg-background border-l text-center text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    <TableHead className="sticky top-0 right-0 z-20 w-20 bg-card text-center">
                       Actions
                     </TableHead>
                   )}
@@ -446,7 +450,7 @@ export default function CeramicTypesPage() {
                       <TableCell><Skeleton className="h-3.5 w-8" /></TableCell>
                       <TableCell><Skeleton className="h-3.5 w-16 ml-auto" /></TableCell>
                       {isAdmin && (
-                        <TableCell className="sticky right-0 z-10 bg-background border-l" />
+                        <TableCell className="sticky right-0 z-10 bg-card" />
                       )}
                     </TableRow>
                   ))
@@ -510,7 +514,7 @@ export default function CeramicTypesPage() {
                             : "—"}
                         </TableCell>
                         {isAdmin && (
-                          <TableCell className="sticky right-0 z-10 bg-background border-l transition-colors group-hover:bg-muted/40">
+                          <TableCell className="sticky right-0 z-10 bg-card transition-colors group-hover:bg-muted/40">
                             <DropdownMenu>
                               <div className="flex justify-center">
                                 <DropdownMenuTrigger asChild>
@@ -574,7 +578,7 @@ export default function CeramicTypesPage() {
                 />
               </PaginationItem>
               <PaginationItem>
-                <span className="flex h-8 items-center rounded-lg border bg-background px-3 text-xs font-medium tabular-nums">
+                <span className="flex h-8 items-center rounded-full bg-muted px-3 text-xs font-medium tabular-nums">
                   {currentPage} / {totalPages}
                 </span>
               </PaginationItem>
@@ -705,6 +709,6 @@ export default function CeramicTypesPage() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageLayout>
   );
 }

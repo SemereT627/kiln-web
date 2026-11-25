@@ -53,6 +53,7 @@ import { useUser } from "@/components/user-provider";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { PageHeader } from "@/components/page-header";
+import { PageLayout } from "@/components/page-layout";
 
 const supabase = createClient();
 
@@ -160,29 +161,28 @@ export default function BrandsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4 h-full overflow-y-auto animate-in fade-in duration-500">
-      <PageHeader
-        title="Brands"
-        description="Manage product brands for your catalog."
-        actions={
-          <>
-            {isAdmin && (
-              <Button size="sm" onClick={() => setIsModalOpen(true)}>
-                <Plus className="h-4 w-4" />
-                Add Brand
-              </Button>
-            )}
-          </>
-        }
-      />
-
-      <div className="flex flex-col overflow-hidden rounded-lg border">
-        <div className="py-3.5 px-5 border-b shrink-0 bg-muted/30">
+    <PageLayout
+      aside={
+        <PageHeader
+          card
+          title="Brands"
+          description="Manage product brands for your catalog."
+          actions={
+            <>
+              {isAdmin && (
+                <Button size="sm" onClick={() => setIsModalOpen(true)}>
+                  <Plus className="h-4 w-4" />
+                  Add Brand
+                </Button>
+              )}
+            </>
+          }
+        >
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search brands..."
-              className="pl-9 h-9"
+              className="pl-9 h-9 rounded-full border-transparent bg-muted dark:bg-muted"
               value={searchTerm}
               onChange={(e) => {
                 setSearchTerm(e.target.value);
@@ -190,14 +190,18 @@ export default function BrandsPage() {
               }}
             />
           </div>
-        </div>
+        </PageHeader>
+      }
+    >
+
+      <div className="flex min-h-0 flex-col overflow-hidden rounded-[20px] bg-card">
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex flex-col overflow-auto">
             <Table className="min-w-125">
               <TableHeader className="border-b">
                 <TableRow className="hover:bg-transparent">
                   <TableHead
-                    className="pl-4 sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    className="pl-4 sticky top-0 z-10 bg-card cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("name")}
                   >
                     <div className="flex items-center gap-1">
@@ -205,7 +209,7 @@ export default function BrandsPage() {
                     </div>
                   </TableHead>
                   <TableHead
-                    className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                    className="sticky top-0 z-10 bg-card cursor-pointer hover:text-foreground transition-colors"
                     onClick={() => handleSort("created_at")}
                   >
                     <div className="flex items-center gap-1">
@@ -213,7 +217,7 @@ export default function BrandsPage() {
                     </div>
                   </TableHead>
                   {isAdmin && (
-                    <TableHead className="sticky top-0 right-0 z-20 w-12 bg-background border-l text-center text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    <TableHead className="sticky top-0 right-0 z-20 w-12 bg-card text-center">
                       Actions
                     </TableHead>
                   )}
@@ -233,7 +237,7 @@ export default function BrandsPage() {
                         <Skeleton className="h-3.5 w-20" />
                       </TableCell>
                       {isAdmin && (
-                        <TableCell className="sticky right-0 z-10 bg-background border-l" />
+                        <TableCell className="sticky right-0 z-10 bg-card" />
                       )}
                     </TableRow>
                   ))
@@ -283,7 +287,7 @@ export default function BrandsPage() {
                         </span>
                       </TableCell>
                       {isAdmin && (
-                        <TableCell className="sticky right-0 z-10 bg-background border-l transition-colors group-hover:bg-muted/40">
+                        <TableCell className="sticky right-0 z-10 bg-card transition-colors group-hover:bg-muted/40">
                           <DropdownMenu>
                             <div className="flex justify-center">
                               <DropdownMenuTrigger asChild>
@@ -343,7 +347,7 @@ export default function BrandsPage() {
                 />
               </PaginationItem>
               <PaginationItem>
-                <span className="flex h-8 items-center rounded-lg border bg-background px-3 text-xs font-medium tabular-nums">
+                <span className="flex h-8 items-center rounded-full bg-muted px-3 text-xs font-medium tabular-nums">
                   {currentPage} / {totalPages}
                 </span>
               </PaginationItem>
@@ -413,6 +417,6 @@ export default function BrandsPage() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageLayout>
   );
 }

@@ -60,6 +60,8 @@ import {
   keepPreviousData,
 } from "@tanstack/react-query";
 import { useUser } from "@/components/user-provider";
+import { PageHeader } from "@/components/page-header";
+import { PageLayout } from "@/components/page-layout";
 
 interface CartLine {
   ceramicId: string;
@@ -308,39 +310,69 @@ export default function SalesPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4 pr-1 h-full overflow-hidden animate-in fade-in duration-500">
-      <div className="shrink-0">
-        <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-          New Sale
-        </h1>
-        <p className="text-muted-foreground text-sm mt-0.5">
-          Select products to add them to the transaction.
-        </p>
-      </div>
+    <PageLayout
+      className="xl:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]"
+      aside={
+        <>
+        <PageHeader
+          card
+          title="New Sale"
+          description={<>Select products to add them to the transaction.</>}
+        />
+        {cart.length > 0 && (
+          <div className="hidden xl:flex flex-col min-h-0 rounded-[20px] bg-card p-5 animate-in fade-in duration-300">
+            <div className="flex items-center justify-between border-b border-dashed pb-3 shrink-0">
+              <span className="flex items-center gap-2.5 text-base font-semibold">
+                <span className="flex size-8 items-center justify-center rounded-full bg-ink">
+                  <ShoppingCart className="h-4 w-4 text-ink-foreground" />
+                </span>
+                Transaction
+              </span>
+              <Badge variant="outline" className="font-normal">
+                {cart.length} item{cart.length !== 1 ? "s" : ""}
+              </Badge>
+            </div>
 
-      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-6 pb-2">
+            <div className="flex-1 pt-4 flex flex-col min-h-0">
+              <CartPanelBody
+                cart={cart}
+                cartTotal={cartTotal}
+                cartHasIssues={cartHasIssues}
+                status={status}
+                pending={checkoutMutation.isPending}
+                onQtyChange={updateCartQty}
+                onPriceChange={updateCartPrice}
+                onRemove={removeCartLine}
+                onCheckout={handleCheckout}
+              />
+            </div>
+          </div>
+        )}
+        </>
+      }
+    >
+
         {/* Product Catalog — takes the full width until something's in the
             cart, so the Transaction panel doesn't reserve empty space up front. */}
         <div
           className={cn(
             "flex flex-col min-h-0 gap-4",
-            cart.length > 0 ? "lg:col-span-8" : "lg:col-span-12",
-            cart.length > 0 && "pb-20 lg:pb-0",
+            cart.length > 0 && "pb-20 xl:pb-0",
           )}
         >
           <div
             className={cn(
-              "flex-1 min-h-0 flex flex-col rounded-lg border overflow-hidden transition-opacity duration-200",
+              "min-h-0 flex flex-col rounded-[20px] bg-card overflow-hidden transition-opacity duration-200",
               isFetching && !isLoading && "opacity-50 pointer-events-none",
             )}
           >
-            <div className="bg-muted/30 border-b shrink-0 py-3.5 px-4">
+            <div className="border-b border-dashed shrink-0 py-4 px-4">
               <div className="flex flex-wrap items-center gap-3">
                 <div className="relative flex-1 min-w-25 max-w-sm">
                   <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search by name, ID, or brand..."
-                    className="pl-8 bg-background h-9"
+                    className="pl-8 h-9 rounded-full border-transparent bg-muted dark:bg-muted"
                     value={searchTerm}
                     onChange={(e) => {
                       setSearchTerm(e.target.value);
@@ -379,16 +411,16 @@ export default function SalesPage() {
               <Table containerClassName="flex-1 min-h-0 overflow-auto">
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="sticky top-0 z-10 bg-background pl-4">
+                    <TableHead className="sticky top-0 z-10 bg-card pl-4">
                       Product
                     </TableHead>
-                    <TableHead className="sticky top-0 z-10 bg-background">
+                    <TableHead className="sticky top-0 z-10 bg-card">
                       Brand · Size
                     </TableHead>
-                    <TableHead className="sticky top-0 z-10 bg-background text-right">
+                    <TableHead className="sticky top-0 z-10 bg-card text-right">
                       Stock
                     </TableHead>
-                    <TableHead className="sticky top-0 z-10 bg-background text-right pr-4">
+                    <TableHead className="sticky top-0 z-10 bg-card text-right pr-4">
                       Price
                     </TableHead>
                   </TableRow>
@@ -519,7 +551,7 @@ export default function SalesPage() {
                     />
                   </PaginationItem>
                   <PaginationItem>
-                    <span className="flex h-8 items-center rounded-lg border bg-background px-3 text-xs font-medium tabular-nums">
+                    <span className="flex h-8 items-center rounded-full bg-muted px-3 text-xs font-medium tabular-nums">
                       {currentPage} / {totalPages}
                     </span>
                   </PaginationItem>
@@ -542,45 +574,13 @@ export default function SalesPage() {
           )}
         </div>
 
-        {/* Transaction Panel — only takes up space once there's something to
-            check out, sliding in from the right instead of sitting empty. */}
-        {cart.length > 0 && (
-          <div className="hidden lg:col-span-4 lg:flex flex-col min-h-0 animate-in slide-in-from-right-8 fade-in duration-300">
-            <div className="flex items-center justify-between border-b pb-3 shrink-0">
-              <span className="flex items-center gap-2.5 text-base font-semibold">
-                <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10">
-                  <ShoppingCart className="h-4 w-4 text-primary" />
-                </span>
-                Transaction
-              </span>
-              <Badge variant="outline" className="font-normal">
-                {cart.length} item{cart.length !== 1 ? "s" : ""}
-              </Badge>
-            </div>
 
-            <div className="flex-1 pt-4 flex flex-col min-h-0">
-              <CartPanelBody
-                cart={cart}
-                cartTotal={cartTotal}
-                cartHasIssues={cartHasIssues}
-                status={status}
-                pending={checkoutMutation.isPending}
-                onQtyChange={updateCartQty}
-                onPriceChange={updateCartPrice}
-                onRemove={removeCartLine}
-                onCheckout={handleCheckout}
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Floating transaction bar — below lg, mirrors the kiln-mobile cart bar */}
+      {/* Floating transaction bar — below xl, mirrors the kiln-mobile cart bar */}
       {cart.length > 0 && (
         <button
           type="button"
           onClick={() => setCartSheetOpen(true)}
-          className="lg:hidden fixed bottom-4 left-4 right-4 z-30 flex items-center gap-3 rounded-2xl bg-primary px-4 py-3.5 text-primary-foreground shadow-lg shadow-primary/30 animate-in slide-in-from-bottom-4"
+          className="xl:hidden fixed bottom-4 left-4 right-4 z-30 flex items-center gap-3 rounded-2xl bg-primary px-4 py-3.5 text-primary-foreground shadow-lg shadow-primary/30 animate-in slide-in-from-bottom-4"
         >
           <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-white/25 px-1.5 text-xs font-bold">
             {cart.length}
@@ -595,7 +595,7 @@ export default function SalesPage() {
         </button>
       )}
 
-      {/* Transaction review sheet — below lg */}
+      {/* Transaction review sheet — below xl */}
       <Sheet open={cartSheetOpen} onOpenChange={setCartSheetOpen}>
         <SheetContent className="data-[side=right]:w-full data-[side=right]:sm:max-w-md flex flex-col gap-0 p-0">
           <SheetHeader className="border-b p-4 shrink-0">
@@ -717,7 +717,7 @@ export default function SalesPage() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </PageLayout>
   );
 }
 

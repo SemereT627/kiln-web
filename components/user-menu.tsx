@@ -17,7 +17,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { User, LogOut, ChevronsUpDown } from "lucide-react";
+import { User, LogOut, ChevronsUpDown, ChevronDown } from "lucide-react";
 
 /** Mirrors the trigger's layout exactly, so nothing shifts once the user loads. */
 function UserMenuSkeleton() {
@@ -54,7 +54,11 @@ function EmailWithBreak({ email }: { email?: string | null }) {
   );
 }
 
-export function UserMenu() {
+/**
+ * Account menu. `sidebar` sits in the phone menu's footer; `pill` is the
+ * white avatar + name + email pill at the right of the desktop top nav.
+ */
+export function UserMenu({ variant = "sidebar" }: { variant?: "sidebar" | "pill" }) {
   const router = useRouter();
   const user = useUser();
   const isLoading = useUserLoading();
@@ -72,36 +76,21 @@ export function UserMenu() {
     router.push("/login");
   }
 
-  if (isLoading && !user) return <UserMenuSkeleton />;
+  const pill = variant === "pill";
+  if (isLoading && !user) {
+    return pill ? <Skeleton className="h-14 w-14 rounded-full xl:w-60" /> : <UserMenuSkeleton />;
+  }
 
-  return (
-    <SidebarMenu>
-      <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <SidebarMenuButton className="h-auto min-h-11 py-1.5 px-2.5 gap-2.5 rounded-lg hover:bg-muted data-[state=open]:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full">
-              <div className="h-8 w-8 rounded-full bg-primary/10 text-primary ring-1 ring-primary/15 flex items-center justify-center text-xs font-bold shrink-0">
-                {initials}
-              </div>
-              <div
-                className="flex flex-1 flex-col items-start min-w-0 text-left leading-tight group-data-[collapsible=icon]:hidden"
-                title={[user?.full_name, user?.email].filter(Boolean).join("\n")}
-              >
-                <span className="text-sm font-semibold text-foreground truncate w-full">
-                  {user?.full_name ?? "User"}
-                </span>
-                <span className="text-[11px] text-muted-foreground truncate w-full mt-0.5">
-                  {user?.email}
-                </span>
-              </div>
-              <ChevronsUpDown className="ml-auto size-4 text-muted-foreground shrink-0 group-data-[collapsible=icon]:hidden" />
-            </SidebarMenuButton>
-          </DropdownMenuTrigger>
+  const content = (
           <DropdownMenuContent
-            side="top"
+            side={pill ? "bottom" : "top"}
             align="end"
             sideOffset={8}
-            className="w-(--radix-dropdown-menu-trigger-width) rounded-xl p-1 mb-2 shadow-xs"
+            className={
+              pill
+                ? "w-60 rounded-xl p-1 shadow-xs"
+                : "w-(--radix-dropdown-menu-trigger-width) rounded-xl p-1 mb-2 shadow-xs"
+            }
           >
             <div className="px-2 py-1.5">
               <p className="text-xs font-semibold break-words">
@@ -130,6 +119,53 @@ export function UserMenu() {
               Sign Out
             </DropdownMenuItem>
           </DropdownMenuContent>
+  );
+
+  if (pill) {
+    return (
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          className="flex h-14 shrink-0 items-center gap-3 rounded-full bg-card p-2 outline-none transition-colors hover:bg-card/80 focus-visible:ring-2 focus-visible:ring-ring/50 data-[state=open]:ring-1 data-[state=open]:ring-border xl:pr-4"
+          title={[user?.full_name, user?.email].filter(Boolean).join("\n")}
+        >
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+            {initials}
+          </span>
+          <span className="hidden min-w-0 max-w-44 flex-col items-start text-left leading-tight xl:flex">
+            <span className="w-full truncate text-sm font-semibold">{user?.full_name ?? "User"}</span>
+            <span className="mt-0.5 w-full truncate text-[11px] text-muted-foreground">{user?.email}</span>
+          </span>
+          <ChevronDown className="hidden size-4 shrink-0 xl:block" />
+        </DropdownMenuTrigger>
+        {content}
+      </DropdownMenu>
+    );
+  }
+
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <SidebarMenuButton className="h-auto min-h-11 py-1.5 px-2.5 gap-2.5 rounded-lg hover:bg-muted data-[state=open]:bg-muted focus-visible:ring-2 focus-visible:ring-ring/50 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:h-10 group-data-[collapsible=icon]:w-10 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:rounded-full">
+              <div className="h-8 w-8 rounded-full bg-primary/10 text-primary ring-1 ring-primary/15 flex items-center justify-center text-xs font-bold shrink-0">
+                {initials}
+              </div>
+              <div
+                className="flex flex-1 flex-col items-start min-w-0 text-left leading-tight group-data-[collapsible=icon]:hidden"
+                title={[user?.full_name, user?.email].filter(Boolean).join("\n")}
+              >
+                <span className="text-sm font-semibold text-foreground truncate w-full">
+                  {user?.full_name ?? "User"}
+                </span>
+                <span className="text-[11px] text-muted-foreground truncate w-full mt-0.5">
+                  {user?.email}
+                </span>
+              </div>
+              <ChevronsUpDown className="ml-auto size-4 text-muted-foreground shrink-0 group-data-[collapsible=icon]:hidden" />
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+          {content}
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>

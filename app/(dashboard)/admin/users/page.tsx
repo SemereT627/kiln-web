@@ -41,6 +41,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog";
 import { toast } from "sonner";
 import { cn, formatDate } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
+import { PageLayout } from "@/components/page-layout";
 
 type Role = "admin" | "seller" | "viewer";
 
@@ -238,38 +239,28 @@ export default function AdminUsersPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4 h-full overflow-hidden animate-in fade-in duration-500">
-      <PageHeader
-        title="Users"
-        description="Manage roles and permissions for all registered users."
-        actions={
-          <>
-            <Button size="sm" onClick={() => setAddUserOpen(true)}>
-              <UserPlus className="size-4" />
-              Add User
-            </Button>
-          </>
-        }
-      />
-
-      <AccessRequestsPanel />
-
-      <AddUserForm
-        open={addUserOpen}
-        onOpenChange={setAddUserOpen}
-        onSuccess={() =>
-          queryClient.invalidateQueries({ queryKey: ["admin", "users"] })
-        }
-      />
-
-      <div className="flex-1 flex flex-col overflow-hidden rounded-lg border">
-        <div className="py-3.5 px-5 border-b shrink-0 bg-muted/30">
+    <PageLayout
+      aside={
+        <>
+        <PageHeader
+          card
+          title="Users"
+          description="Manage roles and permissions for all registered users."
+          actions={
+            <>
+              <Button size="sm" onClick={() => setAddUserOpen(true)}>
+                <UserPlus className="size-4" />
+                Add User
+              </Button>
+            </>
+          }
+        >
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="relative flex-1 min-w-[160px] max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search by name or email..."
-                className="pl-9 h-9"
+                placeholder="Search users"
+                className="pl-9 h-9 rounded-full border-transparent bg-muted dark:bg-muted"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -290,25 +281,40 @@ export default function AdminUsersPage() {
                 : `${users.length} total users`}
             </div>
           </div>
-        </div>
+        </PageHeader>
+        </>
+      }
+    >
+
+      <AccessRequestsPanel />
+
+      <AddUserForm
+        open={addUserOpen}
+        onOpenChange={setAddUserOpen}
+        onSuccess={() =>
+          queryClient.invalidateQueries({ queryKey: ["admin", "users"] })
+        }
+      />
+
+      <div className="min-h-0 flex flex-col overflow-hidden rounded-[20px] bg-card">
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 flex flex-col overflow-auto">
             <Table className="min-w-200">
               <TableHeader className="border-b">
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="sticky top-0 z-10 bg-background pl-4 text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-card pl-4">
                     User
                   </TableHead>
-                  <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-card">
                     Email
                   </TableHead>
-                  <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-card">
                     Role
                   </TableHead>
-                  <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                  <TableHead className="sticky top-0 z-10 bg-card">
                     Joined
                   </TableHead>
-                  <TableHead className="sticky top-0 right-0 z-20 w-12 bg-background text-center text-[11px] uppercase tracking-wider font-semibold text-muted-foreground border-l">
+                  <TableHead className="sticky top-0 right-0 z-20 w-12 bg-card text-center">
                     Actions
                   </TableHead>
                 </TableRow>
@@ -329,7 +335,7 @@ export default function AdminUsersPage() {
                       <TableCell><Skeleton className="h-3.5 w-40" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-14 rounded-full" /></TableCell>
                       <TableCell><Skeleton className="h-3.5 w-20" /></TableCell>
-                      <TableCell className="sticky right-0 z-10 bg-background border-l">
+                      <TableCell className="sticky right-0 z-10 bg-card">
                         <Skeleton className="h-8 w-8 mx-auto rounded-md" />
                       </TableCell>
                     </TableRow>
@@ -408,7 +414,7 @@ export default function AdminUsersPage() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="sticky right-0 z-10 bg-background border-l text-center transition-colors group-hover:bg-muted/40">
+                      <TableCell className="sticky right-0 z-10 bg-card text-center transition-colors group-hover:bg-muted/40">
                         {renderRoleAction(user)}
                       </TableCell>
                     </TableRow>
@@ -437,6 +443,6 @@ export default function AdminUsersPage() {
         confirmLabel="Reset 2FA"
         onConfirm={() => mfaResetTarget && resetMfaMutation.mutate(mfaResetTarget.id)}
       />
-    </div>
+    </PageLayout>
   );
 }

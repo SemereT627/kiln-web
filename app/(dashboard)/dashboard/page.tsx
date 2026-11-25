@@ -2,15 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
+import { useTranslations } from "next-intl";
+import { AlertTriangle, XCircle } from "lucide-react";
 import { cn, formatNumber } from "@/lib/utils";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardAction,
-} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -18,43 +13,37 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useQuery } from "@tanstack/react-query";
-import { Box, AlertTriangle, XCircle, ArrowUpRight, CheckCircle2 } from "lucide-react";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import { useTranslations } from "next-intl";
 import { useUser } from "@/components/user-provider";
-import {
-  BentoStatGrid,
-  type BrandShare,
-} from "@/components/dashboard/bento-stat-grid";
 import { StockBadge } from "@/components/stock-badge";
-import { SectionHeader } from "@/components/dashboard/section-header";
+import { WorkspaceCard } from "@/components/dashboard/workspace-card";
+import { StockGaugeCard } from "@/components/dashboard/stock-gauge-card";
+import { OrdersCard } from "@/components/dashboard/orders-card";
+import { SalesBreakdownCard } from "@/components/dashboard/sales-breakdown-card";
+import { TopProductsCard } from "@/components/dashboard/top-products-card";
+import { SellThroughCard } from "@/components/dashboard/sell-through-card";
+import { addisToday, useSalesDays } from "@/components/dashboard/sales-data";
 
-interface AlertItem {
+/** The fields of GET /api/ceramics this page reads. */
+interface Ceramic {
   _id: string;
   name: string;
   productId: string;
-  brand: string;
+  brand: string | null;
   size?: string | null;
+  imageUrl?: string | null;
   currentStock: number;
+  soldStock: number;
+  pricePerUnit?: number | null;
   measurementUnit: string | null;
 }
 
-// Shared between the "Attention Required" card and the low-stock modal so
-// both render the exact same row instead of two drifting copies. Rendered
-// inside a `divide-y` list; status is carried by the icon chip + badge only.
-function AlertRow({ item }: { item: AlertItem }) {
+// Low = 1–5 units left, out = nothing left; everything above is in stock.
+const LOW_STOCK_MAX = 5;
+
+// Shared by the attention dialog rows. Status is carried by the icon chip
+// + badge only.
+function AlertRow({ item }: { item: Ceramic }) {
   const unit = item.measurementUnit || "m²";
   const outOfStock = item.currentStock <= 0;
   const AlertIcon = outOfStock ? XCircle : AlertTriangle;
@@ -95,44 +84,21 @@ function AlertRow({ item }: { item: AlertItem }) {
   );
 }
 
-function SectionHeaderSkeleton() {
-  return (
-    <div className="space-y-2">
-      <Skeleton className="h-3 w-20" />
-      <Skeleton className="h-5 w-44" />
-      <Skeleton className="h-4 w-72 max-w-full" />
-    </div>
-  );
-}
-
-// Same style as AnalyticsSkeleton: solid blocks shaped like the real cards,
-// laid out on the same grid as the loaded dashboard.
+// Solid blocks shaped like the real cards, on the same grid as the page.
 function DashboardSkeleton() {
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex-1 min-h-0 -m-4 p-4 overflow-hidden space-y-5">
-        <section className="space-y-3">
-          <SectionHeaderSkeleton />
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-12">
-            {[...Array(4)].map((_, i) => (
-              <Skeleton key={i} className="h-32 rounded-2xl xl:col-span-3" />
-            ))}
-            <Skeleton className="h-68 rounded-2xl md:col-span-2 xl:col-span-6" />
-            <div className="grid gap-3 md:col-span-2 md:grid-cols-2 xl:col-span-6 xl:grid-cols-1">
-              <Skeleton className="h-32 rounded-2xl" />
-              <Skeleton className="h-32 rounded-2xl" />
-            </div>
-          </div>
-        </section>
-        {[0, 1].map((i) => (
-          <section key={i} className="space-y-3">
-            <SectionHeaderSkeleton />
-            <div className="grid gap-3 lg:grid-cols-7">
-              <Skeleton className="h-115 rounded-2xl lg:col-span-4" />
-              <Skeleton className="h-115 rounded-2xl lg:col-span-3" />
-            </div>
-          </section>
-        ))}
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,19rem)_minmax(0,1fr)]">
+      <div className="flex flex-col gap-4">
+        <Skeleton className="h-16 rounded-[20px]" />
+        <Skeleton className="h-80 rounded-[20px]" />
+        <Skeleton className="h-96 rounded-[20px]" />
+      </div>
+      <div className="flex flex-col gap-4">
+        <Skeleton className="h-112 rounded-[20px]" />
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Skeleton className="h-80 rounded-[20px]" />
+          <Skeleton className="h-80 rounded-[20px]" />
+        </div>
       </div>
     </div>
   );
@@ -142,432 +108,136 @@ export default function Dashboard() {
   const t = useTranslations("Dashboard");
   const user = useUser();
   const isAdmin = user?.role === "admin";
+  // Viewers can't read orders (GET /api/orders is admin + seller only).
+  const canSeeOrders = !!user && user.role !== "viewer";
   const [valueRevealed, setValueRevealed] = useState(false);
-  const [lowStockOpen, setLowStockOpen] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(false);
 
-  const { data: response, isLoading } = useQuery({
+  const ceramics = useQuery({
     queryKey: ["ceramics", "all"],
     queryFn: async () => {
       const res = await fetch("/api/ceramics?limit=-1");
       if (!res.ok) throw new Error("Failed to fetch dashboard data");
-      return res.json();
+      return res.json() as Promise<{ data: Ceramic[] }>;
     },
   });
+  const sales = useSalesDays();
 
-  const data: any[] = response?.data || [];
+  if (ceramics.isLoading) return <DashboardSkeleton />;
 
-  if (isLoading) return <DashboardSkeleton />;
+  const data = ceramics.data?.data ?? [];
+  const salesDays = sales.data?.days ?? [];
+  const today = sales.data?.today ?? addisToday();
+  const salesFrom = sales.data?.from ?? today;
 
-  // Separate ZEKOLO (linear m) from regular tiles (m²)
-  const sqmItems = data.filter((i) => (i.measurementUnit || "m²") === "m²");
-  const linItems = data.filter((i) => i.measurementUnit === "m");
-  const otherItems = data.filter((i) => i.measurementUnit === "pcs");
+  const tiles = data.filter((i) => (i.measurementUnit || "m²") === "m²");
+  const totalTileSold = tiles.reduce((a, i) => a + i.soldStock, 0);
 
-  const totalSqmStock = sqmItems.reduce((a, i) => a + i.currentStock, 0);
-  const totalSqmSold = sqmItems.reduce((a, i) => a + i.soldStock, 0);
-  const totalLinStock = linItems.reduce((a, i) => a + i.currentStock, 0);
-  const totalLinSold = linItems.reduce((a, i) => a + i.soldStock, 0);
+  // Total stock value (qty × price_per_unit where available) — admin only.
+  const totalStockValue = data.reduce(
+    (acc, i) => (i.pricePerUnit != null ? acc + i.currentStock * i.pricePerUnit : acc),
+    0,
+  );
 
-  // Total stock value (qty × price_per_unit where available)
-  const totalStockValue = data.reduce((acc, i) => {
-    if (i.pricePerUnit != null) return acc + i.currentStock * i.pricePerUnit;
-    return acc;
-  }, 0);
-
-  const lowStockItems = data
-    .filter((i) => i.currentStock > 0 && i.currentStock <= 5)
-    .sort((a, b) => a.currentStock - b.currentStock);
-  const lowStockCount = lowStockItems.length;
-
-  // Chart: top 8 m² products by current stock, excluding ZEKOLO
-  const chartData = [...sqmItems]
-    .sort((a, b) => b.currentStock - a.currentStock)
-    .slice(0, 8)
-    .map((i) => ({
-      name: i.productId,
-      stock: +i.currentStock.toFixed(2),
-      sold: +i.soldStock.toFixed(2),
-    }));
-
-  // Alerts: low or out-of-stock products, worst first
+  // Stock status counts, and the low/out list worst first.
   const alerts = data
-    .filter((i) => i.currentStock <= 5)
+    .filter((i) => i.currentStock <= LOW_STOCK_MAX)
     .sort((a, b) => a.currentStock - b.currentStock);
-  const topAlert = alerts[0]
-    ? {
-        name: alerts[0].productId,
-        stock: alerts[0].currentStock,
-        unit: alerts[0].measurementUnit || "m²",
-      }
-    : null;
+  const outCount = alerts.filter((i) => i.currentStock <= 0).length;
+  const lowCount = alerts.length - outCount;
 
-  // Stock share by brand (m² items), with product count and all-time sold
-  // per brand for the breakdown table.
-  const brandMap = new Map<string, { stock: number; sold: number; products: number }>();
-  for (const i of sqmItems) {
-    const key = i.brand || "Unknown";
-    const entry = brandMap.get(key) ?? { stock: 0, sold: 0, products: 0 };
-    entry.stock += i.currentStock;
-    entry.sold += i.soldStock;
-    entry.products += 1;
-    brandMap.set(key, entry);
+  // All-time tile sales per brand, top 3.
+  const brandSold = new Map<string, number>();
+  for (const i of tiles) {
+    const key = i.brand || "—";
+    brandSold.set(key, (brandSold.get(key) ?? 0) + i.soldStock);
   }
-  const toShare = (name: string, v: { stock: number; sold: number; products: number }) => ({
-    name,
-    value: +v.stock.toFixed(2),
-    sold: +v.sold.toFixed(2),
-    products: v.products,
-  });
-  // Top 5 brands, with the remainder folded into "Other" so shares sum to 100%
-  const sortedBrands = [...brandMap.entries()].sort((a, b) => b[1].stock - a[1].stock);
-  const brandShare: BrandShare[] =
-    sortedBrands.length > 6
-      ? [
-          ...sortedBrands.slice(0, 5).map(([name, v]) => toShare(name, v)),
-          {
-            ...toShare(
-              "__other__",
-              sortedBrands.slice(5).reduce(
-                (a, [, v]) => ({
-                  stock: a.stock + v.stock,
-                  sold: a.sold + v.sold,
-                  products: a.products + v.products,
-                }),
-                { stock: 0, sold: 0, products: 0 },
-              ),
-            ),
-            isOther: true,
-          },
-        ]
-      : sortedBrands.map(([name, v]) => toShare(name, v));
+  const topBrands = [...brandSold.entries()]
+    .map(([name, sold]) => ({ name, sold }))
+    .filter((b) => b.sold > 0)
+    .sort((a, b) => b.sold - a.sold)
+    .slice(0, 3);
 
-  // Stock by tile size (m² items): stock, product count and all-time sold
-  // per size, ranked by stock.
-  const sizeMap = new Map<string, { stock: number; sold: number; products: number }>();
-  for (const i of sqmItems) {
-    const key = i.size || "Unknown";
-    const entry = sizeMap.get(key) ?? { stock: 0, sold: 0, products: 0 };
-    entry.stock += i.currentStock;
-    entry.sold += i.soldStock;
-    entry.products += 1;
-    sizeMap.set(key, entry);
+  // Tile sold vs in stock per size, biggest total first.
+  const sizeMap = new Map<string, { sold: number; stock: number }>();
+  for (const i of tiles) {
+    const key = i.size || "—";
+    const e = sizeMap.get(key) ?? { sold: 0, stock: 0 };
+    e.sold += Math.max(0, i.soldStock);
+    e.stock += Math.max(0, i.currentStock);
+    sizeMap.set(key, e);
   }
-  const sizeRows = [...sizeMap.entries()]
+  const sizes = [...sizeMap.entries()]
     .map(([name, v]) => ({ name, ...v }))
-    .sort((a, b) => b.stock - a.stock);
-  const sizeTotal = sizeRows.reduce((a, r) => a + Math.max(0, r.stock), 0);
-  const sizeMax = Math.max(...sizeRows.map((r) => r.stock), 1);
-
-  const outOfStockCount = alerts.filter((i) => i.currentStock <= 0).length;
-  const lowOnlyCount = alerts.length - outOfStockCount;
+    .sort((a, b) => b.sold + b.stock - (a.sold + a.stock));
 
   return (
-    <div className="flex h-full flex-col animate-in fade-in duration-500">
-      {/* Bleeds to the layout's padded edges so content scrolls under the
-          top bar and to the very bottom instead of being clipped by <main>'s
-          padding, and card focus rings at the edges aren't cut off. */}
-      <div className="flex-1 min-h-0 -m-4 p-4 overflow-y-auto overflow-x-hidden space-y-5 no-scrollbar">
-        <section className="space-y-3">
-          <SectionHeader
-            eyebrow={t("overview.eyebrow")}
-            title={t("overview.title")}
-            description={t("overview.description")}
-          />
-          <BentoStatGrid
-            totalProducts={data.length}
-            tileStock={totalSqmStock}
-            tileSold={totalSqmSold}
-            tileProductCount={sqmItems.length}
-            lowStockCount={lowStockCount}
-            topAlert={topAlert}
-            onLowStockClick={() => setLowStockOpen(true)}
-            brandShare={brandShare}
-            stockValue={totalStockValue}
-            stockValueRevealed={valueRevealed}
-            onToggleStockValue={() => setValueRevealed((v) => !v)}
+    // On wide screens the dashboard fits the window: columns fill the height
+    // and long content scrolls inside its card, not the page.
+    <div className="animate-in fade-in duration-500 xl:h-full">
+      <div className="grid gap-4 xl:h-full xl:grid-cols-[minmax(0,19rem)_minmax(0,1fr)]">
+        {/* Left column */}
+        <div className="no-scrollbar flex min-w-0 flex-col gap-4 xl:min-h-0 xl:overflow-y-auto">
+          <WorkspaceCard
+            productCount={data.length}
             isAdmin={isAdmin}
-            totalSold={totalSqmSold}
-            skirtingStock={totalLinStock}
-            skirtingSold={totalLinSold}
-            skirtingProductCount={linItems.length}
-            otherPcs={otherItems.reduce((a, i) => a + i.currentStock, 0)}
+            stockValue={totalStockValue}
+            valueRevealed={valueRevealed}
+            onToggleValue={() => setValueRevealed((v) => !v)}
           />
-        </section>
-
-        {/* Charts + Recent Inventory */}
-        <section className="space-y-3">
-          <SectionHeader
-            eyebrow={t("trends.eyebrow")}
-            title={t("trends.title")}
-            description={t("trends.description")}
+          <StockGaugeCard
+            inStock={data.length - alerts.length}
+            low={lowCount}
+            out={outCount}
+            onOpenList={() => setAlertsOpen(true)}
           />
-          <div className="grid gap-3 lg:grid-cols-7 items-stretch">
-            {/* Bar chart — top tile products */}
-            <Card className="lg:col-span-4 h-115 flex flex-col shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-              <CardHeader className="shrink-0 flex flex-row items-start justify-between gap-4">
-                <div className="space-y-1.5">
-                  <CardTitle>{t("topTileProducts.title")}</CardTitle>
-                  <CardDescription>
-                    {t("topTileProducts.description")}
-                  </CardDescription>
-                </div>
-                {/* Plain HTML legend: Recharts' <Legend> measures itself into the chart store and loops ("Maximum update depth") while the sidebar resizes. */}
-                <div className="flex shrink-0 items-center gap-3 pt-0.5 text-xs text-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <span className="size-2 rounded-full bg-(--chart-1)" />
-                    {t("topTileProducts.currentStock")}
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <span className="size-2 rounded-full bg-(--chart-2) opacity-85" />
-                    {t("topTileProducts.totalSold")}
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1 min-h-0 pl-2">
-                <div className="h-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} barGap={6}>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        vertical={false}
-                        stroke="var(--border)"
-                      />
-                      <XAxis
-                        dataKey="name"
-                        fontSize={12}
-                        tickLine={false}
-                        axisLine={false}
-                        tick={{ fill: "var(--muted-foreground)" }}
-                      />
-                      <YAxis
-                        fontSize={12}
-                        tickLine={false}
-                        axisLine={false}
-                        tickFormatter={(v) => `${formatNumber(v, 0)} m²`}
-                        tick={{ fill: "var(--muted-foreground)" }}
-                      />
-                      <Tooltip
-                        contentStyle={{
-                          borderRadius: "10px",
-                          border: "1px solid var(--border)",
-                          background: "var(--popover)",
-                          color: "var(--popover-foreground)",
-                          boxShadow: "0 8px 24px -8px rgba(0,0,0,0.2)",
-                        }}
-                        cursor={{ fill: "var(--muted)", opacity: 0.4 }}
-                        formatter={(v, name) => [`${formatNumber(Number(v))} m²`, name]}
-                      />
-                      <Bar
-                        dataKey="stock"
-                        name={t("topTileProducts.currentStock")}
-                        fill="var(--chart-1)"
-                        radius={[6, 6, 0, 0]}
-                        barSize={22}
-                      />
-                      <Bar
-                        dataKey="sold"
-                        name={t("topTileProducts.totalSold")}
-                        fill="var(--chart-2)"
-                        radius={[6, 6, 0, 0]}
-                        barSize={22}
-                        opacity={0.85}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
+          <OrdersCard
+            className="xl:flex-1"
+            showOrders={canSeeOrders}
+            days={salesDays}
+            today={today}
+            from={salesFrom}
+            updatedAt={sales.dataUpdatedAt || undefined}
+            onRefresh={() => {
+              sales.refetch();
+              ceramics.refetch();
+            }}
+          />
+        </div>
 
-            {/* Recent inventory */}
-            <Card className="lg:col-span-3 h-115 flex flex-col shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-              <CardHeader className="shrink-0">
-                <CardTitle>{t("recentInventory.title")}</CardTitle>
-                <CardDescription>
-                  {t("recentInventory.description")}
-                </CardDescription>
-                <CardAction>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-primary hover:bg-primary/10 hover:text-primary"
-                    asChild
-                  >
-                    <Link href="/inventory">
-                      {t("recentInventory.viewAll")}
-                      <ArrowUpRight className="size-3.5" />
-                    </Link>
-                  </Button>
-                </CardAction>
-              </CardHeader>
-              <CardContent className="flex-1 min-h-0 overflow-y-auto pb-4">
-                <div className="divide-y">
-                  {data.slice(0, 5).map((item: any) => {
-                    const unit = item.measurementUnit || "m²";
-                    return (
-                      <Link
-                        key={item._id}
-                        href={`/inventory/${item._id}`}
-                        className="-mx-2 flex items-center gap-3 rounded-lg px-2 py-2.5 outline-none transition-colors hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring/50"
-                      >
-                        <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                          <Box className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium leading-tight truncate">
-                            {item.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1 truncate">
-                            {item.brand} · {item.size}
-                          </p>
-                        </div>
-                        <div className="flex flex-col items-end gap-1 shrink-0">
-                          <span className="text-sm font-semibold tabular-nums">
-                            {formatNumber(item.currentStock)} {unit}
-                          </span>
-                          {/* Only flag problems — a badge on every row is noise */}
-                          {item.currentStock <= 5 && (
-                            <StockBadge stock={item.currentStock} />
-                          )}
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              </CardContent>
-            </Card>
+        {/* Right column */}
+        <div className="flex min-w-0 flex-col gap-4 xl:min-h-0">
+          <SalesBreakdownCard
+            totalSold={totalTileSold}
+            topBrands={topBrands}
+            days={salesDays}
+            today={today}
+            isAdmin={isAdmin}
+          />
+          <div className="grid gap-4 lg:grid-cols-2 xl:min-h-0 xl:flex-1">
+            <TopProductsCard
+              className="min-h-0"
+              totalSold={totalTileSold}
+              products={tiles.map((i) => ({
+                id: i._id,
+                name: i.name,
+                imageUrl: i.imageUrl ?? null,
+                sold: i.soldStock,
+              }))}
+            />
+            <SellThroughCard className="min-h-0" sizes={sizes} isAdmin={isAdmin} />
           </div>
-        </section>
-
-        {/* Second row: Pie + Low stock list */}
-        <section className="space-y-3">
-          <SectionHeader
-            eyebrow={t("health.eyebrow")}
-            title={t("health.title")}
-            description={t("health.description")}
-          />
-          <div className="grid gap-3 lg:grid-cols-7 items-stretch">
-            {/* Stock by tile size — ranked bars (easier to compare than a donut)
-                with product count and all-time sales for context */}
-            <Card className="lg:col-span-4 h-115 flex flex-col shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-              <CardHeader className="shrink-0">
-                <CardTitle>{t("stockByTileSize.title")}</CardTitle>
-                <CardDescription>
-                  {t("stockByTileSize.description")}
-                </CardDescription>
-                <CardAction className="text-right">
-                  <p className="text-base font-semibold leading-tight tabular-nums">
-                    {formatNumber(sizeTotal, 0)} m²
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {t("stockByTileSize.totalStock")}
-                  </p>
-                </CardAction>
-              </CardHeader>
-              <CardContent className="flex-1 min-h-0 overflow-y-auto">
-                {sizeRows.length === 0 ? (
-                  <p className="py-10 text-center text-sm text-muted-foreground">
-                    {t("stockByTileSize.noData")}
-                  </p>
-                ) : (
-                  <ul className="space-y-5">
-                    {sizeRows.map((r) => {
-                      const pct = sizeTotal > 0 ? (Math.max(0, r.stock) / sizeTotal) * 100 : 0;
-                      return (
-                        <li key={r.name}>
-                          <div className="flex items-center gap-3">
-                            <span className="w-14 shrink-0 text-sm font-semibold">{r.name}</span>
-                            <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-muted" aria-hidden="true">
-                              <div
-                                className="h-full rounded-full bg-primary"
-                                style={{ width: `${Math.max(0, (r.stock / sizeMax) * 100)}%` }}
-                              />
-                            </div>
-                            <span className="w-20 shrink-0 text-right text-sm font-semibold tabular-nums">
-                              {formatNumber(r.stock, 0)} m²
-                            </span>
-                            <span className="w-9 shrink-0 text-right text-xs tabular-nums text-muted-foreground">
-                              {pct > 0 && pct < 1 ? "<1%" : `${Math.round(pct)}%`}
-                            </span>
-                          </div>
-                          <p className="mt-1 pl-17 text-xs text-muted-foreground">
-                            {t("stockByTileSize.rowDetail", {
-                              count: r.products,
-                              sold: formatNumber(r.sold, 0),
-                            })}
-                          </p>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Low / out of stock list */}
-            <Card className="lg:col-span-3 h-115 flex flex-col shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-              <CardHeader className="shrink-0">
-                <CardTitle>{t("attentionRequired.title")}</CardTitle>
-                <CardDescription>
-                  {t("attentionRequired.description")}
-                </CardDescription>
-                {alerts.length > 0 && (
-                  <CardAction className="flex items-center gap-1.5">
-                    {outOfStockCount > 0 && (
-                      <Badge className="bg-destructive/10 text-destructive tabular-nums">
-                        {t("attentionRequired.outCount", { count: outOfStockCount })}
-                      </Badge>
-                    )}
-                    {lowOnlyCount > 0 && (
-                      <Badge className="bg-warning/15 text-warning-foreground dark:text-warning tabular-nums">
-                        {t("attentionRequired.lowCount", { count: lowOnlyCount })}
-                      </Badge>
-                    )}
-                  </CardAction>
-                )}
-              </CardHeader>
-              {/* Bottom fade signals the list scrolls; extra bottom padding
-                  lets the last row clear the fade when scrolled to the end. */}
-              <CardContent className="flex-1 min-h-0 overflow-y-auto pb-8 [mask-image:linear-gradient(to_bottom,black_calc(100%-2.5rem),transparent)]">
-                {(() => {
-                  if (alerts.length === 0) {
-                    return (
-                      <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
-                        <div className="rounded-full bg-success/10 p-2.5">
-                          <CheckCircle2 className="h-5 w-5 text-success" />
-                        </div>
-                        <p className="text-sm font-medium text-foreground">
-                          {t("attentionRequired.allGood")}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {t("attentionRequired.allGoodDescription")}
-                        </p>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div className="divide-y">
-                      {alerts.map((item) => (
-                        <AlertRow key={item._id} item={item} />
-                      ))}
-                    </div>
-                  );
-                })()}
-              </CardContent>
-            </Card>
-          </div>
-        </section>
+        </div>
       </div>
 
-      <Dialog open={lowStockOpen} onOpenChange={setLowStockOpen}>
+      <Dialog open={alertsOpen} onOpenChange={setAlertsOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{t("lowStockModal.title")}</DialogTitle>
-            <DialogDescription>
-              {t("lowStockModal.description", { count: lowStockCount })}
-            </DialogDescription>
+            <DialogTitle>{t("attentionRequired.title")}</DialogTitle>
+            <DialogDescription>{t("attentionRequired.description")}</DialogDescription>
           </DialogHeader>
           <div className="max-h-100 divide-y overflow-y-auto pr-1">
-            {lowStockItems.map((item) => (
+            {alerts.map((item) => (
               <AlertRow key={item._id} item={item} />
             ))}
           </div>

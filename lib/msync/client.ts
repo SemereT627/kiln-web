@@ -8,9 +8,11 @@ export type Payment = {
   sender: string;
   body: string;
   receivedAt: string;
-  kind: "credit" | "other" | "unparsed";
+  /** credit = money received, debit = money sent, other = any other bank message. */
+  kind: "credit" | "debit" | "other" | "unparsed";
   bank: string | null;
-  amount: number | null;
+  /** Exact decimal text from mSync, e.g. "6300.00". Convert with Number() to display. */
+  amount: string | null;
   currency: string | null;
   payer: string | null;
   reference: string | null;

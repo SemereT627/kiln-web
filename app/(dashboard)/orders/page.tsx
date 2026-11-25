@@ -64,6 +64,8 @@ import { cn, formatETB, formatNumber } from "@/lib/utils";
 import { useOrdersRealtime } from "@/hooks/use-orders-realtime";
 import { useOrderMutations } from "@/hooks/use-order-mutations";
 import { useUser } from "@/components/user-provider";
+import { PageHeader } from "@/components/page-header";
+import { AsideCard, PageLayout } from "@/components/page-layout";
 
 type OrderStatus = "pending" | "approved" | "rejected";
 type FilterMode = OrderStatus | "unpaid_credit";
@@ -527,132 +529,134 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="flex flex-col gap-4 h-full animate-in fade-in duration-500 overflow-hidden">
-      <div className="flex flex-wrap items-center justify-between gap-4 shrink-0">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-            Order Approvals
-          </h1>
-          <p className="text-muted-foreground text-sm mt-0.5">
-            Review orders submitted by sellers before stock is deducted and a
-            sale is recorded.
-          </p>
-        </div>
-
-        {/* Outstanding credit — jumps to the Unpaid Credit tab */}
-        <button
-          type="button"
-          onClick={() => changeFilterMode("unpaid_credit")}
-          aria-label={`Outstanding credit: ${formatETB(outstandingTotal)} across ${outstandingOrders.length} unpaid orders. Show unpaid credit orders`}
-          className="flex shrink-0 items-center gap-3 rounded-xl border border-warning/30 bg-warning/5 px-3 py-2 text-left transition-colors outline-none hover:bg-warning/10 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+    <PageLayout
+      aside={
+        <>
+        <PageHeader
+          card
+          title="Order Approvals"
+          description={<>Review orders submitted by sellers before stock is deducted and a sale is recorded.</>}
         >
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-warning/15">
-            <Wallet className="size-4 text-warning-foreground dark:text-warning" />
-          </div>
-          <div>
-            <p className="text-xs font-medium text-muted-foreground">
-              Outstanding credit
-            </p>
-            <p className="text-base font-semibold leading-tight tabular-nums">
-              {formatETB(outstandingTotal)}
-              <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                · {outstandingOrders.length} unpaid order
-                {outstandingOrders.length !== 1 ? "s" : ""}
-              </span>
-            </p>
-          </div>
-        </button>
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-2 shrink-0">
-        <div className="inline-flex gap-1 rounded-lg border bg-muted/30 p-1 overflow-x-auto no-scrollbar -mx-1 px-1 sm:mx-0">
-          {STATUS_TABS.map((tab) => {
-            const active = filterMode === tab.value;
-            const count = tabCounts?.[tab.value];
-            return (
-              <button
-                key={tab.value}
-                onClick={() => changeFilterMode(tab.value)}
-                className={cn(
-                  "flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
-                  active
-                    ? "bg-background text-foreground shadow-xs"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {tab.label}
-                {count !== undefined && (
-                  <span
+          {/* Outstanding credit — jumps to the Unpaid Credit tab */}
+          <button
+            type="button"
+            onClick={() => changeFilterMode("unpaid_credit")}
+            aria-label={`Outstanding credit: ${formatETB(outstandingTotal)} across ${outstandingOrders.length} unpaid orders. Show unpaid credit orders`}
+            className="flex shrink-0 items-center gap-3 rounded-xl border border-warning/30 bg-warning/5 px-3 py-2 text-left transition-colors outline-none hover:bg-warning/10 focus-visible:ring-[3px] focus-visible:ring-ring/50"
+          >
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-warning/15">
+              <Wallet className="size-4 text-warning-foreground dark:text-warning" />
+            </div>
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">
+                Outstanding credit
+              </p>
+              <p className="text-base font-semibold leading-tight tabular-nums">
+                {formatETB(outstandingTotal)}
+                <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                  · {outstandingOrders.length} unpaid order
+                  {outstandingOrders.length !== 1 ? "s" : ""}
+                </span>
+              </p>
+            </div>
+          </button>
+        </PageHeader>
+        <AsideCard>
+          <div className="flex flex-col gap-3">
+            <div className="grid gap-1 rounded-2xl bg-muted p-1">
+              {STATUS_TABS.map((tab) => {
+                const active = filterMode === tab.value;
+                const count = tabCounts?.[tab.value];
+                return (
+                  <button
+                    key={tab.value}
+                    onClick={() => changeFilterMode(tab.value)}
                     className={cn(
-                      "rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums",
+                      "flex w-full items-center justify-between gap-1.5 rounded-xl px-3.5 py-2 text-left text-sm font-medium transition-colors",
                       active
-                        ? "bg-primary/10 text-primary"
-                        : "bg-muted text-muted-foreground",
+                        ? "bg-ink text-ink-foreground"
+                        : "text-muted-foreground hover:text-foreground",
                     )}
                   >
-                    {count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+                    {tab.label}
+                    {count !== undefined && (
+                      <span
+                        className={cn(
+                          "rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums",
+                          active
+                            ? "bg-ink-foreground/15 text-ink-foreground"
+                            : "bg-card text-muted-foreground",
+                        )}
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
 
-        <div className="flex items-center gap-2">
-          <Select
-            value={returnsFilter}
-            onValueChange={(v) => changeReturnsFilter(v as ReturnsFilter)}
-          >
-            <SelectTrigger
-              aria-label="Filter by returns"
-              className={cn(
-                "h-9 w-44 gap-2",
-                returnsFilter !== "all" && "text-foreground",
-              )}
-            >
-              <Undo2 className="h-4 w-4 text-muted-foreground" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {RETURNS_FILTERS.map((f) => (
-                <SelectItem key={f.value} value={f.value}>
-                  {f.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <div className="flex flex-col gap-2">
+              <Select
+                value={returnsFilter}
+                onValueChange={(v) => changeReturnsFilter(v as ReturnsFilter)}
+              >
+                <SelectTrigger
+                  aria-label="Filter by returns"
+                  className={cn(
+                    "h-9 w-full gap-2 rounded-full border-transparent bg-muted dark:bg-muted",
+                    returnsFilter !== "all" && "text-foreground",
+                  )}
+                >
+                  <Undo2 className="h-4 w-4 text-muted-foreground" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {RETURNS_FILTERS.map((f) => (
+                    <SelectItem key={f.value} value={f.value}>
+                      {f.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
 
-          <DateRangePicker
-            from={dateFrom}
-            to={dateTo}
-            onChange={changeDateRange}
-          />
-        </div>
-      </div>
+              <DateRangePicker
+                className="w-full"
+                from={dateFrom}
+                to={dateTo}
+                onChange={changeDateRange}
+              />
+            </div>
+          </div>
+        </AsideCard>
+        </>
+      }
+    >
 
-      <div className="flex-1 flex flex-col min-h-0 gap-3">
-        <div className="flex-1 flex flex-col overflow-hidden rounded-lg border">
+
+      <div className="flex flex-col min-h-0 gap-3">
+        <div className="min-h-0 flex flex-col overflow-hidden rounded-[20px] bg-card">
           <div className="flex-1 flex flex-col overflow-hidden">
             <div className="flex-1 flex flex-col overflow-auto">
               <Table className="min-w-175">
                 <TableHeader className="border-b">
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="pl-4 sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    <TableHead className="pl-4 sticky top-0 z-10 bg-card">
                       Seller
                     </TableHead>
-                    <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    <TableHead className="sticky top-0 z-10 bg-card">
                       Items
                     </TableHead>
-                    <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    <TableHead className="sticky top-0 z-10 bg-card">
                       Payment
                     </TableHead>
-                    <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    <TableHead className="sticky top-0 z-10 bg-card">
                       Date
                     </TableHead>
-                    <TableHead className="text-right sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    <TableHead className="text-right sticky top-0 z-10 bg-card">
                       Amount
                     </TableHead>
-                    <TableHead className="sticky top-0 z-10 bg-background text-[11px] uppercase tracking-wider font-semibold text-muted-foreground">
+                    <TableHead className="sticky top-0 z-10 bg-card">
                       Status
                     </TableHead>
                   </TableRow>
@@ -792,7 +796,7 @@ export default function OrdersPage() {
                   />
                 </PaginationItem>
                 <PaginationItem>
-                  <span className="flex h-8 items-center rounded-lg border bg-background px-3 text-xs font-medium tabular-nums">
+                  <span className="flex h-8 items-center rounded-full bg-muted px-3 text-xs font-medium tabular-nums">
                     {currentPage} / {totalPages}
                   </span>
                 </PaginationItem>
@@ -1326,6 +1330,6 @@ export default function OrdersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageLayout>
   );
 }

@@ -38,6 +38,7 @@ import { DateRangePicker } from "@/components/date-range-picker";
 import { EmptyState } from "@/components/empty-state";
 import { StatCard, type StatCardVariant } from "@/components/stat-card";
 import { SectionHeader } from "@/components/dashboard/section-header";
+import { PageHeader } from "@/components/page-header";
 import { cn, formatNumber, formatETB } from "@/lib/utils";
 
 // ── Types (mirror GET /api/analytics) ──────────────────────────────────
@@ -147,8 +148,6 @@ const TOOLTIP_STYLE = {
   boxShadow: "0 8px 24px -8px rgba(0,0,0,0.2)",
 };
 
-const CARD_CLASS = "shadow-[0_1px_2px_rgba(0,0,0,0.04)]";
-
 // ── Building blocks ────────────────────────────────────────────────────
 
 /** Percent change vs the previous period, coloured by direction. */
@@ -257,7 +256,7 @@ function Segmented<T extends string>({
   label: string;
 }) {
   return (
-    <div role="group" aria-label={label} className="inline-flex rounded-lg border bg-muted/40 p-0.5">
+    <div role="group" aria-label={label} className="inline-flex rounded-full bg-muted p-1">
       {options.map((o) => (
         <button
           key={o.key}
@@ -265,9 +264,9 @@ function Segmented<T extends string>({
           aria-pressed={value === o.key}
           onClick={() => onChange(o.key)}
           className={cn(
-            "h-7 rounded-md px-2.5 text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+            "h-7 rounded-full px-3 text-xs font-medium transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
             value === o.key
-              ? "bg-background text-foreground shadow-xs"
+              ? "bg-ink text-ink-foreground"
               : "text-muted-foreground hover:text-foreground",
           )}
         >
@@ -366,12 +365,11 @@ export default function AnalyticsPage() {
   return (
     <div className="flex h-full flex-col animate-in fade-in duration-500">
       <div className="flex-1 min-h-0 -m-4 p-4 overflow-y-auto overflow-x-hidden space-y-5 no-scrollbar">
-        {/* Header — same section heading as the dashboard, range controls right */}
-        <SectionHeader
-          eyebrow="Overview"
+        <PageHeader
+          wrap
           title="Sales performance"
           description="Sales, top sellers and stock health for the selected period."
-          action={
+          actions={
             <div className="flex flex-wrap items-center gap-2">
               <Segmented
                 label="Date range"
@@ -464,7 +462,7 @@ export default function AnalyticsPage() {
                 title="Sales over time"
                 description={`Per ${data.range.granularity} · ${data.range.days} days`}
               />
-              <Card className={CARD_CLASS}>
+              <Card>
                 <CardHeader>
                   <CardTitle>{trendMetric === "revenue" ? "Revenue (ETB)" : "Tiles sold (m²)"}</CardTitle>
                   <CardDescription>
@@ -541,7 +539,7 @@ export default function AnalyticsPage() {
                 description="Ranked by revenue for the selected period."
               />
               <div className="grid gap-3 lg:grid-cols-12">
-                <Card className={cn("lg:col-span-7", CARD_CLASS)}>
+                <Card className="lg:col-span-7">
                   <CardHeader>
                     <CardTitle>Top products</CardTitle>
                     <CardDescription>Best 10 by revenue</CardDescription>
@@ -589,7 +587,7 @@ export default function AnalyticsPage() {
                   </CardContent>
                 </Card>
 
-                <Card className={cn("lg:col-span-5", CARD_CLASS)}>
+                <Card className="lg:col-span-5">
                   <CardHeader>
                     <CardTitle>{breakdown === "brand" ? "By brand" : "By tile size"}</CardTitle>
                     <CardDescription>
@@ -647,7 +645,7 @@ export default function AnalyticsPage() {
                 title="Seller performance"
                 description="Who recorded the sales in this period."
               />
-              <Card className={CARD_CLASS}>
+              <Card>
                 <CardContent>
                   {data.sellers.length === 0 ? (
                     <p className="py-6 text-center text-sm text-muted-foreground">
@@ -730,7 +728,7 @@ export default function AnalyticsPage() {
                 />
               </div>
               <div className="grid gap-3 lg:grid-cols-2">
-                <Card className={CARD_CLASS}>
+                <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Hourglass className="size-4 text-warning-foreground dark:text-warning" />
@@ -760,7 +758,7 @@ export default function AnalyticsPage() {
                     />
                   </CardContent>
                 </Card>
-                <Card className={CARD_CLASS}>
+                <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Snail className="size-4 text-muted-foreground" />

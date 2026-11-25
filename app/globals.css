@@ -19,6 +19,8 @@
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
   --color-chart-5: var(--chart-5);
+  --color-ink: var(--ink);
+  --color-ink-foreground: var(--ink-foreground);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
@@ -55,7 +57,7 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
+  --background: oklch(0.962 0.003 265);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
@@ -79,6 +81,9 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.55 0.14 42);
+  /* Navy companion to the terracotta primary: icon chips, tabs, tooltips. */
+  --ink: oklch(0.25 0.05 265);
+  --ink-foreground: oklch(0.985 0 0);
   --chart-1: oklch(0.55 0.14 42);
   --chart-2: oklch(0.65 0.2 157.5);
   --chart-3: oklch(0.78 0.19 70);
@@ -103,17 +108,17 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --background: oklch(0.155 0.004 60);
   --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
+  --card: oklch(0.205 0.005 60);
   --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
+  --popover: oklch(0.205 0.005 60);
   --popover-foreground: oklch(0.985 0 0);
   --primary: oklch(0.68 0.14 42);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.269 0 0);
+  --secondary: oklch(0.265 0.005 60);
   --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
+  --muted: oklch(0.265 0.005 60);
   --muted-foreground: oklch(0.74 0 0);
   --accent: oklch(0.28 0.08 42);
   --accent-foreground: oklch(0.78 0.11 42);
@@ -124,9 +129,11 @@
   --warning-foreground: oklch(0.2 0.04 70);
   --info: oklch(0.68 0.18 230);
   --info-foreground: oklch(0.985 0 0);
-  --border: oklch(1 0 0 / 10%);
+  --border: oklch(1 0 0 / 7%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.68 0.14 42);
+  --ink: oklch(0.86 0.02 265);
+  --ink-foreground: oklch(0.2 0.02 265);
   --chart-1: oklch(0.68 0.14 42);
   --chart-2: oklch(0.68 0.2 157.5);
   --chart-3: oklch(0.8 0.19 70);
@@ -137,13 +144,13 @@
   --series-3: #199e70;
   --series-4: #c98500;
   --series-5: #d55181;
-  --sidebar: oklch(0.145 0 0);
+  --sidebar: oklch(0.155 0.004 60);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.68 0.14 42);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.28 0.08 42);
   --sidebar-accent-foreground: oklch(0.78 0.11 42);
-  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-border: oklch(1 0 0 / 7%);
   --sidebar-ring: oklch(0.68 0.14 42);
 }
 
@@ -159,6 +166,15 @@
     /* Fixed-width digits so stock, prices and dates line up in columns. */
     font-variant-numeric: tabular-nums;
   }
+}
+
+/* Diagonal hatch in the current text colour: inactive bars and empty tracks. */
+.bg-hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    currentColor 0 1.5px,
+    transparent 1.5px 6px
+  );
 }
 
 .no-scrollbar {
